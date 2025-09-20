@@ -1,0 +1,11 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.home, name='home'),
+    path('annunci/', views.lista_annunci, name='lista_annunci'),
+    path('crea-annuncio/', views.crea_annuncio, name='crea_annuncio'),
+    path('i-miei-annunci/', views.i_miei_annunci, name='i_miei_annunci'),
+    path('catene-scambio/', views.catene_scambio, name='catene_scambio'),
+    path('test-matching/', views.test_matching, name='test_matching'),
+]

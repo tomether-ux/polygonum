@@ -1,0 +1,44 @@
+{% extends 'scambi/base.html' %} {% block title %}Crea Annuncio - Sito di Scambi{% endblock %} {% block content %}
+Crea un Nuovo Annuncio
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}Tipo Annuncio {{ form.tipo }}
+Scegli se offri qualcosa o stai cercando qualcosa
+Titolo {{ form.titolo }}
+Es: "Chitarra elettrica Fender" o "Bicicletta da corsa"
+Categoria {{ form.categoria }}
+Descrizione {{ form.descrizione }}
+Descrivi dettagliatamente l'oggetto, le condizioni, ecc.
+Foto dell'oggetto {{ form.immagine }}
+Aggiungi una foto del tuo oggetto per renderlo più attraente
+
+<!-- Anteprima immagine -->
+<div id="image-preview-container" style="display: none;">
+    Anteprima:
+    <img id="image-preview" src="" alt="Anteprima" style="max-height: 200px;">
+</div>
+<button type="submit" class="btn btn-primary">Pubblica Annuncio</button>
+</form>
+Annulla Pubblica Annuncio
+Suggerimenti per annunci efficaci
+	•	Usa titoli chiari e descrittivi
+	•	Includi parole chiave che altri potrebbero cercare
+	•	Specifica marca, modello, condizioni
+	•	PiÃ¹ annunci aumentano le possibilitÃ  di scambio
+<script>
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const preview = document.getElementById('image-preview');
+            const container = document.getElementById('image-preview-container');
+            
+            preview.src = e.target.result;
+            container.style.display = 'block';
+        }
+        
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends 'scambi/base.html' %} {% block title %}Lista Annunci - Sito di Scambi{% endblock %} {% block content %}
+Tutti gli Annunci
+Scopri cosa offrono e cercano gli altri utenti
+                Tutti i tipi
+                Solo Offro
+                Solo Cerco
+            
+                Tutte le categorie
+                {% for categoria in categorie %}
+                    
+                        {{ categoria.nome }}
+                    
+                {% endfor %}
+            
+Crea Nuovo Annuncio
+{% if annunci %} {% for annuncio in annunci %}
+<!-- Immagine dell'annuncio -->
+{% if annuncio.immagine %}
+<img src="{{ annuncio.immagine.url }}" alt="{{ annuncio.titolo }}" style="width: 100%; height: 200px; object-fit: cover;">
+{% endif %}
+
+{% if annuncio.tipo == 'offro' %} 
+    <span style="background: green; color: white; padding: 2px 8px;">Offro</span> 
+{% else %} 
+    <span style="background: blue; color: white; padding: 2px 8px;">Cerco</span> 
+{% endif %}
+
+<h5>{{ annuncio.titolo }}</h5>
+<p>{{ annuncio.descrizione|truncatewords:20 }}</p>
+
+Categoria: {{ annuncio.categoria.nome }}<br>
+Utente: {{ annuncio.utente.username }}<br>
+Data: {{ annuncio.data_creazione|date:"d/m/Y" }}
+{% endfor %} {% else %}
+Nessun annuncio trovato
+Non ci sono annunci che corrispondono ai tuoi filtri.
+Rimuovi filtri Crea il primo annuncio
+{% endif %}
+{{ annunci|length }}
+Annunci visualizzati
+{{ categorie|length }}
+Categorie disponibili
+Trova Catene
+Scambi possibili
+{% endblock %}
