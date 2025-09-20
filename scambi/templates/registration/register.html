@@ -1,0 +1,23 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Registrazione - Polygonum{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Registrati su Polygonum</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-primary">Registrati</button>
+                    <a href="{% url 'login' %}" class="btn btn-link">Hai già un account? Accedi</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
