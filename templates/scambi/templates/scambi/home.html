@@ -1,0 +1,56 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Home - Sito di Scambi{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="jumbotron bg-light p-5 rounded mb-4">
+            <h1 class="display-4">Benvenuto nel Sito di Scambi!</h1>
+            <p class="lead">Scambia oggetti con altri utenti senza usare denaro. Il nostro algoritmo trova automaticamente catene di scambio che soddisfano tutti!</p>
+            <a class="btn btn-primary btn-lg" href="{% url 'crea_annuncio' %}">Crea il tuo primo annuncio</a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <h3>Annunci Recenti</h3>
+        {% if annunci_recenti %}
+            <div class="row">
+                {% for annuncio in annunci_recenti %}
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                {% if annuncio.tipo == 'offro' %}
+                                    <span class="badge bg-success">Offro</span>
+                                {% else %}
+                                    <span class="badge bg-info">Cerco</span>
+                                {% endif %}
+                                {{ annuncio.titolo }}
+                            </h5>
+                            <p class="card-text">{{ annuncio.descrizione|truncatewords:15 }}</p>
+                            <small class="text-muted">
+                                {{ annuncio.categoria.nome }} - {{ annuncio.utente.username }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>Nessun annuncio disponibile. <a href="{% url 'crea_annuncio' %}">Crea il primo!</a></p>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <h3>Categorie</h3>
+        {% for categoria in categorie %}
+            <a href="{% url 'lista_annunci' %}?categoria={{ categoria.id }}" class="btn btn-outline-primary btn-sm mb-2">
+                {{ categoria.nome }}
+            </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
