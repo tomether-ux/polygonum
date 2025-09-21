@@ -1,6 +1,7 @@
 from .models import Annuncio
 from django.contrib.auth.models import User
 from collections import defaultdict
+import re
 
 def trova_catene_scambio(max_lunghezza=6):
     """Trova catene di scambio con classificazione di qualità"""
@@ -183,40 +184,76 @@ def rimuovi_duplicati(catene):
     
     return catene_uniche
 
+def normalizza_testo(testo):
+    """Normalizza il testo per il matching"""
+    # Converti in minuscolo
+    testo = testo.lower()
+    
+    # Rimuovi prefissi comuni
+    prefissi = ['vendo ', 'offro ', 'cerco ', 'cerca ', 'scambio ']
+    for prefisso in prefissi:
+        if testo.startswith(prefisso):
+            testo = testo[len(prefisso):]
+    
+    # Rimuovi punteggiatura e caratteri speciali
+    testo = re.sub(r'[^\w\s]', ' ', testo)
+    
+    # Rimuovi spazi multipli
+    testo = ' '.join(testo.split())
+    
+    return testo
+
+def estrai_parole_chiave(testo):
+    """Estrae le parole chiave significative dal testo"""
+    testo_normalizzato = normalizza_testo(testo)
+    
+    # Stop words ridotte (solo le più comuni)
+    stop_words = {'di', 'da', 'per', 'con', 'in', 'su', 'a', 'il', 'la', 'lo', 'e', 'o', 'del', 'della'}
+    
+    parole = set(testo_normalizzato.split()) - stop_words
+    
+    # Rimuovi parole troppo corte
+    parole = {p for p in parole if len(p) > 2}
+    
+    return parole
+
 def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
     """Matching avanzato che restituisce anche il tipo di match"""
     
     # 1. MATCH SPECIFICO: Confronta titolo + descrizione
-    testo_offerto = f"{annuncio_offerto.titolo} {annuncio_offerto.descrizione}".lower()
-    testo_offerto = testo_offerto.replace('vendo ', '').replace('offro ', '')
+    testo_offerto = f"{annuncio_offerto.titolo} {annuncio_offerto.descrizione or ''}"
+    testo_cercato = f"{annuncio_cercato.titolo} {annuncio_cercato.descrizione or ''}"
     
-    testo_cercato = f"{annuncio_cercato.titolo} {annuncio_cercato.descrizione}".lower()
-    testo_cercato = testo_cercato.replace('cerco ', '').replace('cerca ', '')
+    parole_offerto = estrai_parole_chiave(testo_offerto)
+    parole_cercato = estrai_parole_chiave(testo_cercato)
     
-    # Rimuovi parole comuni
-    stop_words = {'di', 'da', 'per', 'con', 'in', 'su', 'a', 'il', 'la', 'lo', 'gli', 'le', 'un', 'una', 'e', 'o', 'ma', 'che', 'del', 'della', 'dei', 'delle'}
+    # Controlla se ci sono parole in comune
+    parole_comuni = parole_offerto & parole_cercato
     
-    parole_offerto = set(testo_offerto.split()) - stop_words
-    parole_cercato = set(testo_cercato.split()) - stop_words
-    
-    match_parole = bool(parole_offerto & parole_cercato)
-    
-    if match_parole:
-        parole_comuni = parole_offerto & parole_cercato
-        print(f"MATCH SPECIFICO: '{annuncio_offerto.titolo}' ↔ '{annuncio_cercato.titolo}' (parole: {parole_comuni})")
+    if parole_comuni:
+        print(f"MATCH SPECIFICO: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (parole comuni: {parole_comuni})")
         return True, "specifico"
     
-    # 2. MATCH PER CATEGORIA: Stessa categoria
+    # 2. MATCH PARZIALE: Alcune parole dell'offerta sono contenute nella ricerca
+    for parola_offerta in parole_offerto:
+        for parola_cercata in parole_cercato:
+            if (parola_offerta in parola_cercata or 
+                parola_cercata in parola_offerta and 
+                len(parola_offerta) > 3 and len(parola_cercata) > 3):
+                print(f"MATCH PARZIALE: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (parole simili: {parola_offerta} ~ {parola_cercata})")
+                return True, "specifico"
+    
+    # 3. MATCH PER CATEGORIA: Stessa categoria
     if annuncio_offerto.categoria == annuncio_cercato.categoria:
-        print(f"MATCH CATEGORIA: '{annuncio_offerto.titolo}' ↔ '{annuncio_cercato.titolo}' ({annuncio_offerto.categoria.nome})")
+        print(f"MATCH CATEGORIA: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' ({annuncio_offerto.categoria.nome})")
         return True, "categoria"
     
-    # 3. MATCH GENERICO: Cerco "qualsiasi cosa" di una categoria
-    parole_generiche = {'qualsiasi', 'qualunque', 'qualcosa', 'oggetto', 'cosa', 'tutto', 'roba'}
+    # 4. MATCH GENERICO: Cerco "qualsiasi cosa" di una categoria
+    parole_generiche = {'qualsiasi', 'qualunque', 'qualcosa', 'oggetto', 'cosa', 'tutto', 'roba', 'qualcosè'}
     
     if (parole_generiche & parole_cercato and 
         annuncio_offerto.categoria == annuncio_cercato.categoria):
-        print(f"MATCH GENERICO: '{annuncio_offerto.titolo}' ↔ 'qualsiasi {annuncio_cercato.categoria.nome}'")
+        print(f"MATCH GENERICO: '{annuncio_offerto.titolo}' → qualsiasi {annuncio_cercato.categoria.nome}")
         return True, "generico"
     
     return False, None
