@@ -5,7 +5,9 @@ import re
 
 def trova_catene_scambio(max_lunghezza=6):
     """Trova catene di scambio con classificazione di qualità"""
+    print("\n=== DEBUG: Inizio ricerca catene ===")
     catene = trova_catene_ricorsive(max_lunghezza)
+    print(f"=== DEBUG: Catene trovate: {len(catene)} ===")
     return rimuovi_duplicati(catene)
 
 def trova_catene_ricorsive(max_lunghezza=6):
@@ -13,9 +15,12 @@ def trova_catene_ricorsive(max_lunghezza=6):
     print(f"\n=== RICERCA CATENE CON CLASSIFICAZIONE QUALITÀ ===")
     
     utenti = list(User.objects.filter(annuncio__attivo=True).distinct())
+    print(f"DEBUG: Trovati {len(utenti)} utenti con annunci attivi")
+    
     catene_trovate = []
     
     for utente_partenza in utenti:
+        print(f"DEBUG: Inizio ricerca da utente {utente_partenza.username}")
         catene = cerca_catene_con_annunci(
             utente_partenza,
             utente_partenza, 
@@ -25,6 +30,7 @@ def trova_catene_ricorsive(max_lunghezza=6):
             max_lunghezza
         )
         catene_trovate.extend(catene)
+        print(f"DEBUG: Utente {utente_partenza.username} ha generato {len(catene)} catene")
     
     print(f"Trovate {len(catene_trovate)} catene complete")
     return catene_trovate
@@ -55,7 +61,11 @@ def cerca_catene_con_annunci(utente_corrente, utente_partenza, percorso_utenti, 
             attivo=True
         )
         
+        print(f"DEBUG: {utente_corrente.username} ha {len(offerte_correnti)} offerte")
+        
         for offerta in offerte_correnti:
+            print(f"DEBUG: Controllo offerta '{offerta.titolo}' di {utente_corrente.username}")
+            
             for prossimo_utente in tutti_utenti:
                 if prossimo_utente not in nuovo_percorso:
                     richieste_prossime = Annuncio.objects.filter(
@@ -64,8 +74,14 @@ def cerca_catene_con_annunci(utente_corrente, utente_partenza, percorso_utenti, 
                         attivo=True
                     )
                     
+                    print(f"DEBUG: {prossimo_utente.username} ha {len(richieste_prossime)} richieste")
+                    
                     for richiesta in richieste_prossime:
+                        print(f"DEBUG: Confronto '{offerta.titolo}' con '{richiesta.titolo}'")
+                        
                         if oggetti_compatibili(offerta, richiesta):
+                            print(f"DEBUG: MATCH TROVATO! {offerta.titolo} → {richiesta.titolo}")
+                            
                             nuovi_annunci = percorso_annunci + [{
                                 'da': utente_corrente,
                                 'a': prossimo_utente,
@@ -82,11 +98,15 @@ def cerca_catene_con_annunci(utente_corrente, utente_partenza, percorso_utenti, 
                                 max_lunghezza
                             )
                             catene.extend(catene_ricorsive)
+                        else:
+                            print(f"DEBUG: NO MATCH tra '{offerta.titolo}' e '{richiesta.titolo}'")
     
     return catene
 
 def verifica_chiusura_cerchio(utente_corrente, utente_partenza, percorso_utenti, percorso_annunci):
     """Verifica se può chiudere il cerchio e crea la catena completa"""
+    print(f"DEBUG: Verifica chiusura cerchio da {utente_corrente.username} verso {utente_partenza.username}")
+    
     offerte_correnti = Annuncio.objects.filter(
         utente=utente_corrente,
         tipo='offro', 
@@ -101,7 +121,9 @@ def verifica_chiusura_cerchio(utente_corrente, utente_partenza, percorso_utenti,
     
     for offerta in offerte_correnti:
         for richiesta in richieste_partenza:
+            print(f"DEBUG: Chiusura? '{offerta.titolo}' vs '{richiesta.titolo}'")
             if oggetti_compatibili(offerta, richiesta):
+                print(f"DEBUG: CERCHIO CHIUSO! {offerta.titolo} → {richiesta.titolo}")
                 annunci_completi = percorso_annunci + [{
                     'da': utente_corrente,
                     'a': utente_partenza, 
@@ -220,12 +242,22 @@ def estrai_parole_chiave(testo):
 def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
     """Matching avanzato che restituisce anche il tipo di match"""
     
+    print(f"DEBUG: === CONTROLLO COMPATIBILITÀ ===")
+    print(f"DEBUG: Offerto - Titolo: '{annuncio_offerto.titolo}', Descrizione: '{annuncio_offerto.descrizione or 'VUOTA'}'")
+    print(f"DEBUG: Cercato - Titolo: '{annuncio_cercato.titolo}', Descrizione: '{annuncio_cercato.descrizione or 'VUOTA'}'")
+    
     # 1. MATCH SPECIFICO: Confronta titolo + descrizione
     testo_offerto = f"{annuncio_offerto.titolo} {annuncio_offerto.descrizione or ''}"
     testo_cercato = f"{annuncio_cercato.titolo} {annuncio_cercato.descrizione or ''}"
     
+    print(f"DEBUG: Testo completo offerto: '{testo_offerto}'")
+    print(f"DEBUG: Testo completo cercato: '{testo_cercato}'")
+    
     parole_offerto = estrai_parole_chiave(testo_offerto)
     parole_cercato = estrai_parole_chiave(testo_cercato)
+    
+    print(f"DEBUG: Parole chiave offerto: {parole_offerto}")
+    print(f"DEBUG: Parole chiave cercato: {parole_cercato}")
     
     # Controlla se ci sono parole in comune
     parole_comuni = parole_offerto & parole_cercato
@@ -249,13 +281,14 @@ def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
         return True, "categoria"
     
     # 4. MATCH GENERICO: Cerco "qualsiasi cosa" di una categoria
-    parole_generiche = {'qualsiasi', 'qualunque', 'qualcosa', 'oggetto', 'cosa', 'tutto', 'roba', 'qualcosè'}
+    parole_generiche = {'qualsiasi', 'qualunque', 'qualcosa', 'oggetto', 'cosa', 'tutto', 'roba'}
     
     if (parole_generiche & parole_cercato and 
         annuncio_offerto.categoria == annuncio_cercato.categoria):
         print(f"MATCH GENERICO: '{annuncio_offerto.titolo}' → qualsiasi {annuncio_cercato.categoria.nome}")
         return True, "generico"
     
+    print(f"DEBUG: NESSUN MATCH trovato")
     return False, None
 
 def oggetti_compatibili(annuncio_offerto, annuncio_cercato):
