@@ -5,8 +5,30 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <h1>Catene di Scambio Trovate</h1>
-        <p class="text-muted">L'algoritmo ha analizzato tutti gli annunci per trovare possibili scambi circolari</p>
+        <h1>Catene di Scambio</h1>
+        <p class="text-muted">L'algoritmo analizza tutti gli annunci per trovare possibili scambi circolari</p>
+
+        <!-- Bottone di ricerca -->
+        <div class="mb-4">
+            {% if ricerca_eseguita %}
+                <div class="alert alert-success d-flex align-items-center">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <span>Ricerca completata! Risultati aggiornati.</span>
+                </div>
+            {% else %}
+                <div class="alert alert-warning d-flex align-items-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span>Clicca su "Cerca Catene" per avviare la ricerca degli scambi possibili.</span>
+                </div>
+            {% endif %}
+
+            <a href="?cerca=true" class="btn btn-primary btn-lg">
+                <i class="fas fa-search me-2"></i>Cerca Catene di Scambio
+            </a>
+            <a href="{% url 'catene_scambio' %}" class="btn btn-outline-secondary ms-2">
+                <i class="fas fa-refresh me-2"></i>Reset
+            </a>
+        </div>
     </div>
 </div>
 
@@ -118,15 +140,26 @@
     {% endif %}
 
 {% else %}
-    <div class="alert alert-info text-center">
-        <h4>Nessuna catena di scambio trovata</h4>
-        <p>L'algoritmo non ha trovato scambi circolari possibili con gli annunci attuali.</p>
-        
-        <div class="mt-4">
-            <a href="{% url 'crea_annuncio' %}" class="btn btn-primary me-2">Crea Annuncio</a>
-            <a href="{% url 'lista_annunci' %}" class="btn btn-outline-primary">Vedi Annunci</a>
+    {% if ricerca_eseguita %}
+        <div class="alert alert-info text-center">
+            <h4><i class="fas fa-search me-2"></i>Nessuna catena di scambio trovata</h4>
+            <p>L'algoritmo non ha trovato scambi circolari possibili con gli annunci attuali.</p>
+
+            <div class="mt-4">
+                <a href="{% url 'crea_annuncio' %}" class="btn btn-primary me-2">
+                    <i class="fas fa-plus me-1"></i>Crea Annuncio
+                </a>
+                <a href="{% url 'lista_annunci' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-list me-1"></i>Vedi Annunci
+                </a>
+            </div>
         </div>
-    </div>
+    {% else %}
+        <div class="alert alert-light text-center">
+            <h4><i class="fas fa-clock me-2"></i>In attesa di ricerca</h4>
+            <p>Clicca su "Cerca Catene di Scambio" per analizzare gli annunci disponibili.</p>
+        </div>
+    {% endif %}
 {% endif %}
 
 <div class="card bg-light mt-4">
