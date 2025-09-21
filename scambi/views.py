@@ -1,3 +1,6 @@
+from django.contrib.auth import login
+from django.contrib.auth.views import LoginView
+from django.contrib.auth.forms import UserCreationForm  # Se usi il form base
 from django.shortcuts import render
 from django.http import HttpResponse
 from .matching import trova_catene_scambio
@@ -38,9 +41,6 @@ def test_matching(request):
             html += "</ul><hr>"
     
     return HttpResponse(html)
-def home(request):
-    """Vista principale del sito"""
-    return render(request, 'scambi/home.html')
 
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
@@ -81,11 +81,12 @@ def lista_annunci(request):
         'categoria_filtro': categoria_filtro
     })
 
+
 @login_required
 def crea_annuncio(request):
     """Crea un nuovo annuncio"""
     if request.method == 'POST':
-        form = AnnuncioForm(request.POST)
+        form = AnnuncioForm(request.POST, request.FILES)  # Aggiungi request.FILES
         if form.is_valid():
             annuncio = form.save(commit=False)
             annuncio.utente = request.user
