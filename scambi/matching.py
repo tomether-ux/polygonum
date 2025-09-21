@@ -227,68 +227,86 @@ def normalizza_testo(testo):
 
 def estrai_parole_chiave(testo):
     """Estrae le parole chiave significative dal testo"""
+    print(f"🔧 ESTRAZIONE PAROLE da: '{testo}'")
+
     testo_normalizzato = normalizza_testo(testo)
-    
+    print(f"🔧 Testo normalizzato: '{testo_normalizzato}'")
+
     # Stop words ridotte (solo le più comuni)
     stop_words = {'di', 'da', 'per', 'con', 'in', 'su', 'a', 'il', 'la', 'lo', 'e', 'o', 'del', 'della'}
-    
-    parole = set(testo_normalizzato.split()) - stop_words
-    
+
+    parole_base = set(testo_normalizzato.split())
+    print(f"🔧 Parole base: {parole_base}")
+
+    parole_senza_stop = parole_base - stop_words
+    print(f"🔧 Senza stop words: {parole_senza_stop}")
+
     # Rimuovi parole troppo corte
-    parole = {p for p in parole if len(p) > 2}
-    
-    return parole
+    parole_finali = {p for p in parole_senza_stop if len(p) > 2}
+    print(f"🔧 Parole finali (>2 caratteri): {parole_finali}")
+
+    return parole_finali
 
 def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
     """Matching avanzato che restituisce anche il tipo di match"""
-    
-    print(f"DEBUG: === CONTROLLO COMPATIBILITÀ ===")
-    print(f"DEBUG: Offerto - Titolo: '{annuncio_offerto.titolo}', Descrizione: '{annuncio_offerto.descrizione or 'VUOTA'}'")
-    print(f"DEBUG: Cercato - Titolo: '{annuncio_cercato.titolo}', Descrizione: '{annuncio_cercato.descrizione or 'VUOTA'}'")
-    
+
+    print(f"\n🔍 DEBUG: === CONTROLLO COMPATIBILITÀ ===")
+    print(f"🔍 Offerto - Titolo: '{annuncio_offerto.titolo}', Descrizione: '{annuncio_offerto.descrizione or 'VUOTA'}'")
+    print(f"🔍 Cercato - Titolo: '{annuncio_cercato.titolo}', Descrizione: '{annuncio_cercato.descrizione or 'VUOTA'}'")
+    print(f"🔍 Categorie - Offerto: '{annuncio_offerto.categoria}', Cercato: '{annuncio_cercato.categoria}'")
+
     # 1. MATCH SPECIFICO: Confronta titolo + descrizione
     testo_offerto = f"{annuncio_offerto.titolo} {annuncio_offerto.descrizione or ''}"
     testo_cercato = f"{annuncio_cercato.titolo} {annuncio_cercato.descrizione or ''}"
-    
-    print(f"DEBUG: Testo completo offerto: '{testo_offerto}'")
-    print(f"DEBUG: Testo completo cercato: '{testo_cercato}'")
-    
+
+    print(f"🔍 Testo completo offerto: '{testo_offerto}'")
+    print(f"🔍 Testo completo cercato: '{testo_cercato}'")
+
     parole_offerto = estrai_parole_chiave(testo_offerto)
     parole_cercato = estrai_parole_chiave(testo_cercato)
-    
-    print(f"DEBUG: Parole chiave offerto: {parole_offerto}")
-    print(f"DEBUG: Parole chiave cercato: {parole_cercato}")
-    
+
+    print(f"🔍 Parole chiave offerto: {parole_offerto}")
+    print(f"🔍 Parole chiave cercato: {parole_cercato}")
+
     # Controlla se ci sono parole in comune
     parole_comuni = parole_offerto & parole_cercato
-    
+    print(f"🔍 Parole in comune trovate: {parole_comuni}")
+
     if parole_comuni:
-        print(f"MATCH SPECIFICO: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (parole comuni: {parole_comuni})")
+        print(f"✅ MATCH SPECIFICO: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (parole comuni: {parole_comuni})")
         return True, "specifico"
-    
+
     # 2. MATCH PARZIALE: Alcune parole dell'offerta sono contenute nella ricerca
+    print(f"🔍 Controllo match parziale...")
     for parola_offerta in parole_offerto:
         for parola_cercata in parole_cercato:
-            if (parola_offerta in parola_cercata or 
-                parola_cercata in parola_offerta and 
+            print(f"🔍 Confronto parziale: '{parola_offerta}' vs '{parola_cercata}'")
+            if ((parola_offerta in parola_cercata or parola_cercata in parola_offerta) and
                 len(parola_offerta) > 3 and len(parola_cercata) > 3):
-                print(f"MATCH PARZIALE: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (parole simili: {parola_offerta} ~ {parola_cercata})")
-                return True, "specifico"
-    
+                print(f"✅ MATCH PARZIALE: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (parole simili: {parola_offerta} ~ {parola_cercata})")
+                return True, "parziale"
+
     # 3. MATCH PER CATEGORIA: Stessa categoria
+    print(f"🔍 Controllo match per categoria...")
+    print(f"🔍 Categoria offerto: '{annuncio_offerto.categoria}' (ID: {annuncio_offerto.categoria.id if annuncio_offerto.categoria else 'None'})")
+    print(f"🔍 Categoria cercato: '{annuncio_cercato.categoria}' (ID: {annuncio_cercato.categoria.id if annuncio_cercato.categoria else 'None'})")
+
     if annuncio_offerto.categoria == annuncio_cercato.categoria:
-        print(f"MATCH CATEGORIA: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' ({annuncio_offerto.categoria.nome})")
+        print(f"✅ MATCH CATEGORIA: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' ({annuncio_offerto.categoria.nome})")
         return True, "categoria"
-    
+
     # 4. MATCH GENERICO: Cerco "qualsiasi cosa" di una categoria
+    print(f"🔍 Controllo match generico...")
     parole_generiche = {'qualsiasi', 'qualunque', 'qualcosa', 'oggetto', 'cosa', 'tutto', 'roba'}
-    
-    if (parole_generiche & parole_cercato and 
+    parole_generiche_trovate = parole_generiche & parole_cercato
+    print(f"🔍 Parole generiche nel cercato: {parole_generiche_trovate}")
+
+    if (parole_generiche_trovate and
         annuncio_offerto.categoria == annuncio_cercato.categoria):
-        print(f"MATCH GENERICO: '{annuncio_offerto.titolo}' → qualsiasi {annuncio_cercato.categoria.nome}")
+        print(f"✅ MATCH GENERICO: '{annuncio_offerto.titolo}' → qualsiasi {annuncio_cercato.categoria.nome}")
         return True, "generico"
-    
-    print(f"DEBUG: NESSUN MATCH trovato")
+
+    print(f"❌ NESSUN MATCH trovato")
     return False, None
 
 def oggetti_compatibili(annuncio_offerto, annuncio_cercato):
