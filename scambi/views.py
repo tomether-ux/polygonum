@@ -5,6 +5,8 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from .matching import trova_catene_scambio
 from .models import Annuncio
+import importlib
+from . import matching
 
 def test_matching(request):
     """Vista per testare l'algoritmo di matching"""
@@ -107,29 +109,43 @@ def i_miei_annunci(request):
 
 def catene_scambio(request):
     """Mostra le catene di scambio divise per qualità"""
-    tutte_catene = trova_catene_scambio()
-    
+    # Controlla se è stata richiesta una nuova ricerca
+    cerca_nuove = request.GET.get('cerca') == 'true'
+
+    if cerca_nuove:
+        # Ricarica il modulo matching per applicare eventuali modifiche
+        importlib.reload(matching)
+        from .matching import trova_catene_scambio
+
+        print("🔍 RICERCA CATENE ATTIVATA MANUALMENTE")
+        tutte_catene = trova_catene_scambio()
+    else:
+        # Se non è stata richiesta ricerca, mostra risultati vuoti o cached
+        print("📋 Visualizzazione catene senza ricerca")
+        tutte_catene = []
+
     # Rimuovi duplicati
     catene_uniche = []
     combinazioni_viste = set()
-    
+
     for catena in tutte_catene:
         utenti_ordinati = tuple(sorted(catena['utenti']))
         if utenti_ordinati not in combinazioni_viste:
             combinazioni_viste.add(utenti_ordinati)
             catene_uniche.append(catena)
-    
+
     # Separa per qualità
     catene_alta_qualita = [c for c in catene_uniche if c.get('categoria_qualita') == 'alta']
     catene_generiche = [c for c in catene_uniche if c.get('categoria_qualita') == 'generica']
-    
+
     catene_alta_qualita.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
     catene_generiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
-    
+
     return render(request, 'scambi/catene_scambio.html', {
         'catene_alta_qualita': catene_alta_qualita,
         'catene_generiche': catene_generiche,
-        'totale_catene': len(catene_uniche)
+        'totale_catene': len(catene_uniche),
+        'ricerca_eseguita': cerca_nuove
     })
 
 # La funzione test_matching rimane uguale...
