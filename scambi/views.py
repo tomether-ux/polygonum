@@ -161,17 +161,31 @@ def catene_scambio(request):
             combinazioni_viste.add(utenti_ordinati)
             catene_uniche.append(catena)
 
-    # Separa per qualità
-    catene_alta_qualita = [c for c in catene_uniche if c.get('categoria_qualita') == 'alta']
-    catene_generiche = [c for c in catene_uniche if c.get('categoria_qualita') == 'generica']
+    # Separa scambi diretti e catene lunghe
+    scambi_diretti = [c for c in catene_uniche if c.get('tipo') == 'scambio_diretto']
+    catene_lunghe = [c for c in catene_uniche if c.get('tipo') != 'scambio_diretto']
 
+    # Ordina per qualità (scambi diretti hanno massima priorità)
+    scambi_diretti_alta = [c for c in scambi_diretti if c.get('categoria_qualita') == 'alta']
+    scambi_diretti_generici = [c for c in scambi_diretti if c.get('categoria_qualita') == 'generica']
+
+    catene_alta_qualita = [c for c in catene_lunghe if c.get('categoria_qualita') == 'alta']
+    catene_generiche = [c for c in catene_lunghe if c.get('categoria_qualita') == 'generica']
+
+    # Ordina per punteggio
+    scambi_diretti_alta.sort(key=lambda x: -x.get('punteggio_qualita', 0))
+    scambi_diretti_generici.sort(key=lambda x: -x.get('punteggio_qualita', 0))
     catene_alta_qualita.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
     catene_generiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
 
     return render(request, 'scambi/catene_scambio.html', {
+        'scambi_diretti_alta': scambi_diretti_alta,
+        'scambi_diretti_generici': scambi_diretti_generici,
         'catene_alta_qualita': catene_alta_qualita,
         'catene_generiche': catene_generiche,
         'totale_catene': len(catene_uniche),
+        'totale_scambi_diretti': len(scambi_diretti),
+        'totale_catene_lunghe': len(catene_lunghe),
         'ricerca_eseguita': cerca_nuove
     })
 

@@ -3,12 +3,105 @@ from django.contrib.auth.models import User
 from collections import defaultdict
 import re
 
+def trova_scambi_diretti():
+    """Trova scambi diretti tra 2 persone (massima priorità)"""
+    print("\n🔄 === RICERCA SCAMBI DIRETTI (2 PERSONE) ===")
+
+    utenti = list(User.objects.filter(annuncio__attivo=True).distinct())
+    scambi_diretti = []
+
+    for utente_a in utenti:
+        for utente_b in utenti:
+            if utente_a == utente_b:
+                continue
+
+            # Trova cosa offre A e cosa cerca B
+            offerte_a = Annuncio.objects.filter(utente=utente_a, tipo='offro', attivo=True)
+            richieste_b = Annuncio.objects.filter(utente=utente_b, tipo='cerco', attivo=True)
+
+            # Trova cosa offre B e cosa cerca A
+            offerte_b = Annuncio.objects.filter(utente=utente_b, tipo='offro', attivo=True)
+            richieste_a = Annuncio.objects.filter(utente=utente_a, tipo='cerco', attivo=True)
+
+            # Verifica match A→B e B→A
+            for offerta_a in offerte_a:
+                for richiesta_b in richieste_b:
+                    if oggetti_compatibili(offerta_a, richiesta_b):
+                        # A offre quello che B cerca, ora verifica il contrario
+                        for offerta_b in offerte_b:
+                            for richiesta_a in richieste_a:
+                                if oggetti_compatibili(offerta_b, richiesta_a):
+                                    # Scambio diretto trovato!
+                                    scambio = crea_scambio_diretto(
+                                        utente_a, utente_b,
+                                        offerta_a, richiesta_b,
+                                        offerta_b, richiesta_a
+                                    )
+
+                                    # Evita duplicati (A-B è uguale a B-A)
+                                    gia_presente = False
+                                    for s in scambi_diretti:
+                                        if (set(s['utenti']) == {utente_a.username, utente_b.username} and
+                                            set([an['annuncio'].titolo for an in s['annunci_coinvolti']]) ==
+                                            {offerta_a.titolo, richiesta_b.titolo, offerta_b.titolo, richiesta_a.titolo}):
+                                            gia_presente = True
+                                            break
+
+                                    if not gia_presente:
+                                        scambi_diretti.append(scambio)
+                                        print(f"💫 SCAMBIO DIRETTO: {utente_a.username} ↔ {utente_b.username}")
+                                        print(f"   📤 {utente_a.username} dà '{offerta_a.titolo}' → {utente_b.username}")
+                                        print(f"   📤 {utente_b.username} dà '{offerta_b.titolo}' → {utente_a.username}")
+
+    print(f"💫 Trovati {len(scambi_diretti)} scambi diretti")
+    return scambi_diretti
+
+def crea_scambio_diretto(utente_a, utente_b, offerta_a, richiesta_b, offerta_b, richiesta_a):
+    """Crea la struttura dati per uno scambio diretto"""
+
+    # Calcola punteggio qualità
+    _, tipo_match_1 = oggetti_compatibili_con_tipo(offerta_a, richiesta_b)
+    _, tipo_match_2 = oggetti_compatibili_con_tipo(offerta_b, richiesta_a)
+
+    punteggio_match_1 = {"specifico": 10, "parziale": 8, "categoria": 6, "generico": 4}.get(tipo_match_1, 0)
+    punteggio_match_2 = {"specifico": 10, "parziale": 8, "categoria": 6, "generico": 4}.get(tipo_match_2, 0)
+
+    punteggio_qualita = (punteggio_match_1 + punteggio_match_2) / 2
+    categoria_qualita = "alta" if punteggio_qualita >= 7 else "generica"
+
+    return {
+        'tipo': 'scambio_diretto',
+        'utenti': [utente_a.username, utente_b.username],
+        'scambi': [
+            f"{utente_a.username} dà '{offerta_a.titolo}' a {utente_b.username}",
+            f"{utente_b.username} dà '{offerta_b.titolo}' a {utente_a.username}"
+        ],
+        'annunci_coinvolti': [
+            {'utente': utente_a.username, 'annuncio': offerta_a, 'ruolo': 'offre'},
+            {'utente': utente_b.username, 'annuncio': richiesta_b, 'ruolo': 'cerca'},
+            {'utente': utente_b.username, 'annuncio': offerta_b, 'ruolo': 'offre'},
+            {'utente': utente_a.username, 'annuncio': richiesta_a, 'ruolo': 'cerca'}
+        ],
+        'categoria_qualita': categoria_qualita,
+        'punteggio_qualita': punteggio_qualita,
+        'tipi_match': [tipo_match_1, tipo_match_2]
+    }
+
 def trova_catene_scambio(max_lunghezza=6):
     """Trova catene di scambio con classificazione di qualità"""
     print("\n=== DEBUG: Inizio ricerca catene ===")
-    catene = trova_catene_ricorsive(max_lunghezza)
-    print(f"=== DEBUG: Catene trovate: {len(catene)} ===")
-    return rimuovi_duplicati(catene)
+
+    # 1. Prima trova scambi diretti (priorità massima)
+    scambi_diretti = trova_scambi_diretti()
+
+    # 2. Poi trova catene lunghe
+    catene_lunghe = trova_catene_ricorsive(max_lunghezza)
+
+    # 3. Combina i risultati (scambi diretti hanno priorità)
+    tutte_catene = scambi_diretti + catene_lunghe
+
+    print(f"=== DEBUG: Totale trovato: {len(scambi_diretti)} scambi diretti + {len(catene_lunghe)} catene lunghe ===")
+    return rimuovi_duplicati(tutte_catene)
 
 def trova_catene_ricorsive(max_lunghezza=6):
     """Algoritmo per trovare catene con annunci dettagliati"""
