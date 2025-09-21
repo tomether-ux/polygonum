@@ -9,39 +9,66 @@ import importlib
 from . import matching
 
 def test_matching(request):
-    """Vista per testare l'algoritmo di matching"""
-    catene_semplici = trova_catene_scambio()
-    
-    html = "<h1>Catene di Scambio Trovate</h1>"
-    
-    if not catene_semplici:
-        html += "<p>Nessuna catena di scambio semplice trovata.</p>"
-        html += "<h2>Annunci Attuali:</h2>"
-        
-        # Mostra tutti gli annunci per debug
-        annunci_offro = Annuncio.objects.filter(tipo='offro', attivo=True)
-        annunci_cerco = Annuncio.objects.filter(tipo='cerco', attivo=True)
-        
-        html += "<h3>Annunci 'Offro':</h3><ul>"
-        for annuncio in annunci_offro:
-            html += f"<li>{annuncio.utente.username}: {annuncio.titolo}</li>"
-        html += "</ul>"
-        
-        html += "<h3>Annunci 'Cerco':</h3><ul>"
-        for annuncio in annunci_cerco:
-            html += f"<li>{annuncio.utente.username}: {annuncio.titolo}</li>"
-        html += "</ul>"
+    """Vista per testare l'algoritmo di matching con debug dettagliato"""
+    import importlib
+    from . import matching
+
+    # Forza il reload del modulo
+    importlib.reload(matching)
+    from .matching import oggetti_compatibili_con_tipo, trova_catene_scambio
+
+    html = "<h1>🧪 Test Matching Algorithm</h1>"
+    html += "<style>body { font-family: monospace; } .match { color: green; } .no-match { color: red; }</style>"
+
+    # Test 1: Verifica match specifici
+    html += "<h2>🔍 Test 1: Match Specifici</h2>"
+
+    # Trova annunci synth
+    synth_offerto = Annuncio.objects.filter(tipo='offro', titolo__icontains='synth', attivo=True).first()
+    synth_cercato = Annuncio.objects.filter(tipo='cerco', titolo__icontains='synth', attivo=True).first()
+
+    # Trova annunci bici
+    bici_offerto = Annuncio.objects.filter(tipo='offro', titolo__icontains='bici', attivo=True).first()
+    bici_cercato = Annuncio.objects.filter(tipo='cerco', titolo__icontains='bici', attivo=True).first()
+
+    test_pairs = []
+    if synth_offerto and synth_cercato:
+        test_pairs.append((synth_offerto, synth_cercato, "SYNTH → SYNTH"))
+    if bici_offerto and bici_cercato:
+        test_pairs.append((bici_offerto, bici_cercato, "BICI → BICI"))
+
+    for offerto, cercato, nome in test_pairs:
+        html += f"<h3>{nome}</h3>"
+        html += f"<p><strong>Offerto:</strong> '{offerto.titolo}' by {offerto.utente.username}</p>"
+        html += f"<p><strong>Cercato:</strong> '{cercato.titolo}' by {cercato.utente.username}</p>"
+
+        compatible, tipo_match = oggetti_compatibili_con_tipo(offerto, cercato)
+        if compatible:
+            html += f"<p class='match'>✅ MATCH TROVATO! Tipo: {tipo_match}</p>"
+        else:
+            html += f"<p class='no-match'>❌ NESSUN MATCH</p>"
+        html += "<hr>"
+
+    # Test 2: Catene complete
+    html += "<h2>🔗 Test 2: Catene Complete</h2>"
+    catene = trova_catene_scambio()
+
+    if catene:
+        html += f"<p class='match'>🎉 Trovate {len(catene)} catene!</p>"
+        for i, catena in enumerate(catene[:3], 1):  # Mostra solo le prime 3
+            html += f"<h4>Catena {i}</h4>"
+            html += f"<p>Utenti: {', '.join(catena['utenti'])}</p>"
+            html += f"<p>Qualità: {catena.get('categoria_qualita', 'N/A')}</p>"
     else:
-        html += f"<p>🎉 Trovate {len(catene_semplici)} catene di scambio semplici!</p>"
-        
-        for i, catena in enumerate(catene_semplici, 1):
-            html += f"<h3>Catena Semplice {i}:</h3>"
-            html += f"<p><strong>Partecipanti:</strong> {', '.join(catena['utenti'])}</p>"
-            html += "<ul>"
-            for scambio in catena['scambi']:
-                html += f"<li>{scambio}</li>"
-            html += "</ul><hr>"
-    
+        html += "<p class='no-match'>❌ Nessuna catena trovata</p>"
+
+    # Test 3: Conteggio annunci
+    html += "<h2>📊 Test 3: Database Status</h2>"
+    offro_count = Annuncio.objects.filter(tipo='offro', attivo=True).count()
+    cerco_count = Annuncio.objects.filter(tipo='cerco', attivo=True).count()
+    html += f"<p>Annunci 'offro' attivi: {offro_count}</p>"
+    html += f"<p>Annunci 'cerco' attivi: {cerco_count}</p>"
+
     return HttpResponse(html)
 
 from django.shortcuts import render, redirect
