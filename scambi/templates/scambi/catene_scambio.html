@@ -39,7 +39,7 @@
 
     <!-- SCAMBI DIRETTI (MASSIMA PRIORITÀ) -->
     {% if scambi_diretti_alta or scambi_diretti_generici %}
-        <div class="alert alert-warning">
+        <div id="scambi-diretti" class="alert alert-warning">
             <h4><i class="fas fa-star me-2"></i>Scambi Diretti Disponibili (2 Persone)</h4>
             <p>Questi sono i più semplici da realizzare - solo 2 persone si scambiano direttamente!</p>
         </div>
@@ -144,9 +144,24 @@
     {% endif %}
 
     <!-- CATENE AD ALTA QUALITÀ -->
+    <!-- Navigazione rapida -->
+    <div class="alert alert-light">
+        <strong>📋 Navigazione rapida:</strong>
+        {% if scambi_diretti_alta or scambi_diretti_generici %}
+            <a href="#scambi-diretti" class="btn btn-warning btn-sm me-2">Scambi Diretti ({{ totale_scambi_diretti }})</a>
+        {% endif %}
+        {% if catene_alta_qualita %}
+            <a href="#catene-alta" class="btn btn-success btn-sm me-2">Catene Alta Qualità ({{ catene_alta_qualita|length }})</a>
+        {% endif %}
+        {% if catene_generiche %}
+            <a href="#catene-generiche" class="btn btn-info btn-sm">Catene Generiche ({{ catene_generiche|length }})</a>
+        {% endif %}
+    </div>
+
     {% if catene_alta_qualita %}
-        <h2 class="text-success mb-3">Catene ad Alta Corrispondenza</h2>
-        
+        <h2 id="catene-alta" class="text-success mb-3">Catene ad Alta Corrispondenza ({{ catene_alta_qualita|length }})</h2>
+
+
         {% for catena in catene_alta_qualita %}
         <div class="card mb-4 border-success">
             <div class="card-header bg-light">
@@ -196,7 +211,7 @@
 
     <!-- CATENE GENERICHE -->
     {% if catene_generiche %}
-        <h2 class="text-info mb-3 mt-4">Catene Generiche</h2>
+        <h2 id="catene-generiche" class="text-info mb-3 mt-4">Catene Generiche</h2>
         
         {% for catena in catene_generiche %}
         <div class="card mb-4 border-info">
