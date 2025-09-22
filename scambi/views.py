@@ -172,6 +172,7 @@ def catene_scambio(request):
     catene_alta_qualita = [c for c in catene_lunghe if c.get('categoria_qualita') == 'alta']
     catene_generiche = [c for c in catene_lunghe if c.get('categoria_qualita') == 'generica']
 
+
     # Ordina per punteggio
     scambi_diretti_alta.sort(key=lambda x: -x.get('punteggio_qualita', 0))
     scambi_diretti_generici.sort(key=lambda x: -x.get('punteggio_qualita', 0))
