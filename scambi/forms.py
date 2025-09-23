@@ -6,12 +6,12 @@ from .models import Annuncio, Categoria, UserProfile
 class CustomUserCreationForm(UserCreationForm):
     citta = forms.CharField(
         max_length=100,
-        required=False,
+        required=True,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': 'Es: Roma, Milano, Torino...'
         }),
-        label='Città'
+        label='Città *'
     )
     provincia = forms.CharField(
         max_length=50,
