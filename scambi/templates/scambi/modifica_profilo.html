@@ -1,0 +1,129 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Modifica Profilo - Sito di Scambi{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-edit me-2"></i>Modifica il tuo Profilo
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <!-- Informazioni Account -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">
+                                <i class="fas fa-user me-2"></i>Informazioni Account
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Username</label>
+                                    <input type="text" class="form-control" value="{{ user.username }}" readonly>
+                                    <small class="text-muted">Il username non può essere modificato</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" value="{{ user.email }}" readonly>
+                                    {% if profilo.email_verified %}
+                                        <small class="text-success">
+                                            <i class="fas fa-check-circle"></i> Email verificata
+                                        </small>
+                                    {% else %}
+                                        <small class="text-warning">
+                                            <i class="fas fa-exclamation-circle"></i> Email non verificata
+                                        </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informazioni Geografiche -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">
+                                <i class="fas fa-map-marker-alt me-2"></i>Posizione Geografica
+                            </h5>
+                            <p class="text-muted small mb-3">
+                                <i class="fas fa-info-circle"></i>
+                                Queste informazioni sono utilizzate per trovare scambi nella tua zona
+                            </p>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.citta.label_tag }}
+                                    {{ form.citta }}
+                                    {% if form.citta.errors %}
+                                        <div class="text-danger small">{{ form.citta.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.provincia.label_tag }}
+                                    {{ form.provincia }}
+                                    {% if form.provincia.errors %}
+                                        <div class="text-danger small">{{ form.provincia.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.regione.label_tag }}
+                                    {{ form.regione }}
+                                    {% if form.regione.errors %}
+                                        <div class="text-danger small">{{ form.regione.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.cap.label_tag }}
+                                    {{ form.cap }}
+                                    {% if form.cap.errors %}
+                                        <div class="text-danger small">{{ form.cap.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Posizione Attuale -->
+                        {% if profilo.get_location_string != "Posizione non specificata" %}
+                        <div class="alert alert-info">
+                            <strong>Posizione attuale:</strong> {{ profilo.get_location_string }}
+                        </div>
+                        {% endif %}
+
+                        <!-- Pulsanti -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'profilo_utente' user.username %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Annulla
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Salva Modifiche
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Informazioni Aggiuntive -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Suggerimenti
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li><strong>Città precisa:</strong> Aiuta a trovare scambi nella tua zona</li>
+                        <li><strong>Provincia:</strong> Utile per scambi regionali</li>
+                        <li><strong>CAP:</strong> Per calcoli di distanza più precisi (opzionale)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

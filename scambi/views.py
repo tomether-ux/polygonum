@@ -193,9 +193,11 @@ def catene_scambio(request):
 # La funzione test_matching rimane uguale...
 from django.contrib.auth import login
 from django.contrib.auth.views import LoginView
-from .forms import CustomUserCreationForm
+from .forms import CustomUserCreationForm, UserProfileForm
 from .email_utils import send_verification_email
 from .models import UserProfile
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
 
 def register(request):
     if request.method == 'POST':
@@ -247,3 +249,51 @@ def verify_email(request, token):
 class CustomLoginView(LoginView):
     template_name = 'registration/login.html'
     redirect_authenticated_user = True
+
+def profilo_utente(request, username):
+    """Vista pubblica del profilo utente con i suoi annunci"""
+    utente = get_object_or_404(User, username=username)
+
+    try:
+        profilo = UserProfile.objects.get(user=utente)
+    except UserProfile.DoesNotExist:
+        # Se l'utente non ha profilo, creane uno vuoto
+        profilo = UserProfile.objects.create(user=utente, citta="Non specificata")
+
+    # Ottieni tutti gli annunci dell'utente (attivi)
+    annunci = Annuncio.objects.filter(utente=utente, attivo=True).order_by('-data_creazione')
+
+    # Dividi annunci per tipo
+    annunci_offro = annunci.filter(tipo='offro')
+    annunci_cerco = annunci.filter(tipo='cerco')
+
+    return render(request, 'scambi/profilo_utente.html', {
+        'utente': utente,
+        'profilo': profilo,
+        'annunci_offro': annunci_offro,
+        'annunci_cerco': annunci_cerco,
+        'totale_annunci': annunci.count(),
+        'is_own_profile': request.user == utente
+    })
+
+@login_required
+def modifica_profilo(request):
+    """Vista per modificare il proprio profilo"""
+    try:
+        profilo = UserProfile.objects.get(user=request.user)
+    except UserProfile.DoesNotExist:
+        profilo = UserProfile.objects.create(user=request.user, citta="")
+
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, instance=profilo)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profilo aggiornato con successo!')
+            return redirect('profilo_utente', username=request.user.username)
+    else:
+        form = UserProfileForm(instance=profilo)
+
+    return render(request, 'scambi/modifica_profilo.html', {
+        'form': form,
+        'profilo': profilo
+    })

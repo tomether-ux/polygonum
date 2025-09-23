@@ -1,0 +1,167 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Profilo di {{ utente.username }} - Sito di Scambi{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header Profilo -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h3 class="mb-0">
+                                <i class="fas fa-user me-2"></i>{{ utente.username }}
+                                {% if profilo.email_verified %}
+                                    <span class="badge bg-success ms-2"><i class="fas fa-check-circle"></i> Verificato</span>
+                                {% endif %}
+                            </h3>
+                        </div>
+                        {% if is_own_profile %}
+                        <div class="col-auto">
+                            <a href="{% url 'modifica_profilo' %}" class="btn btn-light">
+                                <i class="fas fa-edit me-1"></i>Modifica Profilo
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-map-marker-alt me-2"></i>Posizione</h6>
+                            <p class="text-muted">{{ profilo.get_location_string }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-calendar-alt me-2"></i>Membro da</h6>
+                            <p class="text-muted">{{ utente.date_joined|date:"F Y" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiche -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ totale_annunci }}</h3>
+                    <p class="mb-0">Annunci Totali</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-success">{{ annunci_offro.count }}</h3>
+                    <p class="mb-0">Offre</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-info">{{ annunci_cerco.count }}</h3>
+                    <p class="mb-0">Cerca</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Annunci che Offre -->
+    {% if annunci_offro %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <h4><i class="fas fa-gift me-2 text-success"></i>Cosa Offre ({{ annunci_offro.count }})</h4>
+            <div class="row">
+                {% for annuncio in annunci_offro %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card border-success">
+                        {% if annuncio.immagine %}
+                        <img src="{{ annuncio.get_image_url }}" class="card-img-top" alt="{{ annuncio.titolo }}" style="height: 200px; object-fit: cover;">
+                        {% endif %}
+                        <div class="card-body">
+                            <h6 class="card-title">{{ annuncio.titolo }}</h6>
+                            <p class="card-text text-muted small">{{ annuncio.descrizione|truncatewords:15 }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-secondary">{{ annuncio.categoria.nome }}</span>
+                                <small class="text-muted">{{ annuncio.data_creazione|date:"d/m/Y" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Annunci che Cerca -->
+    {% if annunci_cerco %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <h4><i class="fas fa-search me-2 text-info"></i>Cosa Cerca ({{ annunci_cerco.count }})</h4>
+            <div class="row">
+                {% for annuncio in annunci_cerco %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card border-info">
+                        {% if annuncio.immagine %}
+                        <img src="{{ annuncio.get_image_url }}" class="card-img-top" alt="{{ annuncio.titolo }}" style="height: 200px; object-fit: cover;">
+                        {% endif %}
+                        <div class="card-body">
+                            <h6 class="card-title">{{ annuncio.titolo }}</h6>
+                            <p class="card-text text-muted small">{{ annuncio.descrizione|truncatewords:15 }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-secondary">{{ annuncio.categoria.nome }}</span>
+                                <small class="text-muted">{{ annuncio.data_creazione|date:"d/m/Y" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Messaggio se nessun annuncio -->
+    {% if totale_annunci == 0 %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <h5><i class="fas fa-info-circle me-2"></i>Nessun annuncio pubblicato</h5>
+                {% if is_own_profile %}
+                <p>Non hai ancora pubblicato nessun annuncio.</p>
+                <a href="{% url 'crea_annuncio' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Crea il tuo primo annuncio
+                </a>
+                {% else %}
+                <p>{{ utente.username }} non ha ancora pubblicato annunci.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Azioni -->
+    <div class="row mt-4 mb-4">
+        <div class="col-12 text-center">
+            {% if not is_own_profile and user.is_authenticated %}
+            <div class="alert alert-light">
+                <p class="mb-2">Interessato agli annunci di {{ utente.username }}?</p>
+                <a href="{% url 'catene_scambio' %}?cerca=true" class="btn btn-primary">
+                    <i class="fas fa-search me-1"></i>Cerca Scambi Possibili
+                </a>
+            </div>
+            {% endif %}
+
+            <a href="{% url 'lista_annunci' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Torna agli Annunci
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
