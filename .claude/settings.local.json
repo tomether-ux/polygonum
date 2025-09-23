@@ -3,7 +3,8 @@
     "allow": [
       "Read(//Users/tommasocus/.npm-global/**)",
       "Bash(pip install:*)",
-      "Bash(python manage.py:*)"
+      "Bash(python manage.py:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
