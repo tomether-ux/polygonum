@@ -39,13 +39,13 @@ def trova_scambi_diretti():
                                     )
 
                                     # Evita duplicati (A-B è uguale a B-A)
-                                    gia_presente = False
-                                    for s in scambi_diretti:
-                                        if (set(s['utenti']) == {utente_a.username, utente_b.username} and
-                                            set([an['annuncio'].titolo for an in s['annunci_coinvolti']]) ==
-                                            {offerta_a.titolo, richiesta_b.titolo, offerta_b.titolo, richiesta_a.titolo}):
-                                            gia_presente = True
-                                            break
+                                    utenti_coppia = tuple(sorted([utente_a.username, utente_b.username]))
+
+                                    # Controlla se questa coppia è già stata aggiunta
+                                    gia_presente = any(
+                                        tuple(sorted(s['utenti'])) == utenti_coppia
+                                        for s in scambi_diretti
+                                    )
 
                                     if not gia_presente:
                                         scambi_diretti.append(scambio)
@@ -102,6 +102,23 @@ def trova_catene_scambio(max_lunghezza=6):
 
     print(f"=== DEBUG: Totale trovato: {len(scambi_diretti)} scambi diretti + {len(catene_lunghe)} catene lunghe ===")
     return rimuovi_duplicati(tutte_catene)
+
+def rimuovi_duplicati(catene):
+    """Rimuove duplicati dalle catene basandosi su utenti coinvolti"""
+    catene_uniche = []
+    combinazioni_viste = set()
+
+    for catena in catene:
+        # Crea una chiave univoca basata sugli utenti ordinati
+        utenti_ordinati = tuple(sorted(catena['utenti']))
+
+        # Evita duplicati
+        if utenti_ordinati not in combinazioni_viste:
+            combinazioni_viste.add(utenti_ordinati)
+            catene_uniche.append(catena)
+
+    print(f"🔧 Deduplicazione: {len(catene)} → {len(catene_uniche)} catene uniche")
+    return catene_uniche
 
 def trova_catene_ricorsive(max_lunghezza=6):
     """Algoritmo per trovare catene con annunci dettagliati"""
