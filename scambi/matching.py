@@ -1,7 +1,8 @@
-from .models import Annuncio
+from .models import Annuncio, UserProfile
 from django.contrib.auth.models import User
 from collections import defaultdict
 import re
+import math
 
 def trova_scambi_diretti():
     """Trova scambi diretti tra 2 persone (massima priorità)"""
@@ -59,14 +60,21 @@ def trova_scambi_diretti():
 def crea_scambio_diretto(utente_a, utente_b, offerta_a, richiesta_b, offerta_b, richiesta_a):
     """Crea la struttura dati per uno scambio diretto"""
 
-    # Calcola punteggio qualità
+    # Calcola punteggio qualità degli oggetti
     _, tipo_match_1 = oggetti_compatibili_con_tipo(offerta_a, richiesta_b)
     _, tipo_match_2 = oggetti_compatibili_con_tipo(offerta_b, richiesta_a)
 
     punteggio_match_1 = {"specifico": 10, "parziale": 8, "categoria": 6, "generico": 4}.get(tipo_match_1, 0)
     punteggio_match_2 = {"specifico": 10, "parziale": 8, "categoria": 6, "generico": 4}.get(tipo_match_2, 0)
 
-    punteggio_qualita = (punteggio_match_1 + punteggio_match_2) / 2
+    # Calcola punteggio distanza geografica
+    distanza_km, tipo_distanza = calcola_distanza_geografica(utente_a, utente_b)
+    categoria_distanza, bonus_distanza = classifica_distanza(distanza_km)
+
+    # Calcola punteggio finale combinando match oggetti + distanza
+    punteggio_oggetti = (punteggio_match_1 + punteggio_match_2) / 2
+    punteggio_qualita = (punteggio_oggetti * 0.7) + (bonus_distanza * 0.3)  # 70% oggetti, 30% distanza
+
     categoria_qualita = "alta" if punteggio_qualita >= 7 else "generica"
 
     return {
@@ -84,7 +92,10 @@ def crea_scambio_diretto(utente_a, utente_b, offerta_a, richiesta_b, offerta_b, 
         ],
         'categoria_qualita': categoria_qualita,
         'punteggio_qualita': punteggio_qualita,
-        'tipi_match': [tipo_match_1, tipo_match_2]
+        'tipi_match': [tipo_match_1, tipo_match_2],
+        'distanza_km': distanza_km,
+        'categoria_distanza': categoria_distanza,
+        'tipo_distanza': tipo_distanza
     }
 
 def trova_catene_scambio(max_lunghezza=6):
@@ -423,3 +434,70 @@ def oggetti_compatibili(annuncio_offerto, annuncio_cercato):
     """Wrapper per compatibilità"""
     compatible, _ = oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato)
     return compatible
+
+def calcola_distanza_geografica(utente_a, utente_b):
+    """Calcola distanza geografica tra due utenti basata sulla città"""
+    try:
+        profile_a = UserProfile.objects.get(user=utente_a)
+        profile_b = UserProfile.objects.get(user=utente_b)
+
+        # Se entrambi hanno la stessa città, distanza = 0
+        if profile_a.citta and profile_b.citta:
+            if profile_a.citta.lower() == profile_b.citta.lower():
+                return 0, "stessa_citta"
+
+            # Se hanno la stessa provincia, distanza bassa
+            if profile_a.provincia and profile_b.provincia:
+                if profile_a.provincia.lower() == profile_b.provincia.lower():
+                    return 25, "stessa_provincia"  # Assume ~25km tra città della stessa provincia
+
+            # Se hanno coordinate, calcola distanza esatta
+            if (profile_a.latitudine and profile_a.longitudine and
+                profile_b.latitudine and profile_b.longitudine):
+                distanza_km = calcola_distanza_haversine(
+                    profile_a.latitudine, profile_a.longitudine,
+                    profile_b.latitudine, profile_b.longitudine
+                )
+                return distanza_km, "coordinate"
+
+            # Altrimenti, assume distanza alta tra città diverse
+            return 100, "citta_diverse"  # Assume ~100km tra città diverse
+
+        # Se uno dei due non ha città impostata
+        return 999, "posizione_sconosciuta"
+
+    except UserProfile.DoesNotExist:
+        return 999, "profilo_mancante"
+
+def calcola_distanza_haversine(lat1, lon1, lat2, lon2):
+    """Calcola distanza in km tra due punti usando la formula di Haversine"""
+    R = 6371  # Raggio della Terra in km
+
+    lat1_rad = math.radians(lat1)
+    lon1_rad = math.radians(lon1)
+    lat2_rad = math.radians(lat2)
+    lon2_rad = math.radians(lon2)
+
+    dlat = lat2_rad - lat1_rad
+    dlon = lon2_rad - lon1_rad
+
+    a = (math.sin(dlat/2)**2 +
+         math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon/2)**2)
+    c = 2 * math.asin(math.sqrt(a))
+
+    return R * c
+
+def classifica_distanza(distanza_km):
+    """Classifica la distanza geografica"""
+    if distanza_km == 0:
+        return "locale", 10  # Bonus massimo per stessa città
+    elif distanza_km <= 10:
+        return "vicinissimo", 9
+    elif distanza_km <= 30:
+        return "vicino", 7
+    elif distanza_km <= 100:
+        return "medio", 5
+    elif distanza_km <= 300:
+        return "lontano", 3
+    else:
+        return "molto_lontano", 1

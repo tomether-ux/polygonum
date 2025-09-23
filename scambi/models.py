@@ -41,3 +41,32 @@ class Annuncio(models.Model):
     class Meta:
         verbose_name_plural = "Annunci"
         ordering = ['-data_creazione']
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    citta = models.CharField(max_length=100, blank=True, verbose_name="Città")
+    provincia = models.CharField(max_length=50, blank=True, verbose_name="Provincia")
+    regione = models.CharField(max_length=50, blank=True, verbose_name="Regione")
+    cap = models.CharField(max_length=10, blank=True, verbose_name="CAP")
+
+    # Coordinate geografiche (per calcoli di distanza più precisi)
+    latitudine = models.FloatField(null=True, blank=True)
+    longitudine = models.FloatField(null=True, blank=True)
+
+    def __str__(self):
+        if self.citta:
+            return f"{self.user.username} - {self.citta}"
+        return f"{self.user.username} - No città"
+
+    def get_location_string(self):
+        """Restituisce una stringa rappresentativa della posizione"""
+        parts = []
+        if self.citta:
+            parts.append(self.citta)
+        if self.provincia:
+            parts.append(self.provincia)
+        return ", ".join(parts) if parts else "Posizione non specificata"
+
+    class Meta:
+        verbose_name = "Profilo Utente"
+        verbose_name_plural = "Profili Utenti"
