@@ -37,11 +37,16 @@ class CustomUserCreationForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit=commit)
         if commit:
+            # Disabilita l'utente fino alla verifica email
+            user.is_active = False
+            user.save()
+
             # Crea il profilo utente con i dati geografici
             UserProfile.objects.create(
                 user=user,
                 citta=self.cleaned_data.get('citta', ''),
-                provincia=self.cleaned_data.get('provincia', '')
+                provincia=self.cleaned_data.get('provincia', ''),
+                email_verified=False
             )
         return user
 

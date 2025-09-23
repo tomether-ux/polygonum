@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 from django.contrib.auth.views import LogoutView
-from .views import register, CustomLoginView
+from .views import register, CustomLoginView, verify_email
 
 urlpatterns = [
     path('', views.home, name='home'),
@@ -10,7 +10,8 @@ urlpatterns = [
     path('i-miei-annunci/', views.i_miei_annunci, name='i_miei_annunci'),
     path('catene-scambio/', views.catene_scambio, name='catene_scambio'),
     path('test-matching/', views.test_matching, name='test_matching'),
-    path('register/', register, name='register'),  # aggiungi questi
+    path('register/', register, name='register'),
     path('login/', CustomLoginView.as_view(), name='login'),
-    path('logout/', LogoutView.as_view(next_page='home'), name='logout'),
+    path('logout/', LogoutView.as_view(template_name='registration/logout.html'), name='logout'),
+    path('verify-email/<str:token>/', verify_email, name='verify_email'),
 ]
