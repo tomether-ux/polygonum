@@ -53,6 +53,10 @@ class UserProfile(models.Model):
     latitudine = models.FloatField(null=True, blank=True)
     longitudine = models.FloatField(null=True, blank=True)
 
+    # Email verification
+    email_verified = models.BooleanField(default=False, verbose_name="Email Verificata")
+    email_verification_token = models.CharField(max_length=100, blank=True, null=True)
+
     def __str__(self):
         if self.citta:
             return f"{self.user.username} - {self.citta}"

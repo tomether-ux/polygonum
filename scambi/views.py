@@ -194,19 +194,55 @@ def catene_scambio(request):
 from django.contrib.auth import login
 from django.contrib.auth.views import LoginView
 from .forms import CustomUserCreationForm
+from .email_utils import send_verification_email
+from .models import UserProfile
 
 def register(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user)
-            messages.success(request, 'Registrazione completata!')
-            return redirect('home')
+
+            # Invia email di verifica
+            user_profile = UserProfile.objects.get(user=user)
+            if send_verification_email(request, user, user_profile):
+                messages.success(request,
+                    f'Registrazione completata! Ti abbiamo inviato un\'email di verifica a {user.email}. '
+                    'Controlla la tua casella di posta e clicca sul link per attivare il tuo account.')
+            else:
+                messages.warning(request,
+                    'Registrazione completata ma c\'è stato un problema nell\'invio dell\'email di verifica. '
+                    'Contatta il supporto se necessario.')
+
+            return redirect('login')
     else:
         form = CustomUserCreationForm()
-    
+
     return render(request, 'registration/register.html', {'form': form})
+
+def verify_email(request, token):
+    """Vista per verificare l'email tramite token"""
+    try:
+        user_profile = UserProfile.objects.get(email_verification_token=token)
+
+        if not user_profile.email_verified:
+            # Attiva utente e profilo
+            user_profile.email_verified = True
+            user_profile.email_verification_token = None
+            user_profile.save()
+
+            user = user_profile.user
+            user.is_active = True
+            user.save()
+
+            messages.success(request, 'Email verificata con successo! Ora puoi accedere al tuo account.')
+        else:
+            messages.info(request, 'Email già verificata precedentemente.')
+
+    except UserProfile.DoesNotExist:
+        messages.error(request, 'Token di verifica non valido o scaduto.')
+
+    return redirect('login')
 
 class CustomLoginView(LoginView):
     template_name = 'registration/login.html'

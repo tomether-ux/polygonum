@@ -16,7 +16,10 @@ class AnnuncioAdmin(admin.ModelAdmin):
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'citta', 'provincia', 'get_location_string']
-    list_filter = ['provincia', 'citta']
-    search_fields = ['user__username', 'citta', 'provincia']
+    list_display = ['user', 'citta', 'provincia', 'email_verified', 'get_location_string']
+    list_filter = ['provincia', 'citta', 'email_verified']
+    search_fields = ['user__username', 'citta', 'provincia', 'user__email']
     readonly_fields = ['latitudine', 'longitudine']  # Per ora read-only, potremmo aggiungere geocoding in futuro
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')
