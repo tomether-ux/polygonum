@@ -44,7 +44,7 @@ class Annuncio(models.Model):
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    citta = models.CharField(max_length=100, blank=True, verbose_name="Città")
+    citta = models.CharField(max_length=100, blank=False, verbose_name="Città")
     provincia = models.CharField(max_length=50, blank=True, verbose_name="Provincia")
     regione = models.CharField(max_length=50, blank=True, verbose_name="Regione")
     cap = models.CharField(max_length=10, blank=True, verbose_name="CAP")
