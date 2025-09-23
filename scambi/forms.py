@@ -72,3 +72,32 @@ class AnnuncioForm(forms.ModelForm):
             'tipo': 'Tipo annuncio',
             'immagine': 'Foto dell\'oggetto (opzionale)'
         }
+
+class UserProfileForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ['citta', 'provincia', 'regione', 'cap']
+        widgets = {
+            'citta': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Es: Roma, Milano, Torino...'
+            }),
+            'provincia': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Es: RM, MI, TO...'
+            }),
+            'regione': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Es: Lazio, Lombardia, Piemonte...'
+            }),
+            'cap': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Es: 00100, 20121...'
+            }),
+        }
+        labels = {
+            'citta': 'Città *',
+            'provincia': 'Provincia',
+            'regione': 'Regione',
+            'cap': 'CAP'
+        }

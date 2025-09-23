@@ -79,7 +79,7 @@
                             <div class="card mb-2 border-warning">
                                 <div class="card-body p-2">
                                     <strong>{{ item.annuncio.titolo }}</strong>
-                                    <br><small>{{ item.utente }} - {{ item.annuncio.categoria.nome }}</small>
+                                    <br><small><a href="{% url 'profilo_utente' item.utente %}" class="text-muted">{{ item.utente }}</a> - {{ item.annuncio.categoria.nome }}</small>
                                     <br>
                                     {% if item.ruolo == 'offre' %}
                                         <span class="badge bg-success">Offre</span>
@@ -131,7 +131,7 @@
                             <div class="card mb-2 border-warning">
                                 <div class="card-body p-2">
                                     <strong>{{ item.annuncio.titolo }}</strong>
-                                    <br><small>{{ item.utente }} - {{ item.annuncio.categoria.nome }}</small>
+                                    <br><small><a href="{% url 'profilo_utente' item.utente %}" class="text-muted">{{ item.utente }}</a> - {{ item.annuncio.categoria.nome }}</small>
                                     <br>
                                     {% if item.ruolo == 'offre' %}
                                         <span class="badge bg-success">Offre</span>

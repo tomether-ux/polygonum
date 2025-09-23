@@ -29,7 +29,7 @@ Crea Nuovo Annuncio
 <p>{{ annuncio.descrizione|truncatewords:20 }}</p>
 
 Categoria: {{ annuncio.categoria.nome }}<br>
-Utente: {{ annuncio.utente.username }}<br>
+Utente: <a href="{% url 'profilo_utente' annuncio.utente.username %}" class="text-primary">{{ annuncio.utente.username }}</a><br>
 Data: {{ annuncio.data_creazione|date:"d/m/Y" }}
 {% endfor %} {% else %}
 Nessun annuncio trovato
