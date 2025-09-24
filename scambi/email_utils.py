@@ -17,7 +17,8 @@ def send_verification_email(request, user, user_profile):
 
     # Crea URL di verifica
     current_site = get_current_site(request)
-    verification_url = f"http://{current_site.domain}{reverse('verify_email', args=[token])}"
+    protocol = 'https' if request.is_secure() else 'http'
+    verification_url = f"{protocol}://{current_site.domain}{reverse('verify_email', args=[token])}"
 
     # Contenuto email
     subject = 'Verifica il tuo account - Sito di Scambi'

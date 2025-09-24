@@ -214,7 +214,7 @@ def register(request):
             else:
                 messages.warning(request,
                     'Registrazione completata ma c\'è stato un problema nell\'invio dell\'email di verifica. '
-                    'Contatta il supporto se necessario.')
+                    'Controlla i log del server o contatta il supporto.')
 
             return redirect('login')
         else:
