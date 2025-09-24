@@ -12,7 +12,10 @@ urlpatterns = [
     path('test-matching/', views.test_matching, name='test_matching'),
     path('register/', register, name='register'),
     path('login/', CustomLoginView.as_view(), name='login'),
-    path('logout/', LogoutView.as_view(template_name='registration/logout.html'), name='logout'),
+    path('logout/', LogoutView.as_view(
+        template_name='registration/logout.html',
+        next_page=None  # Rimuovi redirect automatico
+    ), name='logout'),
     path('verify-email/<str:token>/', verify_email, name='verify_email'),
     path('profilo/<str:username>/', profilo_utente, name='profilo_utente'),
     path('modifica-profilo/', modifica_profilo, name='modifica_profilo'),

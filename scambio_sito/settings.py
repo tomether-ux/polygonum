@@ -133,7 +133,7 @@ ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 # Login settings
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/login/'
+# LOGOUT_REDIRECT_URL rimosso - ora usiamo il template logout.html
 
 # Production settings
 if os.environ.get('RENDER'):
