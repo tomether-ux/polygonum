@@ -217,6 +217,11 @@ def register(request):
                     'Contatta il supporto se necessario.')
 
             return redirect('login')
+        else:
+            # Aggiungi messaggi di errore per il debug
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
     else:
         form = CustomUserCreationForm()
 
@@ -249,6 +254,14 @@ def verify_email(request, token):
 class CustomLoginView(LoginView):
     template_name = 'registration/login.html'
     redirect_authenticated_user = True
+
+    def form_invalid(self, form):
+        # Aggiungi messaggi di errore per il debug
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(self.request, f'Login error - {field}: {error}')
+
+        return super().form_invalid(form)
 
 def profilo_utente(request, username):
     """Vista pubblica del profilo utente con i suoi annunci"""
