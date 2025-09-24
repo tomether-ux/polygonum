@@ -198,6 +198,7 @@ from .email_utils import send_verification_email
 from .models import UserProfile
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
+from django.contrib.auth import logout
 
 def register(request):
     if request.method == 'POST':
@@ -310,3 +311,8 @@ def modifica_profilo(request):
         'form': form,
         'profilo': profilo
     })
+
+def custom_logout(request):
+    """View personalizzata per il logout"""
+    logout(request)
+    return render(request, 'registration/logout.html')
