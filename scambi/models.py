@@ -19,13 +19,42 @@ class Annuncio(models.Model):
         ('offro', 'Offro'),
         ('cerco', 'Cerco'),
     ]
-    
+
+    METODO_SCAMBIO_CHOICES = [
+        ('entrambi', 'Scambio a mano o spedizione'),
+        ('mano', 'Solo scambio a mano'),
+        ('spedizione', 'Solo spedizione'),
+    ]
+
     utente = models.ForeignKey(User, on_delete=models.CASCADE)
     titolo = models.CharField(max_length=200)
     descrizione = models.TextField()
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
     immagine = models.ImageField(upload_to='annunci/', blank=True, null=True)
+
+    # Nuovi campi per prezzo e modalità di scambio
+    prezzo_stimato = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        verbose_name="Prezzo stimato (€)",
+        help_text="Valore indicativo dell'oggetto per facilitare scambi equi"
+    )
+    metodo_scambio = models.CharField(
+        max_length=15,
+        choices=METODO_SCAMBIO_CHOICES,
+        default='entrambi',
+        verbose_name="Metodo di scambio preferito"
+    )
+    distanza_massima_km = models.IntegerField(
+        blank=True,
+        null=True,
+        verbose_name="Distanza massima per scambio a mano (km)",
+        help_text="Solo per scambi a mano. Lascia vuoto se disponibile per spedizione"
+    )
+
     attivo = models.BooleanField(default=True)
     data_creazione = models.DateTimeField(auto_now_add=True)
     
