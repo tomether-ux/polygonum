@@ -37,6 +37,11 @@ Benvenuto nella community degli scambi!
     """
 
     try:
+        print(f"🔧 Debug Email - Tentativo invio a: {user.email}")
+        print(f"🔧 Email Backend: {settings.EMAIL_BACKEND}")
+        print(f"🔧 Email Host: {getattr(settings, 'EMAIL_HOST', 'Non configurato')}")
+        print(f"🔧 API Key presente: {'Sì' if settings.EMAIL_HOST_PASSWORD else 'No'}")
+
         send_mail(
             subject,
             message,
@@ -44,7 +49,9 @@ Benvenuto nella community degli scambi!
             [user.email],
             fail_silently=False,
         )
+        print(f"✅ Email inviata con successo a {user.email}")
         return True
     except Exception as e:
-        print(f"Errore invio email: {e}")
+        print(f"❌ Errore invio email: {e}")
+        print(f"❌ Tipo errore: {type(e).__name__}")
         return False
