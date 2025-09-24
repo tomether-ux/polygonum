@@ -1,44 +1,169 @@
-{% extends 'scambi/base.html' %} {% block title %}Crea Annuncio - Sito di Scambi{% endblock %} {% block content %}
-Crea un Nuovo Annuncio
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}Tipo Annuncio {{ form.tipo }}
-Scegli se offri qualcosa o stai cercando qualcosa
-Titolo {{ form.titolo }}
-Es: "Chitarra elettrica Fender" o "Bicicletta da corsa"
-Categoria {{ form.categoria }}
-Descrizione {{ form.descrizione }}
-Descrivi dettagliatamente l'oggetto, le condizioni, ecc.
-Foto dell'oggetto {{ form.immagine }}
-Aggiungi una foto del tuo oggetto per renderlo più attraente
+{% extends 'scambi/base.html' %}
 
-<!-- Anteprima immagine -->
-<div id="image-preview-container" style="display: none;">
-    Anteprima:
-    <img id="image-preview" src="" alt="Anteprima" style="max-height: 200px;">
+{% block title %}Crea Annuncio - Sito di Scambi{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>Crea un Nuovo Annuncio
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <!-- Informazioni di base -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">
+                                <i class="fas fa-info-circle me-2"></i>Informazioni di Base
+                            </h5>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">{{ form.tipo.label_tag }}</label>
+                                    {{ form.tipo }}
+                                    <small class="form-text text-muted">Scegli se offri qualcosa o stai cercando qualcosa</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">{{ form.categoria.label_tag }}</label>
+                                    {{ form.categoria }}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">{{ form.titolo.label_tag }}</label>
+                                {{ form.titolo }}
+                                <small class="form-text text-muted">Es: "Chitarra elettrica Fender" o "Bicicletta da corsa"</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">{{ form.descrizione.label_tag }}</label>
+                                {{ form.descrizione }}
+                                <small class="form-text text-muted">Descrivi dettagliatamente l'oggetto, le condizioni, ecc.</small>
+                            </div>
+                        </div>
+
+                        <!-- Valore e modalità di scambio -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">
+                                <i class="fas fa-handshake me-2"></i>Modalità di Scambio
+                            </h5>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">{{ form.prezzo_stimato.label_tag }}</label>
+                                    <div class="input-group">
+                                        {{ form.prezzo_stimato }}
+                                        <span class="input-group-text">€</span>
+                                    </div>
+                                    <small class="form-text text-muted">Valore indicativo per scambi equi (opzionale)</small>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">{{ form.metodo_scambio.label_tag }}</label>
+                                    {{ form.metodo_scambio }}
+                                </div>
+                            </div>
+
+                            <div class="mb-3" id="distanza-container">
+                                <label class="form-label">{{ form.distanza_massima_km.label_tag }}</label>
+                                <div class="input-group">
+                                    {{ form.distanza_massima_km }}
+                                    <span class="input-group-text">km</span>
+                                </div>
+                                <small class="form-text text-muted">Solo per scambi a mano. Lascia vuoto se disponibile anche per spedizione</small>
+                            </div>
+                        </div>
+
+                        <!-- Immagine -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">
+                                <i class="fas fa-image me-2"></i>Foto dell'oggetto
+                            </h5>
+
+                            <div class="mb-3">
+                                <label class="form-label">{{ form.immagine.label_tag }}</label>
+                                {{ form.immagine }}
+                                <small class="form-text text-muted">Aggiungi una foto del tuo oggetto per renderlo più attraente</small>
+                            </div>
+
+                            <!-- Anteprima immagine -->
+                            <div id="image-preview-container" style="display: none;" class="text-center">
+                                <p><strong>Anteprima:</strong></p>
+                                <img id="image-preview" src="" alt="Anteprima" class="img-fluid rounded" style="max-height: 200px;">
+                            </div>
+                        </div>
+
+                        <!-- Pulsanti -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'lista_annunci' %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>Annulla
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Pubblica Annuncio
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Suggerimenti -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Suggerimenti per annunci efficaci
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Usa titoli chiari e descrittivi</li>
+                        <li>Includi parole chiave che altri potrebbero cercare</li>
+                        <li>Specifica marca, modello, condizioni</li>
+                        <li>Indica un prezzo realistico per facilitare scambi equi</li>
+                        <li>Più annunci aumentano le possibilità di scambio</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<button type="submit" class="btn btn-primary">Pubblica Annuncio</button>
-</form>
-Annulla Pubblica Annuncio
-Suggerimenti per annunci efficaci
-	•	Usa titoli chiari e descrittivi
-	•	Includi parole chiave che altri potrebbero cercare
-	•	Specifica marca, modello, condizioni
-	•	PiÃ¹ annunci aumentano le possibilitÃ  di scambio
+
 <script>
 function previewImage(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
-        
+
         reader.onload = function(e) {
             const preview = document.getElementById('image-preview');
             const container = document.getElementById('image-preview-container');
-            
+
             preview.src = e.target.result;
             container.style.display = 'block';
         }
-        
+
         reader.readAsDataURL(input.files[0]);
     }
 }
+
+// Mostra/nascondi campo distanza in base al metodo di scambio
+document.addEventListener('DOMContentLoaded', function() {
+    const metodoScambio = document.getElementById('id_metodo_scambio');
+    const distanzaContainer = document.getElementById('distanza-container');
+
+    function toggleDistanceField() {
+        if (metodoScambio.value === 'spedizione') {
+            distanzaContainer.style.display = 'none';
+        } else {
+            distanzaContainer.style.display = 'block';
+        }
+    }
+
+    metodoScambio.addEventListener('change', toggleDistanceField);
+    toggleDistanceField(); // Esegui al caricamento
+});
 </script>
 {% endblock %}
