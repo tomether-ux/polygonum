@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <!-- TEMPLATE AGGIORNATO SENZA I MIEI ANNUNCI -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Sito di Scambi{% endblock %}</title>
@@ -18,7 +19,6 @@
             {% if user.is_authenticated %}
                 <a class="nav-link" href="{% url 'mie_catene_scambio' %}">I Miei Scambi</a>
                 <a class="nav-link" href="{% url 'crea_annuncio' %}">Crea Annuncio</a>
-                <a class="nav-link" href="{% url 'i_miei_annunci' %}">I Miei Annunci</a>
                 <a class="nav-link" href="{% url 'profilo_utente' user.username %}">Il Mio Profilo</a>
                 <a class="nav-link" href="/admin/">Admin</a>
                 <span class="nav-link">Ciao, {{ user.username }}</span>

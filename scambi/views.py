@@ -128,11 +128,53 @@ def crea_annuncio(request):
     return render(request, 'scambi/crea_annuncio.html', {'form': form})
 
 @login_required
-def i_miei_annunci(request):
-    """Mostra gli annunci dell'utente corrente"""
-    annunci = Annuncio.objects.filter(utente=request.user).order_by('-data_creazione')
-    
-    return render(request, 'scambi/i_miei_annunci.html', {'annunci': annunci})
+def modifica_annuncio(request, annuncio_id):
+    """Modifica un annuncio esistente"""
+    annuncio = get_object_or_404(Annuncio, id=annuncio_id, utente=request.user)
+
+    if request.method == 'POST':
+        form = AnnuncioForm(request.POST, instance=annuncio)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Annuncio modificato con successo!')
+            return redirect('profilo_utente', username=request.user.username)
+    else:
+        form = AnnuncioForm(instance=annuncio)
+
+    return render(request, 'scambi/modifica_annuncio.html', {
+        'form': form,
+        'annuncio': annuncio
+    })
+
+@login_required
+def elimina_annuncio(request, annuncio_id):
+    """Elimina un annuncio"""
+    annuncio = get_object_or_404(Annuncio, id=annuncio_id, utente=request.user)
+
+    if request.method == 'POST':
+        annuncio.delete()
+        messages.success(request, 'Annuncio eliminato con successo!')
+        return redirect('profilo_utente', username=request.user.username)
+
+    return render(request, 'scambi/conferma_eliminazione.html', {'annuncio': annuncio})
+
+@login_required
+def attiva_annuncio(request, annuncio_id):
+    """Attiva un annuncio disattivato"""
+    annuncio = get_object_or_404(Annuncio, id=annuncio_id, utente=request.user)
+    annuncio.attivo = True
+    annuncio.save()
+    messages.success(request, f'Annuncio "{annuncio.titolo}" attivato con successo!')
+    return redirect('profilo_utente', username=request.user.username)
+
+@login_required
+def disattiva_annuncio(request, annuncio_id):
+    """Disattiva un annuncio"""
+    annuncio = get_object_or_404(Annuncio, id=annuncio_id, utente=request.user)
+    annuncio.attivo = False
+    annuncio.save()
+    messages.success(request, f'Annuncio "{annuncio.titolo}" disattivato con successo!')
+    return redirect('profilo_utente', username=request.user.username)
 
 def catene_scambio(request):
     """Mostra le catene di scambio divise per qualità"""

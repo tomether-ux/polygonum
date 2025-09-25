@@ -1,0 +1,59 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Conferma Eliminazione - Sito di Scambi{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h3 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Conferma Eliminazione
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <strong>Attenzione!</strong> Questa azione non può essere annullata.
+                </div>
+
+                <p><strong>Sei sicuro di voler eliminare questo annuncio?</strong></p>
+
+                <div class="card bg-light mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ annuncio.titolo }}</h5>
+                        <p class="card-text">{{ annuncio.descrizione|truncatewords:30 }}</p>
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">
+                                    <strong>Offre:</strong> {{ annuncio.offre|default:"Non specificato" }}
+                                </small>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">
+                                    <strong>Cerca:</strong> {{ annuncio.cerca|default:"Non specificato" }}
+                                </small>
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            Categoria: {{ annuncio.categoria.nome }} -
+                            Pubblicato il {{ annuncio.data_creazione|date:"d/m/Y" }}
+                        </small>
+                    </div>
+                </div>
+
+                <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'profilo_utente' user.username %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Annulla
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Elimina Definitivamente
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
