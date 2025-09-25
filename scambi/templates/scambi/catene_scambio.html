@@ -5,8 +5,13 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
+        {% if personalizzato %}
+        <h1>I Miei Scambi Possibili</h1>
+        <p class="text-muted">Scambi che coinvolgono i tuoi annunci - personalizzati per te!</p>
+        {% else %}
         <h1>Catene di Scambio</h1>
         <p class="text-muted">L'algoritmo analizza tutti gli annunci per trovare possibili scambi circolari</p>
+        {% endif %}
 
         <!-- Bottone di ricerca -->
         <div class="mb-4">
@@ -23,11 +28,17 @@
             {% endif %}
 
             <a href="?cerca=true" class="btn btn-primary btn-lg">
-                <i class="fas fa-search me-2"></i>Cerca Catene di Scambio
+                <i class="fas fa-search me-2"></i>{% if personalizzato %}Cerca I Miei Scambi{% else %}Cerca Catene di Scambio{% endif %}
             </a>
+            {% if personalizzato %}
+            <a href="{% url 'mie_catene_scambio' %}" class="btn btn-outline-secondary ms-2">
+                <i class="fas fa-refresh me-2"></i>Reset
+            </a>
+            {% else %}
             <a href="{% url 'catene_scambio' %}" class="btn btn-outline-secondary ms-2">
                 <i class="fas fa-refresh me-2"></i>Reset
             </a>
+            {% endif %}
         </div>
     </div>
 </div>
