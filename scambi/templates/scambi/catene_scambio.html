@@ -43,7 +43,22 @@
     </div>
 </div>
 
-{% if totale_catene > 0 %}
+{% if personalizzato and nessun_annuncio %}
+    <div class="alert alert-warning text-center">
+        <h4><i class="fas fa-exclamation-triangle me-2"></i>Nessun Annuncio Attivo</h4>
+        <p>Non puoi partecipare a scambi senza annunci attivi.</p>
+
+        <div class="mt-4">
+            <a href="{% url 'crea_annuncio' %}" class="btn btn-primary me-2">
+                <i class="fas fa-plus me-1"></i>Crea il Tuo Primo Annuncio
+            </a>
+            <a href="{% url 'lista_annunci' %}" class="btn btn-outline-primary">
+                <i class="fas fa-list me-1"></i>Vedi Annunci Esistenti
+            </a>
+        </div>
+    </div>
+
+{% elif totale_catene > 0 %}
     <div class="alert alert-success">
         <strong>Risultati:</strong> Trovati {{ totale_scambi_diretti }} scambi diretti + {{ totale_catene_lunghe }} catene lunghe = {{ totale_catene }} totali
     </div>
@@ -301,10 +316,23 @@
             </div>
         </div>
     {% else %}
+        {% if personalizzato and not ha_annunci %}
+        <div class="alert alert-info text-center">
+            <h4><i class="fas fa-info-circle me-2"></i>Crea il Tuo Primo Annuncio</h4>
+            <p>Devi avere almeno un annuncio attivo per vedere le opportunità di scambio personalizzate.</p>
+
+            <div class="mt-3">
+                <a href="{% url 'crea_annuncio' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Pubblica il Primo Annuncio
+                </a>
+            </div>
+        </div>
+        {% else %}
         <div class="alert alert-light text-center">
             <h4><i class="fas fa-clock me-2"></i>In attesa di ricerca</h4>
-            <p>Clicca su "Cerca Catene di Scambio" per analizzare gli annunci disponibili.</p>
+            <p>{% if personalizzato %}Clicca su "Cerca I Miei Scambi" per trovare opportunità personalizzate.{% else %}Clicca su "Cerca Catene di Scambio" per analizzare gli annunci disponibili.{% endif %}</p>
         </div>
+        {% endif %}
     {% endif %}
 {% endif %}
 
