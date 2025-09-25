@@ -317,19 +317,26 @@ def profilo_utente(request, username):
         # Se l'utente non ha profilo, creane uno vuoto
         profilo = UserProfile.objects.create(user=utente, citta="Non specificata")
 
-    # Ottieni tutti gli annunci dell'utente (attivi)
-    annunci = Annuncio.objects.filter(utente=utente, attivo=True).order_by('-data_creazione')
+    # Se è il proprio profilo, mostra tutti gli annunci (anche disattivati)
+    # Se è il profilo di un altro, mostra solo quelli attivi
+    if request.user == utente:
+        annunci = Annuncio.objects.filter(utente=utente).order_by('-data_creazione')
+    else:
+        annunci = Annuncio.objects.filter(utente=utente, attivo=True).order_by('-data_creazione')
 
     # Dividi annunci per tipo
     annunci_offro = annunci.filter(tipo='offro')
     annunci_cerco = annunci.filter(tipo='cerco')
+
+    # Conta solo gli annunci attivi per le statistiche pubbliche
+    annunci_attivi = Annuncio.objects.filter(utente=utente, attivo=True)
 
     return render(request, 'scambi/profilo_utente.html', {
         'utente': utente,
         'profilo': profilo,
         'annunci_offro': annunci_offro,
         'annunci_cerco': annunci_cerco,
-        'totale_annunci': annunci.count(),
+        'totale_annunci': annunci_attivi.count(),
         'is_own_profile': request.user == utente
     })
 
