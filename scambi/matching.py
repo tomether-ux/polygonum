@@ -79,6 +79,11 @@ def filtra_catene_per_utente(scambi_diretti, catene_lunghe, utente):
 
     print(f"🔍 Filtraggio per utente {utente.username}: {len(annunci_utente)} annunci attivi")
 
+    # Se l'utente non ha annunci, non può partecipare a nessuno scambio
+    if not annunci_utente_ids:
+        print(f"❌ Utente {utente.username} non ha annunci attivi - nessuno scambio possibile")
+        return [], []
+
     # Filtra scambi diretti
     scambi_diretti_utente = []
     for scambio in scambi_diretti:
@@ -90,6 +95,8 @@ def filtra_catene_per_utente(scambi_diretti, catene_lunghe, utente):
             if annunci_coinvolti_ids.intersection(annunci_utente_ids):
                 scambi_diretti_utente.append(scambio)
                 print(f"✅ Scambio diretto incluso: {utenti_coinvolti}")
+            else:
+                print(f"❌ Scambio escluso: utente nel nome ma annunci non corrispondono")
 
     # Filtra catene lunghe
     catene_utente = []
@@ -102,6 +109,8 @@ def filtra_catene_per_utente(scambi_diretti, catene_lunghe, utente):
             if annunci_coinvolti_ids.intersection(annunci_utente_ids):
                 catene_utente.append(catena)
                 print(f"✅ Catena lunga inclusa: {len(utenti_catena)} persone")
+            else:
+                print(f"❌ Catena esclusa: utente nel nome ma annunci non corrispondono")
 
     print(f"📊 Risultati filtrati per {utente.username}:")
     print(f"   - Scambi diretti: {len(scambi_diretti_utente)}")

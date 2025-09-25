@@ -322,9 +322,13 @@ def custom_logout(request):
 def mie_catene_scambio(request):
     """Vista personalizzata che mostra solo le catene di scambio rilevanti per l'utente loggato"""
 
+    # Controlla se l'utente ha annunci attivi
+    annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
+    ha_annunci = annunci_utente.exists()
+
     ricerca_eseguita = request.GET.get('cerca', False)
 
-    if ricerca_eseguita:
+    if ricerca_eseguita and ha_annunci:
         # Esegui ricerca completa
         scambi_diretti = trova_scambi_diretti()
         catene = trova_catene_scambio()
@@ -365,10 +369,30 @@ def mie_catene_scambio(request):
 
         messages.info(request, f'Trovate {totale_catene} opportunità di scambio per i tuoi annunci!')
 
+    elif ricerca_eseguita and not ha_annunci:
+        # Utente ha cercato ma non ha annunci
+        context = {
+            'ricerca_eseguita': True,
+            'scambi_diretti_alta': [],
+            'scambi_diretti_generici': [],
+            'catene_alta_qualita': [],
+            'catene_generiche': [],
+            'totale_scambi_diretti': 0,
+            'totale_catene_lunghe': 0,
+            'totale_catene': 0,
+            'personalizzato': True,
+            'nessun_annuncio': True,
+        }
+
+        messages.warning(request,
+            'Non hai annunci attivi! Pubblica un annuncio per trovare opportunità di scambio.')
+
     else:
+        # Prima visita o utente senza annunci
         context = {
             'ricerca_eseguita': False,
             'personalizzato': True,
+            'ha_annunci': ha_annunci,
         }
 
     return render(request, 'scambi/catene_scambio.html', context)
