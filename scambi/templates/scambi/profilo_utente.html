@@ -75,21 +75,62 @@
     {% if annunci_offro %}
     <div class="row mt-4">
         <div class="col-12">
-            <h4><i class="fas fa-gift me-2 text-success"></i>Cosa Offre ({{ annunci_offro.count }})</h4>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4><i class="fas fa-gift me-2 text-success"></i>Cosa Offre ({{ annunci_offro.count }})</h4>
+                {% if is_own_profile %}
+                <a href="{% url 'crea_annuncio' %}" class="btn btn-success btn-sm">
+                    <i class="fas fa-plus me-1"></i>Nuovo Annuncio
+                </a>
+                {% endif %}
+            </div>
             <div class="row">
                 {% for annuncio in annunci_offro %}
                 <div class="col-md-6 col-lg-4 mb-3">
-                    <div class="card border-success">
+                    <div class="card border-success {% if not annuncio.attivo %}opacity-75{% endif %}">
                         {% if annuncio.immagine %}
                         <img src="{{ annuncio.get_image_url }}" class="card-img-top" alt="{{ annuncio.titolo }}" style="height: 200px; object-fit: cover;">
                         {% endif %}
+                        <div class="card-header d-flex justify-content-between align-items-center p-2">
+                            <small class="badge bg-secondary">{{ annuncio.categoria.nome }}</small>
+                            {% if is_own_profile %}
+                                {% if annuncio.attivo %}
+                                    <span class="badge bg-success">Attivo</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Disattivo</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
                         <div class="card-body">
                             <h6 class="card-title">{{ annuncio.titolo }}</h6>
                             <p class="card-text text-muted small">{{ annuncio.descrizione|truncatewords:15 }}</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge bg-secondary">{{ annuncio.categoria.nome }}</span>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                {% if annuncio.prezzo_stimato %}
+                                <small class="text-success">€{{ annuncio.prezzo_stimato }}</small>
+                                {% else %}
+                                <small></small>
+                                {% endif %}
                                 <small class="text-muted">{{ annuncio.data_creazione|date:"d/m/Y" }}</small>
                             </div>
+                            {% if is_own_profile %}
+                            <div class="btn-group w-100" role="group">
+                                <a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% if annuncio.attivo %}
+                                <a href="{% url 'disattiva_annuncio' annuncio.id %}" class="btn btn-outline-warning btn-sm">
+                                    <i class="fas fa-pause"></i>
+                                </a>
+                                {% else %}
+                                <a href="{% url 'attiva_annuncio' annuncio.id %}" class="btn btn-outline-success btn-sm">
+                                    <i class="fas fa-play"></i>
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'elimina_annuncio' annuncio.id %}" class="btn btn-outline-danger btn-sm"
+                                   onclick="return confirm('Elimina {{ annuncio.titolo }}?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -107,17 +148,51 @@
             <div class="row">
                 {% for annuncio in annunci_cerco %}
                 <div class="col-md-6 col-lg-4 mb-3">
-                    <div class="card border-info">
+                    <div class="card border-info {% if not annuncio.attivo %}opacity-75{% endif %}">
                         {% if annuncio.immagine %}
                         <img src="{{ annuncio.get_image_url }}" class="card-img-top" alt="{{ annuncio.titolo }}" style="height: 200px; object-fit: cover;">
                         {% endif %}
+                        <div class="card-header d-flex justify-content-between align-items-center p-2">
+                            <small class="badge bg-secondary">{{ annuncio.categoria.nome }}</small>
+                            {% if is_own_profile %}
+                                {% if annuncio.attivo %}
+                                    <span class="badge bg-success">Attivo</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Disattivo</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
                         <div class="card-body">
                             <h6 class="card-title">{{ annuncio.titolo }}</h6>
                             <p class="card-text text-muted small">{{ annuncio.descrizione|truncatewords:15 }}</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge bg-secondary">{{ annuncio.categoria.nome }}</span>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                {% if annuncio.prezzo_stimato %}
+                                <small class="text-info">€{{ annuncio.prezzo_stimato }}</small>
+                                {% else %}
+                                <small></small>
+                                {% endif %}
                                 <small class="text-muted">{{ annuncio.data_creazione|date:"d/m/Y" }}</small>
                             </div>
+                            {% if is_own_profile %}
+                            <div class="btn-group w-100" role="group">
+                                <a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% if annuncio.attivo %}
+                                <a href="{% url 'disattiva_annuncio' annuncio.id %}" class="btn btn-outline-warning btn-sm">
+                                    <i class="fas fa-pause"></i>
+                                </a>
+                                {% else %}
+                                <a href="{% url 'attiva_annuncio' annuncio.id %}" class="btn btn-outline-success btn-sm">
+                                    <i class="fas fa-play"></i>
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'elimina_annuncio' annuncio.id %}" class="btn btn-outline-danger btn-sm"
+                                   onclick="return confirm('Elimina {{ annuncio.titolo }}?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
