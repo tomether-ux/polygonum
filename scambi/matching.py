@@ -70,6 +70,45 @@ def trova_scambi_diretti():
     print(f"💫 Trovati {len(scambi_diretti)} scambi diretti")
     return scambi_diretti
 
+def filtra_catene_per_utente(scambi_diretti, catene_lunghe, utente):
+    """Filtra le catene di scambio per mostrare solo quelle rilevanti per l'utente specificato"""
+
+    # Ottieni annunci dell'utente
+    annunci_utente = list(Annuncio.objects.filter(utente=utente, attivo=True))
+    annunci_utente_ids = set(ann.id for ann in annunci_utente)
+
+    print(f"🔍 Filtraggio per utente {utente.username}: {len(annunci_utente)} annunci attivi")
+
+    # Filtra scambi diretti
+    scambi_diretti_utente = []
+    for scambio in scambi_diretti:
+        # Controlla se l'utente è coinvolto nel scambio
+        utenti_coinvolti = scambio['utenti']
+        if utente.username in utenti_coinvolti:
+            # Verifica che almeno uno dei suoi annunci sia coinvolto
+            annunci_coinvolti_ids = set(item['annuncio'].id for item in scambio['annunci_coinvolti'])
+            if annunci_coinvolti_ids.intersection(annunci_utente_ids):
+                scambi_diretti_utente.append(scambio)
+                print(f"✅ Scambio diretto incluso: {utenti_coinvolti}")
+
+    # Filtra catene lunghe
+    catene_utente = []
+    for catena in catene_lunghe:
+        # Controlla se l'utente è nella catena
+        utenti_catena = catena['utenti']
+        if utente.username in utenti_catena:
+            # Verifica che almeno uno dei suoi annunci sia coinvolto
+            annunci_coinvolti_ids = set(item['annuncio'].id for item in catena['annunci_coinvolti'])
+            if annunci_coinvolti_ids.intersection(annunci_utente_ids):
+                catene_utente.append(catena)
+                print(f"✅ Catena lunga inclusa: {len(utenti_catena)} persone")
+
+    print(f"📊 Risultati filtrati per {utente.username}:")
+    print(f"   - Scambi diretti: {len(scambi_diretti_utente)}")
+    print(f"   - Catene lunghe: {len(catene_utente)}")
+
+    return scambi_diretti_utente, catene_utente
+
 def crea_scambio_diretto(utente_a, utente_b, offerta_a, richiesta_b, offerta_b, richiesta_a):
     """Crea la struttura dati per uno scambio diretto"""
 

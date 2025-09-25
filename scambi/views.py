@@ -3,7 +3,7 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth.forms import UserCreationForm  # Se usi il form base
 from django.shortcuts import render
 from django.http import HttpResponse
-from .matching import trova_catene_scambio
+from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente
 from .models import Annuncio
 import importlib
 from . import matching
@@ -199,6 +199,7 @@ from .models import UserProfile
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from django.contrib.auth import logout
+from django.contrib.auth.decorators import login_required
 
 def register(request):
     if request.method == 'POST':
@@ -316,3 +317,58 @@ def custom_logout(request):
     """View personalizzata per il logout"""
     logout(request)
     return render(request, 'registration/logout.html')
+
+@login_required
+def mie_catene_scambio(request):
+    """Vista personalizzata che mostra solo le catene di scambio rilevanti per l'utente loggato"""
+
+    ricerca_eseguita = request.GET.get('cerca', False)
+
+    if ricerca_eseguita:
+        # Esegui ricerca completa
+        scambi_diretti = trova_scambi_diretti()
+        catene = trova_catene_scambio()
+
+        # Separa catene per qualità (come nella vista originale)
+        catene_alta_qualita = [c for c in catene if c.get('categoria_qualita') == 'alta']
+        catene_generiche = [c for c in catene if c.get('categoria_qualita') == 'generica']
+
+        # Filtra tutto per l'utente attuale
+        scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente(
+            scambi_diretti, catene_alta_qualita + catene_generiche, request.user
+        )
+
+        # Ri-separa per qualità dopo il filtraggio
+        catene_alta_qualita_utente = [c for c in catene_lunghe_utente if c.get('categoria_qualita') == 'alta']
+        catene_generiche_utente = [c for c in catene_lunghe_utente if c.get('categoria_qualita') == 'generica']
+
+        # Separa scambi diretti per qualità
+        scambi_diretti_alta = [s for s in scambi_diretti_utente if s.get('categoria_qualita') == 'alta']
+        scambi_diretti_generici = [s for s in scambi_diretti_utente if s.get('categoria_qualita') == 'generica']
+
+        # Calcola totali
+        totale_scambi_diretti = len(scambi_diretti_utente)
+        totale_catene_lunghe = len(catene_lunghe_utente)
+        totale_catene = totale_scambi_diretti + totale_catene_lunghe
+
+        context = {
+            'ricerca_eseguita': True,
+            'scambi_diretti_alta': scambi_diretti_alta,
+            'scambi_diretti_generici': scambi_diretti_generici,
+            'catene_alta_qualita': catene_alta_qualita_utente,
+            'catene_generiche': catene_generiche_utente,
+            'totale_scambi_diretti': totale_scambi_diretti,
+            'totale_catene_lunghe': totale_catene_lunghe,
+            'totale_catene': totale_catene,
+            'personalizzato': True,  # Flag per template
+        }
+
+        messages.info(request, f'Trovate {totale_catene} opportunità di scambio per i tuoi annunci!')
+
+    else:
+        context = {
+            'ricerca_eseguita': False,
+            'personalizzato': True,
+        }
+
+    return render(request, 'scambi/catene_scambio.html', context)
