@@ -24,19 +24,32 @@ def trova_scambi_diretti():
             offerte_b = Annuncio.objects.filter(utente=utente_b, tipo='offro', attivo=True)
             richieste_a = Annuncio.objects.filter(utente=utente_a, tipo='cerco', attivo=True)
 
-            # Verifica match A→B e B→A
+            # Calcola distanza geografica tra i due utenti
+            distanza_km, categoria_distanza = calcola_distanza_geografica(utente_a, utente_b)
+
+            # Verifica match A→B e B→A con algoritmo avanzato
             for offerta_a in offerte_a:
                 for richiesta_b in richieste_b:
-                    if oggetti_compatibili(offerta_a, richiesta_b):
+                    # Usa algoritmo avanzato per A→B
+                    compatible_ab, punteggio_ab, dettagli_ab = oggetti_compatibili_avanzato(offerta_a, richiesta_b, distanza_km)
+
+                    if compatible_ab:
                         # A offre quello che B cerca, ora verifica il contrario
                         for offerta_b in offerte_b:
                             for richiesta_a in richieste_a:
-                                if oggetti_compatibili(offerta_b, richiesta_a):
-                                    # Scambio diretto trovato!
-                                    scambio = crea_scambio_diretto(
+                                # Usa algoritmo avanzato per B→A
+                                compatible_ba, punteggio_ba, dettagli_ba = oggetti_compatibili_avanzato(offerta_b, richiesta_a, distanza_km)
+
+                                if compatible_ba:
+                                    # Scambio diretto trovato con algoritmo avanzato!
+                                    punteggio_totale = (punteggio_ab + punteggio_ba) / 2
+
+                                    scambio = crea_scambio_diretto_avanzato(
                                         utente_a, utente_b,
                                         offerta_a, richiesta_b,
-                                        offerta_b, richiesta_a
+                                        offerta_b, richiesta_a,
+                                        distanza_km, punteggio_totale,
+                                        dettagli_ab, dettagli_ba
                                     )
 
                                     # Evita duplicati (A-B è uguale a B-A)
@@ -96,6 +109,54 @@ def crea_scambio_diretto(utente_a, utente_b, offerta_a, richiesta_b, offerta_b, 
         'distanza_km': distanza_km,
         'categoria_distanza': categoria_distanza,
         'tipo_distanza': tipo_distanza
+    }
+
+def crea_scambio_diretto_avanzato(utente_a, utente_b, offerta_a, richiesta_b, offerta_b, richiesta_a,
+                                distanza_km, punteggio_totale, dettagli_ab, dettagli_ba):
+    """Crea la struttura dati per uno scambio diretto con algoritmo avanzato"""
+
+    categoria_qualita = "alta" if punteggio_totale >= 60 else "generica"
+
+    # Raggruppa dettagli per categorie
+    dettagli_prezzo = []
+    dettagli_metodo = []
+    dettagli_distanza = []
+
+    for dettaglio in dettagli_ab + dettagli_ba:
+        if "prezzo" in str(dettaglio) or "compatibili" in str(dettaglio) or "non_specificato" in str(dettaglio):
+            dettagli_prezzo.append(dettaglio)
+        elif "mano" in str(dettaglio) or "spedizione" in str(dettaglio) or "flessibile" in str(dettaglio):
+            dettagli_metodo.append(dettaglio)
+        elif "distanza" in str(dettaglio) or "km" in str(dettaglio):
+            dettagli_distanza.append(dettaglio)
+
+    return {
+        'tipo': 'scambio_diretto',
+        'utenti': [utente_a.username, utente_b.username],
+        'scambi': [
+            f"{utente_a.username} dà '{offerta_a.titolo}' a {utente_b.username}",
+            f"{utente_b.username} dà '{offerta_b.titolo}' a {utente_a.username}"
+        ],
+        'annunci_coinvolti': [
+            {'utente': utente_a.username, 'annuncio': offerta_a, 'ruolo': 'offre'},
+            {'utente': utente_b.username, 'annuncio': richiesta_b, 'ruolo': 'cerca'},
+            {'utente': utente_b.username, 'annuncio': offerta_b, 'ruolo': 'offre'},
+            {'utente': utente_a.username, 'annuncio': richiesta_a, 'ruolo': 'cerca'}
+        ],
+        'categoria_qualita': categoria_qualita,
+        'punteggio_qualita': punteggio_totale,
+        'distanza_km': distanza_km,
+        'dettagli_prezzo': dettagli_prezzo,
+        'dettagli_metodo': dettagli_metodo,
+        'dettagli_distanza': dettagli_distanza,
+
+        # Informazioni aggiuntive sugli oggetti per il display
+        'prezzo_offerto_a': offerta_a.prezzo_stimato,
+        'prezzo_offerto_b': offerta_b.prezzo_stimato,
+        'metodo_a': offerta_a.metodo_scambio,
+        'metodo_b': offerta_b.metodo_scambio,
+        'distanza_limite_a': offerta_a.distanza_massima_km,
+        'distanza_limite_b': offerta_b.distanza_massima_km
     }
 
 def trova_catene_scambio(max_lunghezza=6):
@@ -430,10 +491,157 @@ def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
     print(f"❌ NESSUN MATCH trovato")
     return False, None
 
+def verifica_compatibilita_prezzo(annuncio_offerto, annuncio_cercato, tolleranza_percentuale=30):
+    """Verifica se i prezzi sono compatibili per uno scambio equo"""
+    prezzo_offerto = annuncio_offerto.prezzo_stimato
+    prezzo_cercato = annuncio_cercato.prezzo_stimato
+
+    # Se almeno uno non ha prezzo, consideriamo compatibile
+    if not prezzo_offerto or not prezzo_cercato:
+        return True, "prezzo_non_specificato"
+
+    # Calcola differenza percentuale
+    prezzo_medio = (prezzo_offerto + prezzo_cercato) / 2
+    differenza_percentuale = abs(prezzo_offerto - prezzo_cercato) / prezzo_medio * 100
+
+    if differenza_percentuale <= tolleranza_percentuale:
+        return True, f"prezzi_compatibili_{differenza_percentuale:.1f}%"
+
+    return False, f"prezzi_incompatibili_{differenza_percentuale:.1f}%"
+
+def verifica_compatibilita_metodo_scambio(annuncio_a, annuncio_b):
+    """Verifica se i metodi di scambio sono compatibili tra due annunci"""
+    metodo_a = annuncio_a.metodo_scambio
+    metodo_b = annuncio_b.metodo_scambio
+
+    # Se almeno uno accetta entrambi i metodi, è sempre compatibile
+    if metodo_a == 'entrambi' or metodo_b == 'entrambi':
+        return True, "flessibile"
+
+    # Se entrambi vogliono lo stesso metodo specifico
+    if metodo_a == metodo_b:
+        return True, metodo_a
+
+    # Altrimenti incompatibile
+    return False, f"incompatibile_{metodo_a}_vs_{metodo_b}"
+
+def verifica_compatibilita_distanza(annuncio_a, annuncio_b, distanza_km):
+    """Verifica se la distanza è accettabile per entrambi gli utenti"""
+    # Se almeno uno preferisce solo spedizione, distanza non conta
+    if annuncio_a.metodo_scambio == 'spedizione' or annuncio_b.metodo_scambio == 'spedizione':
+        return True, "spedizione_disponibile"
+
+    # Controllo distanza massima per entrambi
+    limiti = []
+
+    if annuncio_a.distanza_massima_km:
+        limiti.append(annuncio_a.distanza_massima_km)
+
+    if annuncio_b.distanza_massima_km:
+        limiti.append(annuncio_b.distanza_massima_km)
+
+    # Se nessuno ha specificato limiti, accetta qualsiasi distanza
+    if not limiti:
+        return True, "distanza_illimitata"
+
+    # Verifica se la distanza reale è accettabile per entrambi
+    distanza_massima_accettabile = min(limiti)
+
+    if distanza_km <= distanza_massima_accettabile:
+        return True, f"distanza_ok_{distanza_km:.0f}km_limite_{distanza_massima_accettabile}km"
+
+    return False, f"distanza_eccessiva_{distanza_km:.0f}km_limite_{distanza_massima_accettabile}km"
+
+def calcola_punteggio_qualita_avanzato(annuncio_offerto, annuncio_cercato, distanza_km):
+    """Calcola punteggio di qualità considerando tutti i nuovi criteri"""
+    punteggio = 0
+    dettagli = []
+
+    # 1. Compatibilità contenuto (peso: 40%)
+    compatible, tipo_match = oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato)
+    if compatible:
+        if "specifico" in tipo_match:
+            punteggio += 40
+            dettagli.append("match_specifico")
+        elif "generico" in tipo_match:
+            punteggio += 25
+            dettagli.append("match_generico")
+
+    # 2. Compatibilità prezzo (peso: 25%)
+    prezzo_ok, prezzo_dettagli = verifica_compatibilita_prezzo(annuncio_offerto, annuncio_cercato)
+    if prezzo_ok:
+        if "non_specificato" in prezzo_dettagli:
+            punteggio += 15  # Bonus minore se prezzo non specificato
+        else:
+            # Più i prezzi sono simili, più punteggio
+            if "compatibili" in prezzo_dettagli:
+                percentuale_str = prezzo_dettagli.split('_')[-1].replace('%', '')
+                try:
+                    differenza = float(percentuale_str)
+                    punteggio += max(5, 25 - differenza)  # Da 25 (identici) a 5 (30% differenza)
+                except:
+                    punteggio += 15
+        dettagli.append(prezzo_dettagli)
+
+    # 3. Compatibilità metodo scambio (peso: 15%)
+    metodo_ok, metodo_dettagli = verifica_compatibilita_metodo_scambio(annuncio_offerto, annuncio_cercato)
+    if metodo_ok:
+        if metodo_dettagli == "flessibile":
+            punteggio += 15
+        else:
+            punteggio += 12  # Bonus minore per metodo specifico uguale
+        dettagli.append(metodo_dettagli)
+
+    # 4. Compatibilità distanza (peso: 20%)
+    distanza_ok, distanza_dettagli = verifica_compatibilita_distanza(
+        annuncio_offerto, annuncio_cercato, distanza_km
+    )
+    if distanza_ok:
+        if "stessa_citta" in str(distanza_km):
+            punteggio += 20
+        elif distanza_km <= 10:
+            punteggio += 18
+        elif distanza_km <= 30:
+            punteggio += 15
+        elif distanza_km <= 100:
+            punteggio += 10
+        else:
+            punteggio += 5
+        dettagli.append(distanza_dettagli)
+
+    return punteggio, dettagli
+
 def oggetti_compatibili(annuncio_offerto, annuncio_cercato):
     """Wrapper per compatibilità"""
     compatible, _ = oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato)
     return compatible
+
+def oggetti_compatibili_avanzato(annuncio_offerto, annuncio_cercato, distanza_km):
+    """Compatibilità avanzata che considera tutti i nuovi criteri"""
+    # 1. Prima verifica compatibilità di base (contenuto)
+    compatible_base, tipo_match = oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato)
+    if not compatible_base:
+        return False, 0, ["contenuto_incompatibile"]
+
+    # 2. Verifica prezzo
+    prezzo_ok, _ = verifica_compatibilita_prezzo(annuncio_offerto, annuncio_cercato)
+    if not prezzo_ok:
+        return False, 0, ["prezzo_incompatibile"]
+
+    # 3. Verifica metodo scambio
+    metodo_ok, _ = verifica_compatibilita_metodo_scambio(annuncio_offerto, annuncio_cercato)
+    if not metodo_ok:
+        return False, 0, ["metodo_scambio_incompatibile"]
+
+    # 4. Verifica distanza
+    distanza_ok, _ = verifica_compatibilita_distanza(annuncio_offerto, annuncio_cercato, distanza_km)
+    if not distanza_ok:
+        return False, 0, ["distanza_incompatibile"]
+
+    # 5. Calcola punteggio di qualità
+    punteggio, dettagli = calcola_punteggio_qualita_avanzato(annuncio_offerto, annuncio_cercato, distanza_km)
+
+    return True, punteggio, dettagli
 
 def calcola_distanza_geografica(utente_a, utente_b):
     """Calcola distanza geografica tra due utenti basata sulla città"""
