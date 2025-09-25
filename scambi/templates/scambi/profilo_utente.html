@@ -54,22 +54,41 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card text-center">
+            <div class="card text-center border-success">
                 <div class="card-body">
                     <h3 class="text-success">{{ annunci_offro.count }}</h3>
-                    <p class="mb-0">Offre</p>
+                    <p class="mb-0"><i class="fas fa-gift me-1"></i>Offre</p>
+                    <small class="text-muted">Bordo Verde</small>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card text-center">
+            <div class="card text-center border-info">
                 <div class="card-body">
                     <h3 class="text-info">{{ annunci_cerco.count }}</h3>
-                    <p class="mb-0">Cerca</p>
+                    <p class="mb-0"><i class="fas fa-search me-1"></i>Cerca</p>
+                    <small class="text-muted">Bordo Blu</small>
                 </div>
             </div>
         </div>
     </div>
+
+    {% if totale_annunci > 0 %}
+    <!-- Legenda colori -->
+    <div class="alert alert-light mt-3">
+        <h6><i class="fas fa-info-circle me-2"></i>Legenda Colori</h6>
+        <div class="row">
+            <div class="col-md-6">
+                <span class="badge bg-success me-2">Verde</span>
+                <small>Annunci che <strong>offri</strong> in scambio</small>
+            </div>
+            <div class="col-md-6">
+                <span class="badge bg-info me-2">Blu</span>
+                <small>Annunci dove <strong>cerchi</strong> qualcosa</small>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Annunci che Offre -->
     {% if annunci_offro %}
@@ -114,20 +133,20 @@
                             {% if is_own_profile %}
                             <div class="btn-group w-100" role="group">
                                 <a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-outline-primary btn-sm">
-                                    <i class="fas fa-edit"></i>
+                                    <i class="fas fa-edit me-1"></i>Modifica
                                 </a>
                                 {% if annuncio.attivo %}
                                 <a href="{% url 'disattiva_annuncio' annuncio.id %}" class="btn btn-outline-warning btn-sm">
-                                    <i class="fas fa-pause"></i>
+                                    <i class="fas fa-pause me-1"></i>Disattiva
                                 </a>
                                 {% else %}
                                 <a href="{% url 'attiva_annuncio' annuncio.id %}" class="btn btn-outline-success btn-sm">
-                                    <i class="fas fa-play"></i>
+                                    <i class="fas fa-play me-1"></i>Attiva
                                 </a>
                                 {% endif %}
                                 <a href="{% url 'elimina_annuncio' annuncio.id %}" class="btn btn-outline-danger btn-sm"
                                    onclick="return confirm('Elimina {{ annuncio.titolo }}?')">
-                                    <i class="fas fa-trash"></i>
+                                    <i class="fas fa-trash me-1"></i>Elimina
                                 </a>
                             </div>
                             {% endif %}
@@ -176,20 +195,20 @@
                             {% if is_own_profile %}
                             <div class="btn-group w-100" role="group">
                                 <a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-outline-primary btn-sm">
-                                    <i class="fas fa-edit"></i>
+                                    <i class="fas fa-edit me-1"></i>Modifica
                                 </a>
                                 {% if annuncio.attivo %}
                                 <a href="{% url 'disattiva_annuncio' annuncio.id %}" class="btn btn-outline-warning btn-sm">
-                                    <i class="fas fa-pause"></i>
+                                    <i class="fas fa-pause me-1"></i>Disattiva
                                 </a>
                                 {% else %}
                                 <a href="{% url 'attiva_annuncio' annuncio.id %}" class="btn btn-outline-success btn-sm">
-                                    <i class="fas fa-play"></i>
+                                    <i class="fas fa-play me-1"></i>Attiva
                                 </a>
                                 {% endif %}
                                 <a href="{% url 'elimina_annuncio' annuncio.id %}" class="btn btn-outline-danger btn-sm"
                                    onclick="return confirm('Elimina {{ annuncio.titolo }}?')">
-                                    <i class="fas fa-trash"></i>
+                                    <i class="fas fa-trash me-1"></i>Elimina
                                 </a>
                             </div>
                             {% endif %}
