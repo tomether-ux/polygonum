@@ -13,37 +13,72 @@
         <p class="text-muted">L'algoritmo analizza tutti gli annunci per trovare possibili scambi circolari</p>
         {% endif %}
 
-        <!-- Bottone di ricerca -->
-        <div class="mb-4">
-            {% if ricerca_eseguita %}
-                <div class="alert alert-success d-flex align-items-center">
-                    <i class="fas fa-check-circle me-2"></i>
-                    <span>Ricerca completata! Risultati aggiornati.</span>
+        <!-- Loading Screen -->
+        <div id="loadingScreen" class="text-center py-5" style="display: none;">
+            <div class="bg-polygonum-secondary rounded-3 p-5 mx-auto" style="max-width: 500px;">
+                <div class="mb-4">
+                    <div class="spinner-border text-polygonum-primary" style="width: 4rem; height: 4rem;" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
                 </div>
-            {% else %}
-                <div class="alert alert-warning d-flex align-items-center">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <span>Clicca su "Cerca Catene" per avviare la ricerca degli scambi possibili.</span>
-                </div>
-            {% endif %}
+                <h4 class="text-polygonum-primary mb-3">
+                    <i class="fas fa-cogs me-2"></i>Elaborazione in corso...
+                </h4>
+                <p class="text-muted mb-4">Il nostro algoritmo sta analizzando tutti gli annunci per trovare le migliori catene di scambio.</p>
 
-            <a href="?cerca=true" class="btn btn-primary btn-lg">
-                <i class="fas fa-search me-2"></i>{% if personalizzato %}Cerca I Miei Scambi{% else %}Cerca Catene di Scambio{% endif %}
-            </a>
-            {% if personalizzato %}
-            <a href="{% url 'mie_catene_scambio' %}" class="btn btn-outline-secondary ms-2">
-                <i class="fas fa-refresh me-2"></i>Reset
-            </a>
-            {% else %}
-            <a href="{% url 'catene_scambio' %}" class="btn btn-outline-secondary ms-2">
-                <i class="fas fa-refresh me-2"></i>Reset
-            </a>
-            {% endif %}
+                <!-- Progress Bar -->
+                <div class="progress mb-3" style="height: 10px;">
+                    <div id="progressBar" class="progress-bar bg-polygonum-primary progress-bar-striped progress-bar-animated"
+                         role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                    </div>
+                </div>
+
+                <!-- Loading Steps -->
+                <div class="text-start">
+                    <small class="text-muted">
+                        <div id="step1" class="mb-1">⏳ Caricamento annunci...</div>
+                        <div id="step2" class="mb-1" style="display: none;">✅ Annunci caricati • ⏳ Analisi compatibilità...</div>
+                        <div id="step3" class="mb-1" style="display: none;">✅ Compatibilità verificata • ⏳ Calcolo distanze...</div>
+                        <div id="step4" class="mb-1" style="display: none;">✅ Distanze calcolate • ⏳ Generazione catene...</div>
+                        <div id="step5" class="mb-1" style="display: none;">✅ Catene generate • ⏳ Finalizzazione...</div>
+                    </small>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
 
-{% if personalizzato and nessun_annuncio %}
+        <!-- Main Content -->
+        <div id="mainContent">
+            <!-- Bottone di ricerca -->
+            <div class="mb-4">
+                {% if ricerca_eseguita %}
+                    <div class="alert alert-success d-flex align-items-center">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <span>Ricerca completata! Risultati aggiornati.</span>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning d-flex align-items-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span>Clicca su "Cerca Catene" per avviare la ricerca degli scambi possibili.</span>
+                    </div>
+                {% endif %}
+
+                <button id="searchButton" onclick="startSearch()" class="btn btn-primary btn-lg">
+                    <i class="fas fa-search me-2"></i>
+                    <span id="buttonText">{% if personalizzato %}Cerca I Miei Scambi{% else %}Cerca Catene di Scambio{% endif %}</span>
+                </button>
+                {% if personalizzato %}
+                <a href="{% url 'mie_catene_scambio' %}" class="btn btn-outline-secondary ms-2">
+                    <i class="fas fa-refresh me-2"></i>Reset
+                </a>
+                {% else %}
+                <a href="{% url 'catene_scambio' %}" class="btn btn-outline-secondary ms-2">
+                    <i class="fas fa-refresh me-2"></i>Reset
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+            {% if personalizzato and nessun_annuncio %}
     <div class="alert alert-warning text-center">
         <h4><i class="fas fa-exclamation-triangle me-2"></i>Nessun Annuncio Attivo</h4>
         <p>Non puoi partecipare a scambi senza annunci attivi.</p>
@@ -342,5 +377,121 @@
         <strong class="text-success">{{ catene_alta_qualita|length }}</strong> alta qualità - 
         <strong class="text-info">{{ catene_generiche|length }}</strong> generiche
     </div>
+        </div>
+    </div>
 </div>
+
+<script>
+function startSearch() {
+    // Nascondi il contenuto principale e mostra la schermata di loading
+    document.getElementById('mainContent').style.display = 'none';
+    document.getElementById('loadingScreen').style.display = 'block';
+
+    // Simula il progresso dell'elaborazione
+    animateProgress();
+
+    // Avvia la ricerca effettiva
+    const currentUrl = new URL(window.location);
+    currentUrl.searchParams.set('cerca', 'true');
+
+    // Delay minimo per mostrare l'animazione
+    setTimeout(() => {
+        window.location.href = currentUrl.toString();
+    }, 3000); // 3 secondi di animazione prima del redirect
+}
+
+function animateProgress() {
+    const progressBar = document.getElementById('progressBar');
+    let progress = 0;
+
+    // Step 1: Caricamento annunci (0-20%)
+    setTimeout(() => {
+        updateProgress(20);
+        showStep(2);
+    }, 500);
+
+    // Step 2: Analisi compatibilità (20-45%)
+    setTimeout(() => {
+        updateProgress(45);
+        showStep(3);
+    }, 1000);
+
+    // Step 3: Calcolo distanze (45-70%)
+    setTimeout(() => {
+        updateProgress(70);
+        showStep(4);
+    }, 1500);
+
+    // Step 4: Generazione catene (70-90%)
+    setTimeout(() => {
+        updateProgress(90);
+        showStep(5);
+    }, 2000);
+
+    // Step 5: Finalizzazione (90-100%)
+    setTimeout(() => {
+        updateProgress(100);
+    }, 2500);
+}
+
+function updateProgress(percentage) {
+    const progressBar = document.getElementById('progressBar');
+    progressBar.style.width = percentage + '%';
+    progressBar.setAttribute('aria-valuenow', percentage);
+}
+
+function showStep(stepNumber) {
+    // Nascondi il passo precedente e mostra quello attuale
+    for (let i = 1; i <= 5; i++) {
+        const step = document.getElementById('step' + i);
+        if (i <= stepNumber) {
+            step.style.display = 'block';
+        }
+        if (i < stepNumber) {
+            // Cambia l'icona in checkmark per i passi completati
+            step.innerHTML = step.innerHTML.replace('⏳', '✅');
+        }
+    }
+}
+
+// Se la pagina viene caricata con cerca=true, mostra subito il risultato senza loading
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('cerca') === 'true') {
+        // La ricerca è stata già eseguita, mostra i risultati
+        document.getElementById('mainContent').style.display = 'block';
+        document.getElementById('loadingScreen').style.display = 'none';
+    }
+});
+</script>
+
+<style>
+.progress-bar {
+    transition: width 0.5s ease;
+}
+
+.spinner-border {
+    animation: spinner-border 0.75s linear infinite;
+}
+
+@keyframes spinner-border {
+    to { transform: rotate(360deg); }
+}
+
+#loadingScreen {
+    min-height: 400px;
+}
+
+.bg-polygonum-primary {
+    background-color: var(--polygonum-primary) !important;
+}
+
+.text-polygonum-primary {
+    color: var(--polygonum-primary) !important;
+}
+
+.bg-polygonum-secondary {
+    background-color: var(--polygonum-secondary) !important;
+}
+</style>
 {% endblock %}
