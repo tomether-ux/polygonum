@@ -1,0 +1,282 @@
+/* === POLYGONUM CUSTOM STYLES === */
+
+/* Variables for brand colors */
+:root {
+  --polygonum-primary: #4169E1;    /* Royal Blue */
+  --polygonum-secondary: #B6D0E2;  /* Light Blue */
+  --polygonum-primary-rgb: 65, 105, 225;
+  --polygonum-secondary-rgb: 182, 208, 226;
+
+  /* Variants */
+  --polygonum-primary-dark: #2E4BC7;
+  --polygonum-primary-light: #6B8AE8;
+  --polygonum-secondary-dark: #9ABDD8;
+  --polygonum-secondary-light: #D4E7F0;
+}
+
+/* === NAVBAR CUSTOM === */
+.navbar-polygonum {
+  background: linear-gradient(135deg, var(--polygonum-primary) 0%, var(--polygonum-primary-dark) 100%);
+  box-shadow: 0 2px 10px rgba(var(--polygonum-primary-rgb), 0.3);
+  border: none;
+}
+
+.navbar-brand {
+  font-weight: bold;
+  font-size: 1.5rem;
+  color: white !important;
+  text-decoration: none;
+}
+
+.navbar-brand:hover {
+  color: var(--polygonum-secondary-light) !important;
+}
+
+.navbar-nav .nav-link {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 500;
+  padding: 0.7rem 1rem !important;
+  border-radius: 6px;
+  margin: 0 2px;
+  transition: all 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+/* === BUTTONS === */
+.btn-primary {
+  background: linear-gradient(135deg, var(--polygonum-primary) 0%, var(--polygonum-primary-dark) 100%);
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 0.7rem 1.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(var(--polygonum-primary-rgb), 0.3);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--polygonum-primary-dark) 0%, var(--polygonum-primary) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(var(--polygonum-primary-rgb), 0.4);
+}
+
+.btn-outline-primary {
+  border-color: var(--polygonum-primary);
+  color: var(--polygonum-primary);
+  border-width: 2px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--polygonum-primary);
+  border-color: var(--polygonum-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(var(--polygonum-primary-rgb), 0.3);
+}
+
+.btn-secondary {
+  background-color: var(--polygonum-secondary);
+  border-color: var(--polygonum-secondary);
+  color: var(--polygonum-primary);
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.btn-secondary:hover {
+  background-color: var(--polygonum-secondary-dark);
+  border-color: var(--polygonum-secondary-dark);
+  color: var(--polygonum-primary-dark);
+}
+
+/* === CARDS === */
+.card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+  background: linear-gradient(135deg, var(--polygonum-secondary) 0%, var(--polygonum-secondary-light) 100%);
+  border-bottom: none;
+  font-weight: 600;
+  color: var(--polygonum-primary);
+}
+
+/* Card borders for ad types */
+.card.border-success {
+  border-left: 4px solid #28a745 !important;
+}
+
+.card.border-info {
+  border-left: 4px solid #17a2b8 !important;
+}
+
+.card.border-warning {
+  border-left: 4px solid #ffc107 !important;
+}
+
+.card.border-primary {
+  border-left: 4px solid var(--polygonum-primary) !important;
+}
+
+/* === ALERTS === */
+.alert-light {
+  background-color: var(--polygonum-secondary-light);
+  border-color: var(--polygonum-secondary);
+  color: var(--polygonum-primary-dark);
+  border-radius: 10px;
+}
+
+.alert-info {
+  background-color: rgba(var(--polygonum-primary-rgb), 0.1);
+  border-color: var(--polygonum-primary);
+  color: var(--polygonum-primary-dark);
+  border-radius: 10px;
+}
+
+/* === HERO SECTION === */
+.hero-section {
+  background: linear-gradient(135deg, var(--polygonum-primary) 0%, var(--polygonum-primary-dark) 100%);
+  color: white;
+  padding: 4rem 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+  opacity: 0.3;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* === FORMS === */
+.form-control {
+  border-radius: 8px;
+  border: 2px solid #e9ecef;
+  padding: 0.75rem 1rem;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus {
+  border-color: var(--polygonum-primary);
+  box-shadow: 0 0 0 0.2rem rgba(var(--polygonum-primary-rgb), 0.25);
+}
+
+.form-label {
+  font-weight: 600;
+  color: var(--polygonum-primary-dark);
+  margin-bottom: 0.5rem;
+}
+
+/* === BADGES === */
+.badge.bg-success {
+  background-color: #28a745 !important;
+}
+
+.badge.bg-info {
+  background-color: #17a2b8 !important;
+}
+
+.badge.bg-primary {
+  background-color: var(--polygonum-primary) !important;
+}
+
+.badge.bg-secondary {
+  background-color: var(--polygonum-secondary-dark) !important;
+  color: var(--polygonum-primary) !important;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+  .navbar-brand {
+    font-size: 1.25rem;
+  }
+
+  .hero-section {
+    padding: 2rem 0;
+  }
+
+  .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* === UTILITIES === */
+.text-polygonum-primary {
+  color: var(--polygonum-primary) !important;
+}
+
+.text-polygonum-secondary {
+  color: var(--polygonum-secondary-dark) !important;
+}
+
+.bg-polygonum-primary {
+  background-color: var(--polygonum-primary) !important;
+}
+
+.bg-polygonum-secondary {
+  background-color: var(--polygonum-secondary) !important;
+}
+
+/* === ANIMATIONS === */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* === LOADING STATES === */
+.btn-loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin: auto;
+  border: 2px solid transparent;
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
