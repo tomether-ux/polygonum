@@ -1,0 +1,204 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}{{ annuncio.titolo }} - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <!-- Breadcrumb -->
+        <div class="col-12 mb-4">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-polygonum-primary">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'lista_annunci' %}" class="text-polygonum-primary">Annunci</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ annuncio.titolo|truncatechars:30 }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Immagine -->
+        <div class="col-lg-6 mb-4">
+            {% if annuncio.immagine %}
+                <div class="position-relative">
+                    <img src="{{ annuncio.immagine.url }}" alt="{{ annuncio.titolo }}"
+                         class="img-fluid rounded-3 shadow-sm w-100" style="height: 400px; object-fit: cover;">
+
+                    <!-- Badge tipo -->
+                    <div class="position-absolute top-0 start-0 m-3">
+                        {% if annuncio.tipo == 'offro' %}
+                            <span class="badge bg-success px-4 py-3 shadow fs-6">
+                                <i class="fas fa-gift me-2"></i>Offro
+                            </span>
+                        {% else %}
+                            <span class="badge bg-info px-4 py-3 shadow fs-6">
+                                <i class="fas fa-search me-2"></i>Cerco
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Prezzo -->
+                    {% if annuncio.prezzo_stimato %}
+                    <div class="position-absolute top-0 end-0 m-3">
+                        <span class="badge bg-dark px-4 py-3 shadow fs-5">
+                            €{{ annuncio.prezzo_stimato }}
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <!-- Placeholder -->
+                <div class="d-flex align-items-center justify-content-center bg-light rounded-3 shadow-sm"
+                     style="height: 400px;">
+                    <div class="text-center">
+                        {% if annuncio.tipo == 'offro' %}
+                            <i class="fas fa-gift fa-5x text-success mb-3"></i>
+                            <div class="badge bg-success px-4 py-3 fs-6">
+                                <i class="fas fa-gift me-2"></i>Offro
+                            </div>
+                        {% else %}
+                            <i class="fas fa-search fa-5x text-info mb-3"></i>
+                            <div class="badge bg-info px-4 py-3 fs-6">
+                                <i class="fas fa-search me-2"></i>Cerco
+                            </div>
+                        {% endif %}
+                        {% if annuncio.prezzo_stimato %}
+                        <div class="mt-3">
+                            <span class="badge bg-dark px-4 py-3 fs-5">
+                                €{{ annuncio.prezzo_stimato }}
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Dettagli -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <!-- Titolo -->
+                    <h1 class="display-6 text-polygonum-primary mb-4">{{ annuncio.titolo }}</h1>
+
+                    <!-- Descrizione -->
+                    <div class="mb-4">
+                        <h5 class="text-polygonum-primary mb-3">
+                            <i class="fas fa-align-left me-2"></i>Descrizione
+                        </h5>
+                        <p class="text-muted lead">{{ annuncio.descrizione }}</p>
+                    </div>
+
+                    <!-- Info Grid -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <div class="bg-light rounded-3 p-3">
+                                <small class="text-muted d-block mb-1">Categoria</small>
+                                <strong class="text-polygonum-primary">
+                                    <i class="fas fa-tag me-1"></i>{{ annuncio.categoria.nome }}
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="bg-light rounded-3 p-3">
+                                <small class="text-muted d-block mb-1">Pubblicato</small>
+                                <strong class="text-polygonum-primary">
+                                    <i class="fas fa-calendar me-1"></i>{{ annuncio.data_creazione|date:"d/m/Y" }}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metodo Scambio -->
+                    {% if annuncio.metodo_scambio %}
+                    <div class="mb-4">
+                        <h6 class="text-polygonum-primary mb-2">
+                            <i class="fas fa-truck me-2"></i>Metodo di Scambio
+                        </h6>
+                        <div class="bg-polygonum-secondary rounded-3 p-3">
+                            <span class="text-polygonum-primary fw-bold">
+                                {% if annuncio.metodo_scambio == 'entrambi' %}
+                                    <i class="fas fa-check-circle me-1"></i>Scambio a mano o spedizione
+                                {% elif annuncio.metodo_scambio == 'mano' %}
+                                    <i class="fas fa-handshake me-1"></i>Solo scambio a mano
+                                    {% if annuncio.distanza_massima_km %}
+                                        <small class="text-muted d-block mt-1">
+                                            Distanza massima: {{ annuncio.distanza_massima_km }}km
+                                        </small>
+                                    {% endif %}
+                                {% elif annuncio.metodo_scambio == 'spedizione' %}
+                                    <i class="fas fa-shipping-fast me-1"></i>Solo spedizione
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- User Info -->
+                    <div class="mb-4">
+                        <h6 class="text-polygonum-primary mb-3">
+                            <i class="fas fa-user me-2"></i>Pubblicato da
+                        </h6>
+                        <a href="{% url 'profilo_utente' annuncio.utente.username %}"
+                           class="text-decoration-none">
+                            <div class="d-flex align-items-center p-3 bg-light rounded-3 hover-shadow">
+                                <div class="bg-polygonum-primary rounded-circle d-flex align-items-center justify-content-center me-3"
+                                     style="width: 50px; height: 50px;">
+                                    <i class="fas fa-user text-white fa-lg"></i>
+                                </div>
+                                <div>
+                                    <strong class="text-polygonum-primary d-block">{{ annuncio.utente.username }}</strong>
+                                    <small class="text-muted">Visualizza profilo completo</small>
+                                </div>
+                                <div class="ms-auto">
+                                    <i class="fas fa-arrow-right text-polygonum-primary"></i>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'catene_scambio' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-link me-2"></i>Trova Scambi Possibili
+                        </a>
+                        <a href="{% url 'lista_annunci' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Torna agli Annunci
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Annunci Correlati -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="text-polygonum-primary mb-4">
+                <i class="fas fa-lightbulb me-2"></i>Potrebbero interessarti
+            </h3>
+            <div class="alert alert-info">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-info-circle me-3 fa-2x"></i>
+                    <div>
+                        <strong>Tip:</strong> Esplora le catene di scambio per trovare opportunità di scambio
+                        che coinvolgono questo annuncio insieme ad altri utenti!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.hover-shadow {
+    transition: all 0.3s ease;
+}
+
+.hover-shadow:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %}
