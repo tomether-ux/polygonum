@@ -3,21 +3,149 @@
 {% block title %}Login - Polygonum{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h3>Accedi a Polygonum</h3>
-            </div>
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-                    {{ form.as_p }}
-                    <button type="submit" class="btn btn-primary">Accedi</button>
-                    <a href="{% url 'register' %}" class="btn btn-link">Non hai un account? Registrati</a>
-                </form>
+<!-- Hero Section -->
+<section class="bg-polygonum-secondary py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 text-center">
+                <h1 class="display-5 fw-bold text-polygonum-primary mb-3">
+                    <i class="fas fa-sign-in-alt me-3"></i>Accedi a Polygonum
+                </h1>
+                <p class="lead text-muted">Bentornato! Accedi per continuare a scambiare</p>
             </div>
         </div>
     </div>
-</div>
+</section>
+
+<!-- Login Form -->
+<section class="py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-5 col-md-7">
+                <div class="card border-0 shadow-lg">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <div class="bg-polygonum-secondary rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                                 style="width: 80px; height: 80px;">
+                                <i class="fas fa-user fa-2x text-polygonum-primary"></i>
+                            </div>
+                            <h3 class="text-polygonum-primary">Accedi al tuo account</h3>
+                        </div>
+
+                        <form method="post">
+                            {% csrf_token %}
+
+                            <!-- Username Field -->
+                            <div class="mb-4">
+                                <label for="{{ form.username.id_for_label }}" class="form-label text-polygonum-primary fw-bold">
+                                    <i class="fas fa-user me-2"></i>{{ form.username.label }}
+                                </label>
+                                <input type="{{ form.username.field.widget.input_type }}"
+                                       name="{{ form.username.name }}"
+                                       id="{{ form.username.id_for_label }}"
+                                       class="form-control form-control-lg border-2"
+                                       placeholder="Inserisci il tuo username"
+                                       {% if form.username.value %}value="{{ form.username.value }}"{% endif %}
+                                       required>
+                                {% if form.username.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.username.errors %}
+                                            <small class="text-danger">{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Password Field -->
+                            <div class="mb-4">
+                                <label for="{{ form.password.id_for_label }}" class="form-label text-polygonum-primary fw-bold">
+                                    <i class="fas fa-lock me-2"></i>{{ form.password.label }}
+                                </label>
+                                <div class="position-relative">
+                                    <input type="password"
+                                           name="{{ form.password.name }}"
+                                           id="{{ form.password.id_for_label }}"
+                                           class="form-control form-control-lg border-2 pe-5"
+                                           placeholder="Inserisci la tua password"
+                                           required>
+                                    <button type="button"
+                                            class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 text-muted"
+                                            onclick="togglePassword()"
+                                            style="border: none; background: none; z-index: 10;">
+                                        <i id="passwordToggleIcon" class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                {% if form.password.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.password.errors %}
+                                            <small class="text-danger">{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="d-grid mb-4">
+                                <button type="submit" class="btn btn-primary btn-lg py-3">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Accedi
+                                </button>
+                            </div>
+
+                            <!-- Register Link -->
+                            <div class="text-center">
+                                <p class="text-muted mb-0">
+                                    Non hai ancora un account?
+                                    <a href="{% url 'register' %}" class="text-polygonum-primary fw-bold text-decoration-none">
+                                        Registrati qui
+                                    </a>
+                                </p>
+                            </div>
+                        </form>
+
+                        <!-- Error Messages -->
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger mt-4">
+                                {% for error in form.non_field_errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+function togglePassword() {
+    const passwordInput = document.getElementById('{{ form.password.id_for_label }}');
+    const toggleIcon = document.getElementById('passwordToggleIcon');
+
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.classList.remove('fa-eye');
+        toggleIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        toggleIcon.classList.remove('fa-eye-slash');
+        toggleIcon.classList.add('fa-eye');
+    }
+}
+</script>
+
+<style>
+.form-control:focus {
+    border-color: var(--polygonum-primary);
+    box-shadow: 0 0 0 0.2rem rgba(65, 105, 225, 0.25);
+}
+
+.card {
+    border-radius: 15px;
+}
+
+.btn-link:hover {
+    color: var(--polygonum-primary) !important;
+}
+</style>
 {% endblock %}
