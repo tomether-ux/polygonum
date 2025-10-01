@@ -1,56 +1,165 @@
 {% extends 'scambi/base.html' %}
 
-{% block title %}Home - Sito di Scambi{% endblock %}
+{% block title %}Home - Polygonum{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="bg-light p-5 rounded mb-4">
-            <h1 class="display-4">Benvenuto nel Sito di Scambi!</h1>
-            <p class="lead">Scambia oggetti con altri utenti senza usare denaro. Il nostro algoritmo trova automaticamente catene di scambio che soddisfano tutti!</p>
-            <a class="btn btn-primary btn-lg" href="{% url 'crea_annuncio' %}">Crea il tuo primo annuncio</a>
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center hero-content">
+            <div class="col-lg-8 mx-auto text-center fade-in-up">
+                <h1 class="display-3 fw-bold mb-4">
+                    Benvenuto su <span class="text-warning">Polygonum</span>
+                </h1>
+                <p class="lead fs-4 mb-5 opacity-90">
+                    Scambia oggetti con altri utenti senza usare denaro. Il nostro algoritmo intelligente trova automaticamente catene di scambio che soddisfano tutti!
+                </p>
+                <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+                    <a class="btn btn-light btn-lg px-4 py-3" href="{% url 'crea_annuncio' %}">
+                        <i class="fas fa-plus me-2"></i>Crea il tuo primo annuncio
+                    </a>
+                    <a class="btn btn-outline-light btn-lg px-4 py-3" href="{% url 'lista_annunci' %}">
+                        <i class="fas fa-search me-2"></i>Esplora annunci
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
-</div>
+</section>
 
-<div class="row">
-    <div class="col-md-8">
-        <h3>Annunci Recenti</h3>
+<!-- Come Funziona -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center mb-5">
+                <h2 class="display-5 fw-bold text-polygonum-primary">Come Funziona</h2>
+                <p class="lead text-muted">Tre semplici passi per iniziare a scambiare</p>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 text-center border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="bg-polygonum-secondary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-plus fa-2x text-polygonum-primary"></i>
+                        </div>
+                        <h4 class="text-polygonum-primary">1. Pubblica</h4>
+                        <p class="text-muted">Crea annunci per oggetti che offri o che stai cercando</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 text-center border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="bg-polygonum-secondary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-search fa-2x text-polygonum-primary"></i>
+                        </div>
+                        <h4 class="text-polygonum-primary">2. Scopri</h4>
+                        <p class="text-muted">L'algoritmo trova automaticamente catene di scambio perfette</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 text-center border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="bg-polygonum-secondary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                            <i class="fas fa-handshake fa-2x text-polygonum-primary"></i>
+                        </div>
+                        <h4 class="text-polygonum-primary">3. Scambia</h4>
+                        <p class="text-muted">Completa lo scambio e ottieni quello che desideri</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Annunci Recenti -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center mb-5">
+                <h2 class="display-5 fw-bold text-polygonum-primary">Annunci Recenti</h2>
+                <p class="lead text-muted">Scopri le ultime opportunità di scambio</p>
+            </div>
+        </div>
         {% if annunci_recenti %}
-            <div class="row">
+            <div class="row g-4">
                 {% for annuncio in annunci_recenti %}
-                <div class="col-md-6 mb-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">
+                <div class="col-lg-4 col-md-6">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
                                 {% if annuncio.tipo == 'offro' %}
-                                    <span class="badge bg-success">Offro</span>
+                                    <span class="badge bg-success px-3 py-2">
+                                        <i class="fas fa-gift me-1"></i>Offro
+                                    </span>
                                 {% else %}
-                                    <span class="badge bg-info">Cerco</span>
+                                    <span class="badge bg-info px-3 py-2">
+                                        <i class="fas fa-search me-1"></i>Cerco
+                                    </span>
                                 {% endif %}
-                                {{ annuncio.titolo }}
-                            </h5>
-                            <p class="card-text">{{ annuncio.descrizione|truncatewords:15 }}</p>
-                            <small class="text-muted">
-                                {{ annuncio.categoria.nome }} - {{ annuncio.utente.username }}
-                            </small>
+                                {% if annuncio.prezzo_stimato %}
+                                    <small class="text-success fw-bold">€{{ annuncio.prezzo_stimato }}</small>
+                                {% endif %}
+                            </div>
+                            <h5 class="card-title text-polygonum-primary mb-3">{{ annuncio.titolo }}</h5>
+                            <p class="card-text text-muted">{{ annuncio.descrizione|truncatewords:15 }}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-auto">
+                                <small class="text-muted">
+                                    <i class="fas fa-tag me-1"></i>{{ annuncio.categoria.nome }}
+                                </small>
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i>{{ annuncio.utente.username }}
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>
                 {% endfor %}
             </div>
+            <div class="text-center mt-5">
+                <a href="{% url 'lista_annunci' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-eye me-2"></i>Vedi tutti gli annunci
+                </a>
+            </div>
         {% else %}
-            <p>Nessun annuncio disponibile. <a href="{% url 'crea_annuncio' %}">Crea il primo!</a></p>
+            <div class="text-center">
+                <div class="bg-white rounded-3 p-5 shadow-sm">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">Nessun annuncio disponibile</h4>
+                    <p class="text-muted">Sii il primo a pubblicare un annuncio!</p>
+                    <a href="{% url 'crea_annuncio' %}" class="btn btn-primary btn-lg mt-3">
+                        <i class="fas fa-plus me-2"></i>Crea il primo annuncio
+                    </a>
+                </div>
+            </div>
         {% endif %}
     </div>
-    
-    <div class="col-md-4">
-        <h3>Categorie</h3>
-        {% for categoria in categorie %}
-            <a href="{% url 'lista_annunci' %}?categoria={{ categoria.id }}" class="btn btn-outline-primary btn-sm mb-2 d-block">
-                {{ categoria.nome }}
-            </a>
-        {% endfor %}
+</section>
+
+<!-- Categorie -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center mb-5">
+                <h2 class="display-5 fw-bold text-polygonum-primary">Categorie Popolari</h2>
+                <p class="lead text-muted">Esplora per categoria</p>
+            </div>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="d-flex flex-wrap gap-3 justify-content-center">
+                    {% for categoria in categorie %}
+                        <a href="{% url 'lista_annunci' %}?categoria={{ categoria.id }}"
+                           class="btn btn-outline-primary btn-lg px-4 py-3 flex-grow-1"
+                           style="max-width: 200px;">
+                            <i class="fas fa-tag me-2"></i>{{ categoria.nome }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
     </div>
-</div>
+</section>
 {% endblock %}
