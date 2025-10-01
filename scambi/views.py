@@ -110,6 +110,13 @@ def lista_annunci(request):
         'categoria_filtro': categoria_filtro
     })
 
+def dettaglio_annuncio(request, annuncio_id):
+    """Mostra i dettagli di un singolo annuncio"""
+    annuncio = get_object_or_404(Annuncio, id=annuncio_id, attivo=True)
+
+    return render(request, 'scambi/dettaglio_annuncio.html', {
+        'annuncio': annuncio
+    })
 
 @login_required
 def crea_annuncio(request):
