@@ -2,6 +2,7 @@
 Utility per gestire le notifiche del sistema Polygonum
 """
 from django.contrib.auth.models import User
+from django.urls import reverse
 from .models import Notifica, Annuncio
 
 
@@ -47,7 +48,7 @@ def notifica_preferito_aggiunto(annuncio, utente_che_aggiunge):
         messaggio=messaggio,
         annuncio_collegato=annuncio,
         utente_collegato=utente_che_aggiunge,
-        url_azione=f"/annunci/{annuncio.id}/"
+        url_azione=reverse('dettaglio_annuncio', kwargs={'annuncio_id': annuncio.id})
     )
 
 
@@ -66,7 +67,7 @@ def notifica_nuova_catena(utente, numero_catene):
         tipo='nuova_catena',
         titolo=titolo,
         messaggio=messaggio,
-        url_azione="/catene-scambio/"
+        url_azione=reverse('catene_scambio') + "?cerca=true"
     )
 
 
@@ -84,7 +85,7 @@ def notifica_proposta_scambio(proposta):
         messaggio=messaggio,
         annuncio_collegato=proposta.annuncio_richiesto,
         utente_collegato=proposta.richiedente,
-        url_azione=f"/proposte-scambio/{proposta.id}/"
+        url_azione=reverse('dettaglio_proposta_scambio', kwargs={'proposta_id': proposta.id})
     )
 
 
@@ -115,7 +116,7 @@ Buon scambio! 🌱"""
         tipo='benvenuto',
         titolo=titolo,
         messaggio=messaggio,
-        url_azione="/crea-annuncio/"
+        url_azione=reverse('crea_annuncio')
     )
 
 
