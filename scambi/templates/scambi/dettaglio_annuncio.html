@@ -160,6 +160,13 @@
 
                     <!-- Actions -->
                     <div class="d-grid gap-2">
+                        {% if user.is_authenticated and user != annuncio.utente %}
+                            <button id="btnPreferito" class="btn btn-outline-danger" onclick="togglePreferito({{ annuncio.id }})">
+                                <i class="fas fa-heart me-2"></i>
+                                <span id="txtPreferito">Aggiungi ai Preferiti</span>
+                            </button>
+                        {% endif %}
+
                         <a href="{% url 'catene_scambio' %}" class="btn btn-primary btn-lg">
                             <i class="fas fa-link me-2"></i>Trova Scambi Possibili
                         </a>
@@ -201,4 +208,83 @@
     transform: translateY(-2px);
 }
 </style>
+
+<script>
+function togglePreferito(annuncioId) {
+    const btn = document.getElementById('btnPreferito');
+    const txt = document.getElementById('txtPreferito');
+
+    // Disabilita il pulsante durante la richiesta
+    btn.disabled = true;
+
+    fetch(`/preferiti/aggiungi/${annuncioId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (data.action === 'added') {
+                btn.className = 'btn btn-danger';
+                txt.textContent = 'Rimuovi dai Preferiti';
+            } else {
+                btn.className = 'btn btn-outline-danger';
+                txt.textContent = 'Aggiungi ai Preferiti';
+            }
+
+            // Mostra messaggio di successo
+            showToast(data.message, 'success');
+        } else {
+            showToast(data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        showToast('Si è verificato un errore. Riprova più tardi.', 'error');
+    })
+    .finally(() => {
+        btn.disabled = false;
+    });
+}
+
+function showToast(message, type) {
+    // Crea un toast Bootstrap
+    const toastHTML = `
+        <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    `;
+
+    // Aggiungi il toast al documento
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
+    }
+
+    toastContainer.innerHTML = toastHTML;
+    const toast = new bootstrap.Toast(toastContainer.querySelector('.toast'));
+    toast.show();
+}
+
+// Verifica stato iniziale del preferito quando la pagina si carica
+document.addEventListener('DOMContentLoaded', function() {
+    {% if user.is_authenticated and user != annuncio.utente %}
+        // Verifica se l'annuncio è già nei preferiti dell'utente
+        // Questa informazione dovrebbe venire dal backend
+        // Per ora lasciamo il testo di default
+    {% endif %}
+});
+</script>
+
 {% endblock %}
