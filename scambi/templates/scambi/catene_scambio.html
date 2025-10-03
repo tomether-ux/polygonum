@@ -53,7 +53,13 @@
                 {% if ricerca_eseguita %}
                     <div class="alert alert-success d-flex align-items-center">
                         <i class="fas fa-check-circle me-2"></i>
-                        <span>Ricerca completata! Risultati aggiornati.</span>
+                        <span>Ricerca completata!
+                            {% if user_filtered %}
+                                Mostrando solo le catene che coinvolgono i tuoi annunci.
+                            {% else %}
+                                Risultati aggiornati.
+                            {% endif %}
+                        </span>
                     </div>
                 {% else %}
                     <div class="alert alert-warning d-flex align-items-center">
