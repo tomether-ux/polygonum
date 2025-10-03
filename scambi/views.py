@@ -191,10 +191,40 @@ def catene_scambio(request):
     if cerca_nuove:
         # Ricarica il modulo matching per applicare eventuali modifiche
         importlib.reload(matching)
-        from .matching import trova_catene_scambio
+        from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente
 
         print("🔍 RICERCA CATENE ATTIVATA MANUALMENTE")
-        tutte_catene = trova_catene_scambio()
+
+        # Se l'utente è autenticato, mostra solo le catene che lo coinvolgono
+        if request.user.is_authenticated:
+            # Controlla se l'utente ha annunci attivi
+            annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
+            if annunci_utente.exists():
+                print(f"🔍 Filtrando catene per utente: {request.user.username}")
+
+                # Esegui ricerca completa
+                scambi_diretti = trova_scambi_diretti()
+                catene = trova_catene_scambio()
+
+                # Separa catene per qualità (come nella vista originale)
+                catene_alta_qualita = [c for c in catene if c.get('categoria_qualita') == 'alta']
+                catene_generiche = [c for c in catene if c.get('categoria_qualita') == 'generica']
+
+                # Filtra tutto per l'utente attuale
+                scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente(
+                    scambi_diretti, catene_alta_qualita + catene_generiche, request.user
+                )
+
+                # Ricomponi le catene filtrate
+                tutte_catene = scambi_diretti_utente + catene_lunghe_utente
+
+                messages.info(request, f'Mostrando solo le catene che coinvolgono i tuoi annunci!')
+            else:
+                tutte_catene = []
+                messages.warning(request, 'Non hai annunci attivi! Pubblica un annuncio per partecipare agli scambi.')
+        else:
+            # Utente non autenticato - mostra tutte le catene
+            tutte_catene = trova_catene_scambio()
     else:
         # Se non è stata richiesta ricerca, mostra risultati vuoti o cached
         print("📋 Visualizzazione catene senza ricerca")
@@ -236,7 +266,8 @@ def catene_scambio(request):
         'totale_catene': len(catene_uniche),
         'totale_scambi_diretti': len(scambi_diretti),
         'totale_catene_lunghe': len(catene_lunghe),
-        'ricerca_eseguita': cerca_nuove
+        'ricerca_eseguita': cerca_nuove,
+        'user_filtered': request.user.is_authenticated and cerca_nuove
     })
 
 # La funzione test_matching rimane uguale...
