@@ -1,0 +1,233 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Catene Attivabili - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Header -->
+        <div class="col-12 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body bg-polygonum-secondary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="h4 mb-1 text-polygonum-primary">
+                                <i class="fas fa-link me-2"></i>Catene di Scambio Attivabili
+                            </h2>
+                            <p class="text-muted mb-0">Attiva una catena per creare automaticamente una chat di gruppo</p>
+                        </div>
+                        <div>
+                            <span class="badge bg-info fs-6">{{ total_catene }} catene disponibili</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informazioni -->
+        <div class="col-12 mb-4">
+            <div class="alert alert-info">
+                <div class="d-flex align-items-start">
+                    <i class="fas fa-info-circle me-3 mt-1"></i>
+                    <div>
+                        <h6 class="alert-heading">Come funziona l'attivazione delle catene</h6>
+                        <p class="mb-2">Quando attivi una catena di scambio:</p>
+                        <ul class="mb-0">
+                            <li>Viene creata automaticamente una <strong>chat di gruppo</strong> con tutti i partecipanti</li>
+                            <li>Tutti i partecipanti ricevono una <strong>notifica</strong> dell'attivazione</li>
+                            <li>Potete coordinarvi nella chat per <strong>completare gli scambi</strong></li>
+                            <li>La catena cambia stato da "Proposta" a <strong>"Attiva"</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista Catene -->
+        <div class="col-12">
+            {% if catene_attivabili %}
+                <div class="row g-4">
+                    {% for catena in catene_attivabili %}
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm card-hover">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h5 class="card-title text-polygonum-primary mb-2">
+                                                <i class="fas fa-link me-2"></i>{{ catena.nome }}
+                                            </h5>
+
+                                            <p class="text-muted mb-3">{{ catena.descrizione|default:"Catena di scambio multi-utente" }}</p>
+
+                                            <!-- Partecipanti -->
+                                            <div class="mb-3">
+                                                <h6 class="text-muted mb-2">
+                                                    <i class="fas fa-users me-1"></i>Partecipanti ({{ catena.partecipanti.count }})
+                                                </h6>
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    {% for partecipante in catena.partecipanti.all %}
+                                                        <span class="badge bg-light text-dark border">
+                                                            {% if partecipante == user %}
+                                                                <i class="fas fa-star me-1 text-warning"></i>
+                                                            {% else %}
+                                                                <i class="fas fa-user me-1"></i>
+                                                            {% endif %}
+                                                            {{ partecipante.username }}
+                                                        </span>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+
+                                            <!-- Informazioni aggiuntive -->
+                                            <div class="row text-muted small">
+                                                <div class="col-md-6">
+                                                    <i class="fas fa-calendar me-1"></i>Creata: {{ catena.data_creazione|date:"d/m/Y H:i" }}
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <i class="fas fa-info-circle me-1"></i>Stato: {{ catena.get_stato_display }}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Azioni -->
+                                        <div class="text-end ms-3">
+                                            <div class="d-flex flex-column gap-2">
+                                                <a href="{% url 'dettaglio_catena' catena.catena_id %}" class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-eye me-1"></i>Dettagli
+                                                </a>
+
+                                                <button
+                                                    class="btn btn-success btn-sm"
+                                                    onclick="attivaCatena('{{ catena.catena_id }}', '{{ catena.nome }}')"
+                                                >
+                                                    <i class="fas fa-play me-1"></i>Attiva Catena
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <!-- Stato vuoto -->
+                <div class="text-center py-5">
+                    <div class="bg-texture-light rounded-3 p-5">
+                        <i class="fas fa-link fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">Nessuna catena attivabile</h4>
+                        <p class="text-muted">Al momento non ci sono catene di scambio che puoi attivare.</p>
+                        <p class="text-muted">Le catene diventano attivabili quando tutti i partecipanti hanno confermato la loro partecipazione.</p>
+                        <div class="mt-4">
+                            <a href="{% url 'catene_scambio' %}?cerca=true" class="btn btn-primary me-2">
+                                <i class="fas fa-search me-1"></i>Cerca Nuove Catene
+                            </a>
+                            <a href="{% url 'lista_annunci' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-eye me-1"></i>Esplora Annunci
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Link ai messaggi -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm bg-light">
+                    <div class="card-body text-center">
+                        <h5 class="text-polygonum-primary">
+                            <i class="fas fa-comments me-2"></i>I Tuoi Messaggi
+                        </h5>
+                        <p class="text-muted mb-3">Gestisci le tue conversazioni e chat di gruppo attive.</p>
+                        <a href="{% url 'lista_messaggi' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-eye me-1"></i>Vedi Messaggi
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal di conferma attivazione -->
+<div class="modal fade" id="attivazioneModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-play me-2"></i>Attiva Catena di Scambio
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sei sicuro di voler attivare la catena <strong id="nome-catena"></strong>?</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    L'attivazione creerà automaticamente una chat di gruppo e invierà notifiche a tutti i partecipanti.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-success" id="conferma-attivazione">
+                    <i class="fas fa-play me-1"></i>Attiva Catena
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script per attivazione catene -->
+<script>
+let catenaIdDaAttivare = null;
+
+function attivaCatena(catenaId, nomeCatena) {
+    catenaIdDaAttivare = catenaId;
+    document.getElementById('nome-catena').textContent = nomeCatena;
+
+    const modal = new bootstrap.Modal(document.getElementById('attivazioneModal'));
+    modal.show();
+}
+
+document.getElementById('conferma-attivazione').addEventListener('click', function() {
+    if (!catenaIdDaAttivare) return;
+
+    // Mostra spinner
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Attivando...';
+    this.disabled = true;
+
+    // Invia richiesta AJAX
+    fetch(`/catena/${catenaIdDaAttivare}/attiva/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Successo - ricarica la pagina o reindirizza alla chat
+            if (data.chat_url) {
+                window.location.href = data.chat_url;
+            } else {
+                location.reload();
+            }
+        } else {
+            alert('Errore: ' + data.error);
+            this.innerHTML = '<i class="fas fa-play me-1"></i>Attiva Catena';
+            this.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        alert('Errore durante l\'attivazione della catena');
+        this.innerHTML = '<i class="fas fa-play me-1"></i>Attiva Catena';
+        this.disabled = false;
+    });
+});
+</script>
+
+<!-- CSRF Token per AJAX -->
+{% csrf_token %}
+{% endblock %}

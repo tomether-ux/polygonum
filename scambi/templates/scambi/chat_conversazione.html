@@ -1,0 +1,160 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}{{ conversazione.get_nome_display }} - Chat - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Header Chat -->
+        <div class="col-12 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body bg-polygonum-secondary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <a href="{% url 'lista_messaggi' %}" class="btn btn-outline-primary btn-sm me-3">
+                                <i class="fas fa-arrow-left"></i>
+                            </a>
+                            <div>
+                                <h2 class="h4 mb-1 text-polygonum-primary">
+                                    {% if conversazione.tipo == 'gruppo' %}
+                                        <i class="fas fa-users me-2"></i>{{ conversazione.get_nome_display }}
+                                    {% else %}
+                                        <i class="fas fa-user me-2"></i>{{ conversazione.get_nome_display }}
+                                    {% endif %}
+                                </h2>
+                                <p class="text-muted mb-0">
+                                    {% if conversazione.tipo == 'gruppo' %}
+                                        Gruppo • {{ conversazione.utenti.count }} partecipanti
+                                    {% else %}
+                                        Conversazione privata
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        {% if conversazione.tipo == 'gruppo' and conversazione.catena_scambio_id %}
+                            <a href="{% url 'dettaglio_catena' conversazione.catena_scambio_id %}" class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-link me-1"></i>Vedi Catena
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Area Chat -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="height: 600px;">
+                <!-- Area Messaggi -->
+                <div class="card-body overflow-auto p-0" id="chat-area" style="height: 500px;">
+                    {% if messaggi %}
+                        {% for messaggio in messaggi %}
+                            <div class="p-3 border-bottom {% if messaggio.mittente == user %}text-end{% endif %}">
+                                <div class="d-inline-block {% if messaggio.mittente == user %}bg-primary text-white{% else %}bg-light{% endif %} rounded-3 p-3 position-relative" style="max-width: 70%;">
+                                    {% if messaggio.is_sistema %}
+                                        <div class="text-center">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            <small>{{ messaggio.contenuto }}</small>
+                                        </div>
+                                    {% else %}
+                                        {% if conversazione.tipo == 'gruppo' and messaggio.mittente != user %}
+                                            <div class="small mb-1 {% if messaggio.mittente == user %}text-white-50{% else %}text-muted{% endif %}">
+                                                <strong>{{ messaggio.mittente.username }}</strong>
+                                            </div>
+                                        {% endif %}
+                                        <div>{{ messaggio.contenuto|linebreaks }}</div>
+                                        <div class="small mt-2 {% if messaggio.mittente == user %}text-white-50{% else %}text-muted{% endif %}">
+                                            {{ messaggio.data_invio|date:"d/m H:i" }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="d-flex align-items-center justify-content-center h-100">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-comments fa-3x mb-3"></i>
+                                <h5>Nessun messaggio ancora</h5>
+                                <p>Inizia la conversazione scrivendo il primo messaggio!</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Form Invio Messaggio -->
+                <div class="card-footer bg-white border-top">
+                    <form method="post" class="d-flex align-items-center">
+                        {% csrf_token %}
+                        <div class="flex-grow-1 me-3">
+                            <textarea
+                                name="contenuto"
+                                class="form-control"
+                                placeholder="Scrivi un messaggio..."
+                                rows="2"
+                                required
+                                id="messaggio-input"
+                            ></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Partecipanti (solo per gruppi) -->
+        {% if conversazione.tipo == 'gruppo' %}
+            <div class="col-12 mt-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">
+                            <i class="fas fa-users me-2"></i>Partecipanti ({{ conversazione.utenti.count }})
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            {% for utente in conversazione.utenti.all %}
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center p-2 bg-light rounded">
+                                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
+                                            <i class="fas fa-user text-white small"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ utente.username }}</div>
+                                            {% if utente == user %}
+                                                <small class="text-muted">(Tu)</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Script per auto-scroll e invio con Enter -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-scroll al fondo della chat
+    const chatArea = document.getElementById('chat-area');
+    if (chatArea) {
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    // Invio messaggio con Enter (Shift+Enter per nuova riga)
+    const messaggioInput = document.getElementById('messaggio-input');
+    if (messaggioInput) {
+        messaggioInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.closest('form').submit();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

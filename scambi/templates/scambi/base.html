@@ -60,6 +60,11 @@
                     </li>
 
                     {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'lista_messaggi' %}">
+                                <i class="fas fa-comments me-1"></i>Messaggi
+                            </a>
+                        </li>
 
                         <!-- Dropdown Notifiche -->
                         <li class="nav-item dropdown">

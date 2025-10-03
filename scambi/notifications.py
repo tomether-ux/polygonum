@@ -120,6 +120,46 @@ Buon scambio! 🌱"""
     )
 
 
+def notifica_catena_attivata(utente, catena, utente_attivatore):
+    """
+    Crea notifica quando una catena di scambio viene attivata
+    """
+    titolo = f"🎉 Catena di scambio attivata!"
+    messaggio = f"{utente_attivatore.username} ha attivato la catena '{catena.nome}'. Ora puoi coordinarti con gli altri partecipanti nella chat di gruppo per completare gli scambi."
+
+    return crea_notifica(
+        utente=utente,
+        tipo='sistema',
+        titolo=titolo,
+        messaggio=messaggio,
+        url_azione=reverse('chat_conversazione', kwargs={'conversazione_id': catena.conversazione.id}) if catena.conversazione else reverse('lista_messaggi')
+    )
+
+
+def notifica_nuovo_messaggio(utente, messaggio):
+    """
+    Crea notifica per nuovo messaggio ricevuto
+    """
+    conversazione = messaggio.conversazione
+    mittente = messaggio.mittente
+
+    if conversazione.tipo == 'gruppo':
+        titolo = f"💬 Nuovo messaggio nel gruppo"
+        messaggio_testo = f"{mittente.username} ha scritto nel gruppo '{conversazione.get_nome_display(utente)}': {messaggio.contenuto[:50]}..."
+    else:
+        titolo = f"💬 Nuovo messaggio da {mittente.username}"
+        messaggio_testo = f"{mittente.username} ti ha scritto: {messaggio.contenuto[:50]}..."
+
+    return crea_notifica(
+        utente=utente,
+        tipo='sistema',
+        titolo=titolo,
+        messaggio=messaggio_testo,
+        utente_collegato=mittente,
+        url_azione=reverse('chat_conversazione', kwargs={'conversazione_id': conversazione.id})
+    )
+
+
 def segna_tutte_come_lette(utente):
     """
     Segna tutte le notifiche dell'utente come lette

@@ -36,4 +36,14 @@ urlpatterns = [
     # Sistema di ricerca
     path('cerca/', views.ricerca_annunci, name='ricerca_annunci'),
     path('ricerca-veloce/', views.ricerca_veloce, name='ricerca_veloce'),
+
+    # Sistema messaggistica
+    path('messaggi/', views.lista_messaggi, name='lista_messaggi'),
+    path('chat/<int:conversazione_id>/', views.chat_conversazione, name='chat_conversazione'),
+    path('inizia-conversazione/<str:username>/', views.inizia_conversazione, name='inizia_conversazione'),
+
+    # Sistema catene di scambio attivabili
+    path('catene-attivabili/', views.lista_catene_attivabili, name='lista_catene_attivabili'),
+    path('catena/<str:catena_id>/', views.dettaglio_catena, name='dettaglio_catena'),
+    path('catena/<str:catena_id>/attiva/', views.attiva_catena, name='attiva_catena'),
 ]
