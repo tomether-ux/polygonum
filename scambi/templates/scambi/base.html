@@ -33,6 +33,15 @@
                     </form>
                 </div>
 
+                <!-- Bottone Crea Annuncio Centrale -->
+                {% if user.is_authenticated %}
+                <div class="navbar-nav mx-3">
+                    <a class="btn btn-success btn-create-ad" href="{% url 'crea_annuncio' %}">
+                        <i class="fas fa-plus me-2"></i>Crea Annuncio
+                    </a>
+                </div>
+                {% endif %}
+
                 <!-- Menu principale -->
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
@@ -51,23 +60,6 @@
                     </li>
 
                     {% if user.is_authenticated %}
-                        <!-- Quick Actions Dropdown -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="actionsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-plus"></i>
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{% url 'crea_annuncio' %}">
-                                    <i class="fas fa-plus me-2"></i>Crea Annuncio
-                                </a></li>
-                                <li><a class="dropdown-item" href="{% url 'lista_preferiti' %}">
-                                    <i class="fas fa-heart me-2"></i>Preferiti
-                                </a></li>
-                                <li><a class="dropdown-item" href="{% url 'lista_proposte_scambio' %}">
-                                    <i class="fas fa-handshake me-2"></i>Proposte
-                                </a></li>
-                            </ul>
-                        </li>
 
                         <!-- Dropdown Notifiche -->
                         <li class="nav-item dropdown">
@@ -113,8 +105,21 @@
                                 <i class="fas fa-user me-1"></i>{{ user.username }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
+                                <!-- Solo su mobile: Crea Annuncio -->
+                                <li class="d-lg-none"><a class="dropdown-item text-success fw-bold" href="{% url 'crea_annuncio' %}">
+                                    <i class="fas fa-plus me-2"></i>Crea Annuncio
+                                </a></li>
+                                <li class="d-lg-none"><hr class="dropdown-divider"></li>
+
                                 <li><a class="dropdown-item" href="{% url 'profilo_utente' user.username %}">
                                     <i class="fas fa-user me-2"></i>Il Mio Profilo
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'lista_preferiti' %}">
+                                    <i class="fas fa-heart me-2"></i>I Miei Preferiti
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'lista_proposte_scambio' %}">
+                                    <i class="fas fa-handshake me-2"></i>Le Mie Proposte
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="/admin/">

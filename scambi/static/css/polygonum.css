@@ -111,6 +111,31 @@
   color: var(--polygonum-primary);
 }
 
+/* Bottone Crea Annuncio centrale */
+.btn-create-ad {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  border: none;
+  border-radius: 25px;
+  font-weight: 600;
+  padding: 0.6rem 1.5rem;
+  color: white !important;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 10px rgba(40, 167, 69, 0.3);
+  white-space: nowrap;
+}
+
+.btn-create-ad:hover {
+  background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+  color: white !important;
+}
+
+.btn-create-ad:active {
+  transform: translateY(0);
+}
+
 /* Responsive adjustments */
 @media (max-width: 991.98px) {
   .navbar-nav form.d-flex {
@@ -121,6 +146,11 @@
   .navbar-nav form.d-flex .form-control {
     min-width: auto;
     flex: 1;
+  }
+
+  /* Nasconde il bottone centrale su mobile e lo sposta nel menu */
+  .btn-create-ad {
+    display: none;
   }
 }
 
