@@ -1,0 +1,195 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Le Mie Notifiche - Polygonum{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<section class="bg-polygonum-secondary py-4">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center">
+                <h1 class="display-5 fw-bold text-polygonum-primary mb-2">
+                    <i class="fas fa-bell me-3"></i>Le Mie Notifiche
+                </h1>
+                <p class="lead text-muted">Rimani aggiornato sulle attività del tuo account</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Content Section -->
+<section class="py-5">
+    <div class="container">
+        {% if notifiche %}
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>{{ total_notifiche }}</strong> {% if total_notifiche == 1 %}notifica{% else %}notifiche{% endif %} totali
+                            {% if non_lette > 0 %}
+                                - <strong>{{ non_lette }}</strong> non {% if non_lette == 1 %}letta{% else %}lette{% endif %}
+                            {% endif %}
+                        </div>
+                        {% if non_lette > 0 %}
+                            <button class="btn btn-outline-primary" onclick="segnaTutteLette()">
+                                <i class="fas fa-check-double me-2"></i>Segna tutte come lette
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    {% for notifica in notifiche %}
+                        <div class="card mb-3 {% if not notifica.letta %}border-primary bg-light{% endif %}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <h5 class="card-title mb-0 {% if not notifica.letta %}fw-bold{% endif %}">
+                                                {{ notifica.titolo }}
+                                            </h5>
+                                            {% if not notifica.letta %}
+                                                <span class="badge bg-primary ms-2">Nuovo</span>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="card-text mb-3" style="white-space: pre-line;">{{ notifica.messaggio }}</div>
+
+                                        <div class="d-flex align-items-center gap-3">
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock me-1"></i>{{ notifica.data_creazione|timesince }} fa
+                                            </small>
+                                            <small class="text-muted">
+                                                <i class="fas fa-tag me-1"></i>{{ notifica.get_tipo_display }}
+                                            </small>
+                                            {% if notifica.utente_collegato %}
+                                                <small class="text-muted">
+                                                    <i class="fas fa-user me-1"></i>{{ notifica.utente_collegato.username }}
+                                                </small>
+                                            {% endif %}
+                                        </div>
+
+                                        {% if notifica.url_azione %}
+                                            <div class="mt-3">
+                                                <a href="{{ notifica.url_azione }}" class="btn btn-polygonum-primary btn-sm">
+                                                    <i class="fas fa-external-link-alt me-1"></i>Vai all'azione
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="ms-3">
+                                        {% if not notifica.letta %}
+                                            <button class="btn btn-outline-success btn-sm" onclick="segnaLetta({{ notifica.id }})" title="Segna come letta">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        {% else %}
+                                            <span class="text-success" title="Già letta">
+                                                <i class="fas fa-check-circle"></i>
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="fas fa-bell-slash fa-5x text-muted"></i>
+                </div>
+                <h3 class="text-muted mb-3">Nessuna notifica</h3>
+                <p class="text-muted mb-4">
+                    Non hai ancora ricevuto notifiche.<br>
+                    Le notifiche appariranno qui quando accadranno eventi importanti nel tuo account.
+                </p>
+                <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+                    <a href="{% url 'crea_annuncio' %}" class="btn btn-polygonum-primary">
+                        <i class="fas fa-plus me-2"></i>Crea il tuo primo annuncio
+                    </a>
+                    <a href="{% url 'lista_annunci' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-search me-2"></i>Esplora annunci
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<script>
+function segnaLetta(notificaId) {
+    fetch(`/notifiche/${notificaId}/letta/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload(); // Ricarica la pagina per aggiornare lo stato
+        } else {
+            alert('Errore nel segnare la notifica come letta');
+        }
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        alert('Si è verificato un errore. Riprova più tardi.');
+    });
+}
+
+function segnaTutteLette() {
+    if (confirm('Vuoi segnare tutte le notifiche come lette?')) {
+        fetch('/notifiche/tutte-lette/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // Ricarica la pagina per aggiornare lo stato
+            } else {
+                alert('Errore nel segnare le notifiche come lette');
+            }
+        })
+        .catch(error => {
+            console.error('Errore:', error);
+            alert('Si è verificato un errore. Riprova più tardi.');
+        });
+    }
+}
+</script>
+
+<style>
+.btn-polygonum-primary {
+    background-color: var(--polygonum-primary);
+    border-color: var(--polygonum-primary);
+    color: white;
+}
+
+.btn-polygonum-primary:hover {
+    background-color: rgba(65, 105, 225, 0.9);
+    border-color: rgba(65, 105, 225, 0.9);
+    color: white;
+}
+
+.card {
+    transition: all 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}

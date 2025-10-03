@@ -119,3 +119,144 @@ class UserProfileForm(forms.ModelForm):
             'regione': 'Regione',
             'cap': 'CAP'
         }
+
+
+class RicercaAvanzataForm(forms.Form):
+    """Form per la ricerca avanzata degli annunci"""
+
+    # Campo di ricerca principale
+    q = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Cerca prodotti, marchi, descrizioni...',
+            'aria-label': 'Cerca annunci'
+        }),
+        label='Ricerca'
+    )
+
+    # Filtro per tipo (offro/cerco)
+    tipo = forms.ChoiceField(
+        choices=[('', 'Tutti')] + Annuncio.TIPO_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Tipo'
+    )
+
+    # Filtro per categoria
+    categoria = forms.ModelChoiceField(
+        queryset=Categoria.objects.all(),
+        required=False,
+        empty_label="Tutte le categorie",
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Categoria'
+    )
+
+    # Filtro per città
+    citta = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Es: Milano, Roma, Napoli...'
+        }),
+        label='Città'
+    )
+
+    # Filtro per regione
+    regione = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Es: Lombardia, Lazio...'
+        }),
+        label='Regione'
+    )
+
+    # Filtro per prezzo minimo
+    prezzo_min = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        min_value=0,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': '0.00',
+            'step': '0.01'
+        }),
+        label='Prezzo min (€)'
+    )
+
+    # Filtro per prezzo massimo
+    prezzo_max = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        min_value=0,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': '999999.99',
+            'step': '0.01'
+        }),
+        label='Prezzo max (€)'
+    )
+
+    # Filtro per spedizione
+    spedizione = forms.ChoiceField(
+        choices=[
+            ('', 'Qualsiasi modalità'),
+            ('si', 'Con spedizione'),
+            ('no', 'Solo scambio a mano'),
+        ],
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Spedizione'
+    )
+
+    # Ordinamento
+    ORDINAMENTO_CHOICES = [
+        ('-data_creazione', 'Più recenti'),
+        ('data_creazione', 'Meno recenti'),
+        ('prezzo_stimato', 'Prezzo crescente'),
+        ('-prezzo_stimato', 'Prezzo decrescente'),
+        ('titolo', 'A-Z'),
+        ('-titolo', 'Z-A'),
+    ]
+
+    ordinamento = forms.ChoiceField(
+        choices=ORDINAMENTO_CHOICES,
+        required=False,
+        initial='-data_creazione',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Ordina per'
+    )
+
+    def clean(self):
+        """Validazione del form"""
+        cleaned_data = super().clean()
+        prezzo_min = cleaned_data.get('prezzo_min')
+        prezzo_max = cleaned_data.get('prezzo_max')
+
+        # Verifica che il prezzo minimo non sia maggiore del massimo
+        if prezzo_min and prezzo_max and prezzo_min > prezzo_max:
+            raise forms.ValidationError(
+                "Il prezzo minimo non può essere maggiore del prezzo massimo."
+            )
+
+        return cleaned_data
+
+
+class RicercaVeloceForm(forms.Form):
+    """Form semplificato per la ricerca veloce nella navbar"""
+
+    q = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Cerca annunci...',
+            'aria-label': 'Ricerca veloce'
+        })
+    )

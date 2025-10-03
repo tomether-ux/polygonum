@@ -20,4 +20,21 @@ urlpatterns = [
     path('verify-email/<str:token>/', verify_email, name='verify_email'),
     path('profilo/<str:username>/', profilo_utente, name='profilo_utente'),
     path('modifica-profilo/', modifica_profilo, name='modifica_profilo'),
+
+    # Sistema notifiche e preferiti
+    path('preferiti/', views.lista_preferiti, name='lista_preferiti'),
+    path('preferiti/aggiungi/<int:annuncio_id>/', views.aggiungi_preferito, name='aggiungi_preferito'),
+    path('notifiche/', views.lista_notifiche, name='lista_notifiche'),
+    path('notifiche/<int:notifica_id>/letta/', views.segna_notifica_letta, name='segna_notifica_letta'),
+    path('notifiche/tutte-lette/', views.segna_tutte_notifiche_lette, name='segna_tutte_notifiche_lette'),
+
+    # Sistema proposte di scambio
+    path('proposte-scambio/', views.lista_proposte_scambio, name='lista_proposte_scambio'),
+    path('proposte-scambio/<int:proposta_id>/', views.dettaglio_proposta_scambio, name='dettaglio_proposta_scambio'),
+    path('proposte-scambio/crea/<int:annuncio_offerto_id>/<int:annuncio_richiesto_id>/', views.crea_proposta_scambio, name='crea_proposta_scambio'),
+    path('proposte-scambio/<int:proposta_id>/rispondi/', views.rispondi_proposta_scambio, name='rispondi_proposta_scambio'),
+
+    # Sistema di ricerca
+    path('cerca/', views.ricerca_annunci, name='ricerca_annunci'),
+    path('ricerca-veloce/', views.ricerca_veloce, name='ricerca_veloce'),
 ]

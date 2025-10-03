@@ -17,13 +17,75 @@
                 <i class="fas fa-exchange-alt me-2"></i>Polygonum
             </a>
             
+            <!-- Barra di ricerca veloce -->
+            <div class="navbar-nav me-auto">
+                <form class="d-flex" action="{% url 'ricerca_veloce' %}" method="get">
+                    <input class="form-control me-2" type="search" name="q" placeholder="Cerca annunci..." aria-label="Cerca" style="min-width: 200px;">
+                    <button class="btn btn-outline-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+
             <div class="navbar-nav ms-auto">
                 <a class="nav-link" href="{% url 'home' %}">Home</a>
                 <a class="nav-link" href="{% url 'lista_annunci' %}">Annunci</a>
+                <a class="nav-link" href="{% url 'ricerca_annunci' %}">
+                    <i class="fas fa-search me-1"></i>Ricerca Avanzata
+                </a>
                 <a class="nav-link" href="{% url 'catene_scambio' %}">Catene di Scambio</a>
             {% if user.is_authenticated %}
                 <a class="nav-link" href="{% url 'mie_catene_scambio' %}">I Miei Scambi</a>
                 <a class="nav-link" href="{% url 'crea_annuncio' %}">Crea Annuncio</a>
+
+                <!-- Dropdown Notifiche -->
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle position-relative" href="#" id="notificheDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-bell"></i>
+                        {% if notifiche_non_lette > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ notifiche_non_lette }}
+                                <span class="visually-hidden">notifiche non lette</span>
+                            </span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificheDropdown" style="min-width: 300px;">
+                        <li><h6 class="dropdown-header">Notifiche Recenti</h6></li>
+                        {% if notifiche_recenti %}
+                            {% for notifica in notifiche_recenti %}
+                                <li>
+                                    <a class="dropdown-item {% if not notifica.letta %}fw-bold bg-light{% endif %}"
+                                       href="{% if notifica.url_azione %}{{ notifica.url_azione }}{% else %}{% url 'lista_notifiche' %}{% endif %}">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="me-auto">
+                                                <div class="small">{{ notifica.titolo|truncatechars:30 }}</div>
+                                                <div class="text-muted small">{{ notifica.data_creazione|timesince }} fa</div>
+                                            </div>
+                                            {% if not notifica.letta %}
+                                                <span class="badge bg-primary rounded-pill">Nuovo</span>
+                                            {% endif %}
+                                        </div>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-center" href="{% url 'lista_notifiche' %}">Vedi tutte le notifiche</a></li>
+                        {% else %}
+                            <li><span class="dropdown-item text-muted">Nessuna notifica</span></li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- Link Preferiti -->
+                <a class="nav-link" href="{% url 'lista_preferiti' %}">
+                    <i class="fas fa-heart"></i> Preferiti
+                </a>
+
+                <!-- Link Proposte Scambio -->
+                <a class="nav-link" href="{% url 'lista_proposte_scambio' %}">
+                    <i class="fas fa-handshake"></i> Proposte
+                </a>
+
                 <a class="nav-link" href="{% url 'profilo_utente' user.username %}">Il Mio Profilo</a>
                 <a class="nav-link" href="/admin/">Admin</a>
                 <span class="nav-link">Ciao, {{ user.username }}</span>

@@ -103,3 +103,86 @@ class UserProfile(models.Model):
     class Meta:
         verbose_name = "Profilo Utente"
         verbose_name_plural = "Profili Utenti"
+
+
+class Preferiti(models.Model):
+    """Modello per gestire gli annunci preferiti degli utenti"""
+    utente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='preferiti')
+    annuncio = models.ForeignKey(Annuncio, on_delete=models.CASCADE, related_name='preferito_da')
+    data_aggiunta = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('utente', 'annuncio')
+        verbose_name = "Preferito"
+        verbose_name_plural = "Preferiti"
+        ordering = ['-data_aggiunta']
+
+    def __str__(self):
+        return f"{self.utente.username} - {self.annuncio.titolo}"
+
+
+class Notifica(models.Model):
+    """Modello per gestire le notifiche utente"""
+    TIPO_CHOICES = [
+        ('nuova_catena', 'Nuova catena di scambio disponibile'),
+        ('preferito_aggiunto', 'Il tuo annuncio è stato aggiunto ai preferiti'),
+        ('proposta_scambio', 'Nuova proposta di scambio'),
+        ('benvenuto', 'Messaggio di benvenuto'),
+        ('sistema', 'Notifica di sistema'),
+    ]
+
+    utente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifiche')
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    titolo = models.CharField(max_length=200)
+    messaggio = models.TextField()
+    letta = models.BooleanField(default=False)
+    data_creazione = models.DateTimeField(auto_now_add=True)
+
+    # Collegamenti opzionali ad altri oggetti
+    annuncio_collegato = models.ForeignKey(Annuncio, on_delete=models.CASCADE, null=True, blank=True)
+    utente_collegato = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='notifiche_generate')
+    url_azione = models.URLField(blank=True, null=True, help_text="URL per azione della notifica")
+
+    class Meta:
+        verbose_name = "Notifica"
+        verbose_name_plural = "Notifiche"
+        ordering = ['-data_creazione']
+
+    def __str__(self):
+        return f"{self.utente.username} - {self.get_tipo_display()}"
+
+    def mark_as_read(self):
+        """Segna la notifica come letta"""
+        self.letta = True
+        self.save()
+
+
+class PropostaScambio(models.Model):
+    """Modello per gestire le proposte di scambio tra utenti"""
+    STATO_CHOICES = [
+        ('in_attesa', 'In attesa di risposta'),
+        ('accettata', 'Accettata'),
+        ('rifiutata', 'Rifiutata'),
+        ('completata', 'Scambio completato'),
+    ]
+
+    richiedente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='proposte_inviate')
+    destinatario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='proposte_ricevute')
+
+    # Annunci coinvolti nello scambio
+    annuncio_offerto = models.ForeignKey(Annuncio, on_delete=models.CASCADE, related_name='proposte_come_offerto')
+    annuncio_richiesto = models.ForeignKey(Annuncio, on_delete=models.CASCADE, related_name='proposte_come_richiesto')
+
+    messaggio = models.TextField(blank=True, help_text="Messaggio opzionale dal richiedente")
+    stato = models.CharField(max_length=15, choices=STATO_CHOICES, default='in_attesa')
+
+    data_creazione = models.DateTimeField(auto_now_add=True)
+    data_risposta = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Proposta di Scambio"
+        verbose_name_plural = "Proposte di Scambio"
+        ordering = ['-data_creazione']
+
+    def __str__(self):
+        return f"{self.richiedente.username} → {self.destinatario.username}: {self.annuncio_offerto.titolo} ↔ {self.annuncio_richiesto.titolo}"

@@ -452,3 +452,379 @@ def mie_catene_scambio(request):
         }
 
     return render(request, 'scambi/catene_scambio.html', context)
+
+
+# === SISTEMA NOTIFICHE E PREFERITI ===
+
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.views.decorators.http import require_POST
+from django.contrib import messages
+from .models import Preferiti, Notifica, PropostaScambio
+from .notifications import (
+    notifica_preferito_aggiunto,
+    conta_notifiche_non_lette,
+    ottieni_notifiche_recenti,
+    segna_tutte_come_lette,
+    notifica_benvenuto
+)
+
+
+@login_required
+@require_POST
+def aggiungi_preferito(request, annuncio_id):
+    """Vista AJAX per aggiungere/rimuovere un annuncio dai preferiti"""
+    annuncio = get_object_or_404(Annuncio, id=annuncio_id, attivo=True)
+
+    # Non può aggiungere i propri annunci ai preferiti
+    if annuncio.utente == request.user:
+        return JsonResponse({
+            'success': False,
+            'error': 'Non puoi aggiungere i tuoi annunci ai preferiti'
+        })
+
+    preferito, created = Preferiti.objects.get_or_create(
+        utente=request.user,
+        annuncio=annuncio
+    )
+
+    if created:
+        # Aggiunto ai preferiti - crea notifica
+        notifica_preferito_aggiunto(annuncio, request.user)
+        action = 'added'
+        message = f'Annuncio "{annuncio.titolo}" aggiunto ai preferiti'
+    else:
+        # Già nei preferiti - rimuovi
+        preferito.delete()
+        action = 'removed'
+        message = f'Annuncio "{annuncio.titolo}" rimosso dai preferiti'
+
+    return JsonResponse({
+        'success': True,
+        'action': action,
+        'message': message
+    })
+
+
+@login_required
+def lista_preferiti(request):
+    """Vista per mostrare gli annunci preferiti dell'utente"""
+    preferiti = Preferiti.objects.filter(utente=request.user).select_related('annuncio', 'annuncio__utente')
+
+    context = {
+        'preferiti': preferiti,
+        'total_preferiti': preferiti.count()
+    }
+
+    return render(request, 'scambi/lista_preferiti.html', context)
+
+
+@login_required
+def lista_notifiche(request):
+    """Vista per mostrare le notifiche dell'utente"""
+    notifiche = Notifica.objects.filter(utente=request.user).select_related('annuncio_collegato', 'utente_collegato')
+
+    context = {
+        'notifiche': notifiche,
+        'total_notifiche': notifiche.count(),
+        'non_lette': notifiche.filter(letta=False).count()
+    }
+
+    return render(request, 'scambi/lista_notifiche.html', context)
+
+
+@login_required
+@require_POST
+def segna_notifica_letta(request, notifica_id):
+    """Vista AJAX per segnare una notifica come letta"""
+    notifica = get_object_or_404(Notifica, id=notifica_id, utente=request.user)
+    notifica.mark_as_read()
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Notifica segnata come letta'
+    })
+
+
+@login_required
+@require_POST
+def segna_tutte_notifiche_lette(request):
+    """Vista AJAX per segnare tutte le notifiche come lette"""
+    count = segna_tutte_come_lette(request.user)
+
+    return JsonResponse({
+        'success': True,
+        'message': f'{count} notifiche segnate come lette'
+    })
+
+
+def context_processor_notifiche(request):
+    """Context processor per aggiungere dati notifiche a tutti i template"""
+    if request.user.is_authenticated:
+        return {
+            'notifiche_non_lette': conta_notifiche_non_lette(request.user),
+            'notifiche_recenti': ottieni_notifiche_recenti(request.user, 5)
+        }
+    return {}
+
+
+# === SISTEMA PROPOSTE DI SCAMBIO ===
+
+from .notifications import notifica_proposta_scambio
+from django.utils import timezone
+
+
+@login_required
+def crea_proposta_scambio(request, annuncio_offerto_id, annuncio_richiesto_id):
+    """Vista per creare una proposta di scambio"""
+    annuncio_offerto = get_object_or_404(Annuncio, id=annuncio_offerto_id, attivo=True)
+    annuncio_richiesto = get_object_or_404(Annuncio, id=annuncio_richiesto_id, attivo=True)
+
+    # Verifica che l'utente sia proprietario dell'annuncio offerto
+    if annuncio_offerto.utente != request.user:
+        messages.error(request, "Puoi proporre solo i tuoi annunci per uno scambio.")
+        return redirect('dettaglio_annuncio', annuncio_id=annuncio_richiesto_id)
+
+    # Verifica che non stia proponendo a se stesso
+    if annuncio_richiesto.utente == request.user:
+        messages.error(request, "Non puoi proporti uno scambio con te stesso.")
+        return redirect('dettaglio_annuncio', annuncio_id=annuncio_richiesto_id)
+
+    # Verifica che non esista già una proposta simile in attesa
+    proposta_esistente = PropostaScambio.objects.filter(
+        richiedente=request.user,
+        destinatario=annuncio_richiesto.utente,
+        annuncio_offerto=annuncio_offerto,
+        annuncio_richiesto=annuncio_richiesto,
+        stato='in_attesa'
+    ).exists()
+
+    if proposta_esistente:
+        messages.warning(request, "Hai già una proposta di scambio in attesa per questi annunci.")
+        return redirect('dettaglio_annuncio', annuncio_id=annuncio_richiesto_id)
+
+    if request.method == 'POST':
+        messaggio = request.POST.get('messaggio', '')
+
+        # Crea la proposta di scambio
+        proposta = PropostaScambio.objects.create(
+            richiedente=request.user,
+            destinatario=annuncio_richiesto.utente,
+            annuncio_offerto=annuncio_offerto,
+            annuncio_richiesto=annuncio_richiesto,
+            messaggio=messaggio
+        )
+
+        # Crea notifica per il destinatario
+        notifica_proposta_scambio(proposta)
+
+        messages.success(request, f"Proposta di scambio inviata a {annuncio_richiesto.utente.username}!")
+        return redirect('dettaglio_annuncio', annuncio_id=annuncio_richiesto_id)
+
+    context = {
+        'annuncio_offerto': annuncio_offerto,
+        'annuncio_richiesto': annuncio_richiesto,
+    }
+
+    return render(request, 'scambi/crea_proposta_scambio.html', context)
+
+
+@login_required
+def lista_proposte_scambio(request):
+    """Vista per mostrare le proposte di scambio dell'utente"""
+    proposte_ricevute = PropostaScambio.objects.filter(
+        destinatario=request.user
+    ).select_related('richiedente', 'annuncio_offerto', 'annuncio_richiesto').order_by('-data_creazione')
+
+    proposte_inviate = PropostaScambio.objects.filter(
+        richiedente=request.user
+    ).select_related('destinatario', 'annuncio_offerto', 'annuncio_richiesto').order_by('-data_creazione')
+
+    context = {
+        'proposte_ricevute': proposte_ricevute,
+        'proposte_inviate': proposte_inviate,
+        'total_ricevute': proposte_ricevute.count(),
+        'total_inviate': proposte_inviate.count(),
+    }
+
+    return render(request, 'scambi/lista_proposte_scambio.html', context)
+
+
+@login_required
+@require_POST
+def rispondi_proposta_scambio(request, proposta_id):
+    """Vista AJAX per rispondere a una proposta di scambio"""
+    proposta = get_object_or_404(PropostaScambio, id=proposta_id, destinatario=request.user)
+
+    if proposta.stato != 'in_attesa':
+        return JsonResponse({
+            'success': False,
+            'error': 'Questa proposta è già stata gestita'
+        })
+
+    azione = request.POST.get('azione')
+    if azione not in ['accetta', 'rifiuta']:
+        return JsonResponse({
+            'success': False,
+            'error': 'Azione non valida'
+        })
+
+    if azione == 'accetta':
+        proposta.stato = 'accettata'
+        messaggio = f"Proposta di scambio accettata! Ora puoi contattare {proposta.richiedente.username} per organizzare lo scambio."
+    else:
+        proposta.stato = 'rifiutata'
+        messaggio = "Proposta di scambio rifiutata."
+
+    proposta.data_risposta = timezone.now()
+    proposta.save()
+
+    return JsonResponse({
+        'success': True,
+        'message': messaggio,
+        'nuovo_stato': proposta.get_stato_display()
+    })
+
+
+@login_required
+def dettaglio_proposta_scambio(request, proposta_id):
+    """Vista per i dettagli di una proposta di scambio"""
+    proposta = get_object_or_404(PropostaScambio, id=proposta_id)
+
+    # Verifica che l'utente sia coinvolto nella proposta
+    if request.user not in [proposta.richiedente, proposta.destinatario]:
+        messages.error(request, "Non hai il permesso di visualizzare questa proposta.")
+        return redirect('lista_proposte_scambio')
+
+    context = {
+        'proposta': proposta,
+        'e_destinatario': request.user == proposta.destinatario,
+        'e_richiedente': request.user == proposta.richiedente,
+    }
+
+    return render(request, 'scambi/dettaglio_proposta_scambio.html', context)
+
+
+# === SISTEMA DI RICERCA ===
+
+from django.db.models import Q
+from .forms import RicercaAvanzataForm, RicercaVeloceForm
+
+
+def ricerca_annunci(request):
+    """Vista per la ricerca avanzata degli annunci"""
+    form = RicercaAvanzataForm(request.GET or None)
+    annunci = Annuncio.objects.filter(attivo=True).select_related('utente', 'categoria', 'utente__userprofile')
+
+    # Parametri di ricerca per il template
+    ricerca_effettuata = False
+    query_originale = ""
+
+    if form.is_valid():
+        # Campo di ricerca principale
+        q = form.cleaned_data.get('q')
+        if q:
+            ricerca_effettuata = True
+            query_originale = q
+            # Cerca nel titolo e nella descrizione
+            annunci = annunci.filter(
+                Q(titolo__icontains=q) | Q(descrizione__icontains=q)
+            )
+
+        # Filtro per tipo
+        tipo = form.cleaned_data.get('tipo')
+        if tipo:
+            ricerca_effettuata = True
+            annunci = annunci.filter(tipo=tipo)
+
+        # Filtro per categoria
+        categoria = form.cleaned_data.get('categoria')
+        if categoria:
+            ricerca_effettuata = True
+            annunci = annunci.filter(categoria=categoria)
+
+        # Filtro per città
+        citta = form.cleaned_data.get('citta')
+        if citta:
+            ricerca_effettuata = True
+            annunci = annunci.filter(utente__userprofile__citta__icontains=citta)
+
+        # Filtro per regione
+        regione = form.cleaned_data.get('regione')
+        if regione:
+            ricerca_effettuata = True
+            annunci = annunci.filter(utente__userprofile__regione__icontains=regione)
+
+        # Filtro per prezzo minimo
+        prezzo_min = form.cleaned_data.get('prezzo_min')
+        if prezzo_min:
+            ricerca_effettuata = True
+            annunci = annunci.filter(prezzo_stimato__gte=prezzo_min)
+
+        # Filtro per prezzo massimo
+        prezzo_max = form.cleaned_data.get('prezzo_max')
+        if prezzo_max:
+            ricerca_effettuata = True
+            annunci = annunci.filter(prezzo_stimato__lte=prezzo_max)
+
+        # Filtro per spedizione
+        spedizione = form.cleaned_data.get('spedizione')
+        if spedizione == 'si':
+            ricerca_effettuata = True
+            # Annunci che accettano spedizione
+            annunci = annunci.filter(metodo_scambio__in=['entrambi', 'spedizione'])
+        elif spedizione == 'no':
+            ricerca_effettuata = True
+            # Solo scambio a mano
+            annunci = annunci.filter(metodo_scambio='mano')
+
+        # Ordinamento
+        ordinamento = form.cleaned_data.get('ordinamento', '-data_creazione')
+        if ordinamento:
+            # Gestisce l'ordinamento per prezzo con NULL values
+            if 'prezzo' in ordinamento:
+                if ordinamento.startswith('-'):
+                    annunci = annunci.order_by(ordinamento, '-data_creazione')
+                else:
+                    annunci = annunci.order_by(ordinamento, 'data_creazione')
+            else:
+                annunci = annunci.order_by(ordinamento)
+
+    # Se non è stata effettuata nessuna ricerca, mostra gli annunci più recenti
+    if not ricerca_effettuata:
+        annunci = annunci.order_by('-data_creazione')
+
+    # Paginazione
+    from django.core.paginator import Paginator
+    paginator = Paginator(annunci, 12)  # 12 annunci per pagina
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'form': form,
+        'annunci': page_obj,
+        'ricerca_effettuata': ricerca_effettuata,
+        'query_originale': query_originale,
+        'total_risultati': annunci.count(),
+        'paginator': paginator,
+        'page_obj': page_obj,
+    }
+
+    return render(request, 'scambi/ricerca_annunci.html', context)
+
+
+def ricerca_veloce(request):
+    """Vista per la ricerca veloce dalla navbar"""
+    query = request.GET.get('q', '').strip()
+
+    if query:
+        # Redirect alla ricerca avanzata con il parametro q
+        from django.urls import reverse
+        from urllib.parse import urlencode
+        url = reverse('ricerca_annunci')
+        params = urlencode({'q': query})
+        return redirect(f"{url}?{params}")
+    else:
+        # Se non c'è query, vai alla pagina di ricerca vuota
+        return redirect('ricerca_annunci')
