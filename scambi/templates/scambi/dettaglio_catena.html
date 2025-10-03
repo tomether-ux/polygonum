@@ -1,0 +1,290 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}{{ catena.nome }} - Dettaglio Catena - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Header -->
+        <div class="col-12 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body bg-polygonum-secondary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <a href="{% url 'lista_catene_attivabili' %}" class="btn btn-outline-primary btn-sm me-3">
+                                <i class="fas fa-arrow-left"></i>
+                            </a>
+                            <div>
+                                <h2 class="h4 mb-1 text-polygonum-primary">
+                                    <i class="fas fa-link me-2"></i>{{ catena.nome }}
+                                </h2>
+                                <p class="text-muted mb-0">
+                                    Stato: <span class="badge bg-{% if catena.stato == 'attiva' %}success{% elif catena.stato == 'proposta' %}warning{% else %}secondary{% endif %}">{{ catena.get_stato_display }}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div>
+                            {% if catena.stato == 'attiva' and catena.conversazione %}
+                                <a href="{% url 'chat_conversazione' catena.conversazione.id %}" class="btn btn-success">
+                                    <i class="fas fa-comments me-1"></i>Apri Chat di Gruppo
+                                </a>
+                            {% elif puo_attivare %}
+                                <button class="btn btn-success" onclick="attivaCatena('{{ catena.catena_id }}', '{{ catena.nome }}')">
+                                    <i class="fas fa-play me-1"></i>Attiva Catena
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informazioni generali -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Dettagli della Catena
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if catena.descrizione %}
+                        <p class="mb-3">{{ catena.descrizione }}</p>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>ID Catena:</strong> {{ catena.catena_id }}<br>
+                            <strong>Data Creazione:</strong> {{ catena.data_creazione|date:"d/m/Y H:i" }}<br>
+                            {% if catena.data_attivazione %}
+                                <strong>Data Attivazione:</strong> {{ catena.data_attivazione|date:"d/m/Y H:i" }}<br>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Partecipanti:</strong> {{ catena.partecipanti.count }}<br>
+                            {% if catena.utente_attivatore %}
+                                <strong>Attivata da:</strong> {{ catena.utente_attivatore.username }}<br>
+                            {% endif %}
+                            <strong>Stato:</strong> {{ catena.get_stato_display }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dettagli degli scambi -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exchange-alt me-2"></i>Dettagli degli Scambi
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if partecipazioni %}
+                        <div class="row g-3">
+                            {% for partecipazione in partecipazioni %}
+                                <div class="col-12">
+                                    <div class="card border {% if partecipazione.utente == user %}border-primary{% else %}border-light{% endif %}">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <h6 class="card-title">
+                                                        {% if partecipazione.utente == user %}
+                                                            <i class="fas fa-star text-warning me-1"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-user me-1"></i>
+                                                        {% endif %}
+                                                        {{ partecipazione.utente.username }}
+                                                        {% if partecipazione.utente == user %}(Tu){% endif %}
+                                                    </h6>
+                                                </div>
+                                                <span class="badge bg-{% if partecipazione.stato == 'accettato' %}success{% elif partecipazione.stato == 'invitato' %}warning{% else %}secondary{% endif %}">
+                                                    {{ partecipazione.get_stato_display }}
+                                                </span>
+                                            </div>
+
+                                            <div class="row mt-3">
+                                                <div class="col-md-6">
+                                                    <div class="bg-light rounded p-3">
+                                                        <h6 class="text-success mb-2">
+                                                            <i class="fas fa-gift me-1"></i>Offre:
+                                                        </h6>
+                                                        <div class="fw-bold">{{ partecipazione.annuncio_da_dare.titolo }}</div>
+                                                        <small class="text-muted">{{ partecipazione.annuncio_da_dare.categoria.nome }}</small>
+                                                        {% if partecipazione.annuncio_da_dare.prezzo_stimato %}
+                                                            <div class="text-success fw-bold mt-1">€{{ partecipazione.annuncio_da_dare.prezzo_stimato }}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="bg-light rounded p-3">
+                                                        <h6 class="text-info mb-2">
+                                                            <i class="fas fa-search me-1"></i>Riceve:
+                                                        </h6>
+                                                        <div class="fw-bold">{{ partecipazione.annuncio_da_ricevere.titolo }}</div>
+                                                        <small class="text-muted">{{ partecipazione.annuncio_da_ricevere.categoria.nome }}</small>
+                                                        {% if partecipazione.annuncio_da_ricevere.prezzo_stimato %}
+                                                            <div class="text-info fw-bold mt-1">€{{ partecipazione.annuncio_da_ricevere.prezzo_stimato }}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Nessun dettaglio di scambio disponibile.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Partecipanti -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-users me-2"></i>Partecipanti ({{ catena.partecipanti.count }})
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% for partecipante in catena.partecipanti.all %}
+                        <div class="d-flex align-items-center mb-2 {% if not forloop.last %}border-bottom pb-2{% endif %}">
+                            <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
+                                <i class="fas fa-user text-white small"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold">{{ partecipante.username }}</div>
+                                {% if partecipante == user %}
+                                    <small class="text-warning">
+                                        <i class="fas fa-star me-1"></i>Tu
+                                    </small>
+                                {% elif partecipante == catena.utente_attivatore %}
+                                    <small class="text-success">
+                                        <i class="fas fa-crown me-1"></i>Attivatore
+                                    </small>
+                                {% endif %}
+                            </div>
+                            <a href="{% url 'profilo_utente' partecipante.username %}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Azioni disponibili -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-cog me-2"></i>Azioni Disponibili
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if catena.stato == 'attiva' and catena.conversazione %}
+                        <a href="{% url 'chat_conversazione' catena.conversazione.id %}" class="btn btn-success w-100 mb-2">
+                            <i class="fas fa-comments me-1"></i>Apri Chat di Gruppo
+                        </a>
+                    {% elif puo_attivare %}
+                        <button class="btn btn-success w-100 mb-2" onclick="attivaCatena('{{ catena.catena_id }}', '{{ catena.nome }}')">
+                            <i class="fas fa-play me-1"></i>Attiva Catena
+                        </button>
+                    {% endif %}
+
+                    <a href="{% url 'lista_catene_attivabili' %}" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="fas fa-list me-1"></i>Altre Catene Attivabili
+                    </a>
+
+                    <a href="{% url 'lista_messaggi' %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-comments me-1"></i>I Miei Messaggi
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal di conferma attivazione (se necessario) -->
+{% if puo_attivare %}
+<div class="modal fade" id="attivazioneModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-play me-2"></i>Attiva Catena di Scambio
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sei sicuro di voler attivare la catena <strong id="nome-catena"></strong>?</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    L'attivazione creerà automaticamente una chat di gruppo e invierà notifiche a tutti i partecipanti.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-success" id="conferma-attivazione">
+                    <i class="fas fa-play me-1"></i>Attiva Catena
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let catenaIdDaAttivare = null;
+
+function attivaCatena(catenaId, nomeCatena) {
+    catenaIdDaAttivare = catenaId;
+    document.getElementById('nome-catena').textContent = nomeCatena;
+
+    const modal = new bootstrap.Modal(document.getElementById('attivazioneModal'));
+    modal.show();
+}
+
+document.getElementById('conferma-attivazione').addEventListener('click', function() {
+    if (!catenaIdDaAttivare) return;
+
+    // Mostra spinner
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Attivando...';
+    this.disabled = true;
+
+    // Invia richiesta AJAX
+    fetch(`/catena/${catenaIdDaAttivare}/attiva/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Successo - reindirizza alla chat se disponibile
+            if (data.chat_url) {
+                window.location.href = data.chat_url;
+            } else {
+                location.reload();
+            }
+        } else {
+            alert('Errore: ' + data.error);
+            this.innerHTML = '<i class="fas fa-play me-1"></i>Attiva Catena';
+            this.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        alert('Errore durante l\'attivazione della catena');
+        this.innerHTML = '<i class="fas fa-play me-1"></i>Attiva Catena';
+        this.disabled = false;
+    });
+});
+</script>
+
+<!-- CSRF Token per AJAX -->
+{% csrf_token %}
+{% endif %}
+{% endblock %}

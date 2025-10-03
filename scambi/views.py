@@ -931,3 +931,171 @@ def ricerca_veloce(request):
     else:
         # Se non c'è query, vai alla pagina di ricerca vuota
         return redirect('ricerca_annunci')
+
+
+# === SISTEMA MESSAGGISTICA ===
+
+from .models import Conversazione, Messaggio, LetturaMessaggio, CatenaScambio
+from .notifications import notifica_nuovo_messaggio
+from django.db.models import Q, Prefetch
+
+
+@login_required
+def lista_messaggi(request):
+    """Vista per mostrare tutte le conversazioni dell'utente"""
+    conversazioni = Conversazione.objects.filter(
+        utenti=request.user,
+        attiva=True
+    ).prefetch_related(
+        'utenti',
+        Prefetch('messaggi', queryset=Messaggio.objects.order_by('-data_invio')[:1])
+    ).order_by('-ultimo_messaggio')
+
+    context = {
+        'conversazioni': conversazioni,
+    }
+
+    return render(request, 'scambi/lista_messaggi.html', context)
+
+
+@login_required
+def chat_conversazione(request, conversazione_id):
+    """Vista per visualizzare e inviare messaggi in una conversazione"""
+    conversazione = get_object_or_404(
+        Conversazione,
+        id=conversazione_id,
+        utenti=request.user,
+        attiva=True
+    )
+
+    # Segna tutti i messaggi come letti
+    messaggi_non_letti = conversazione.messaggi.exclude(letto_da=request.user)
+    for messaggio in messaggi_non_letti:
+        messaggio.mark_as_read(request.user)
+
+    # Invia nuovo messaggio
+    if request.method == 'POST':
+        contenuto = request.POST.get('contenuto', '').strip()
+        if contenuto:
+            messaggio = Messaggio.objects.create(
+                conversazione=conversazione,
+                mittente=request.user,
+                contenuto=contenuto
+            )
+
+            # Aggiorna timestamp conversazione
+            conversazione.ultimo_messaggio = timezone.now()
+            conversazione.save()
+
+            # Notifica gli altri utenti nella conversazione
+            altri_utenti = conversazione.get_altri_utenti(request.user)
+            for utente in altri_utenti:
+                notifica_nuovo_messaggio(utente, messaggio)
+
+            messages.success(request, 'Messaggio inviato!')
+            return redirect('chat_conversazione', conversazione_id=conversazione.id)
+
+    # Carica messaggi
+    messaggi = conversazione.messaggi.select_related('mittente').prefetch_related('letto_da').order_by('data_invio')
+
+    context = {
+        'conversazione': conversazione,
+        'messaggi': messaggi,
+        'altri_utenti': conversazione.get_altri_utenti(request.user),
+    }
+
+    return render(request, 'scambi/chat_conversazione.html', context)
+
+
+@login_required
+def inizia_conversazione(request, username):
+    """Vista per iniziare una conversazione privata con un utente"""
+    destinatario = get_object_or_404(User, username=username)
+
+    if destinatario == request.user:
+        messages.error(request, "Non puoi avviare una conversazione con te stesso.")
+        return redirect('lista_messaggi')
+
+    # Verifica se esiste già una conversazione tra i due utenti
+    conversazione_esistente = Conversazione.objects.filter(
+        tipo='privata',
+        utenti=request.user
+    ).filter(
+        utenti=destinatario
+    ).first()
+
+    if conversazione_esistente:
+        return redirect('chat_conversazione', conversazione_id=conversazione_esistente.id)
+
+    # Crea nuova conversazione
+    conversazione = Conversazione.objects.create(tipo='privata')
+    conversazione.utenti.add(request.user, destinatario)
+
+    messages.success(request, f'Conversazione avviata con {destinatario.username}')
+    return redirect('chat_conversazione', conversazione_id=conversazione.id)
+
+
+@login_required
+def lista_catene_attivabili(request):
+    """Vista per mostrare le catene che l'utente può attivare"""
+    # Trova le catene in stato "proposta" che coinvolgono l'utente
+    catene_attivabili = CatenaScambio.objects.filter(
+        stato='proposta',
+        partecipanti=request.user
+    ).prefetch_related('partecipanti').order_by('-data_creazione')
+
+    context = {
+        'catene_attivabili': catene_attivabili,
+        'total_catene': catene_attivabili.count(),
+    }
+
+    return render(request, 'scambi/lista_catene_attivabili.html', context)
+
+
+@login_required
+@require_POST
+def attiva_catena(request, catena_id):
+    """Vista per attivare una catena di scambio"""
+    catena = get_object_or_404(CatenaScambio, catena_id=catena_id, partecipanti=request.user)
+
+    if catena.stato != 'proposta':
+        return JsonResponse({
+            'success': False,
+            'error': 'Questa catena non può essere attivata'
+        })
+
+    try:
+        # Attiva la catena (il metodo gestisce creazione chat e notifiche)
+        catena.attiva_catena(request.user)
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Catena "{catena.nome}" attivata con successo!',
+            'chat_url': reverse('chat_conversazione', kwargs={'conversazione_id': catena.conversazione.id}) if catena.conversazione else None
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Errore durante l\'attivazione: {str(e)}'
+        })
+
+
+@login_required
+def dettaglio_catena(request, catena_id):
+    """Vista per visualizzare i dettagli di una catena di scambio"""
+    catena = get_object_or_404(CatenaScambio, catena_id=catena_id, partecipanti=request.user)
+
+    # Ottieni le partecipazioni per mostrare i dettagli degli scambi
+    partecipazioni = catena.partecipazionescambio_set.select_related(
+        'utente', 'annuncio_da_dare', 'annuncio_da_ricevere'
+    ).all()
+
+    context = {
+        'catena': catena,
+        'partecipazioni': partecipazioni,
+        'e_attivatore': catena.utente_attivatore == request.user,
+        'puo_attivare': catena.stato == 'proposta',
+    }
+
+    return render(request, 'scambi/dettaglio_catena.html', context)

@@ -1,8 +1,6 @@
 from django.db import models
-
-# Create your models here.
-from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 class Categoria(models.Model):
     nome = models.CharField(max_length=100)
@@ -186,3 +184,190 @@ class PropostaScambio(models.Model):
 
     def __str__(self):
         return f"{self.richiedente.username} → {self.destinatario.username}: {self.annuncio_offerto.titolo} ↔ {self.annuncio_richiesto.titolo}"
+
+
+# === SISTEMA MESSAGGISTICA ===
+
+class Conversazione(models.Model):
+    """Conversazione tra due utenti"""
+    TIPO_CHOICES = [
+        ('privata', 'Conversazione Privata'),
+        ('gruppo', 'Chat di Gruppo'),
+    ]
+
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='privata')
+    utenti = models.ManyToManyField(User, related_name='conversazioni')
+    nome = models.CharField(max_length=200, blank=True, help_text="Nome della chat di gruppo")
+
+    # Per chat di gruppo legate a catene di scambio
+    catena_scambio_id = models.CharField(max_length=100, blank=True, null=True, help_text="ID della catena di scambio")
+    attiva = models.BooleanField(default=True)
+
+    data_creazione = models.DateTimeField(auto_now_add=True)
+    ultimo_messaggio = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Conversazione"
+        verbose_name_plural = "Conversazioni"
+        ordering = ['-ultimo_messaggio']
+
+    def __str__(self):
+        if self.tipo == 'gruppo':
+            return f"Gruppo: {self.nome or f'Catena {self.catena_scambio_id}'}"
+        else:
+            utenti = list(self.utenti.all()[:2])
+            if len(utenti) == 2:
+                return f"{utenti[0].username} ↔ {utenti[1].username}"
+            return f"Conversazione {self.id}"
+
+    def get_altri_utenti(self, utente_corrente):
+        """Restituisce gli altri utenti nella conversazione"""
+        return self.utenti.exclude(id=utente_corrente.id)
+
+    def get_nome_display(self, utente_corrente):
+        """Nome da mostrare per la conversazione"""
+        if self.tipo == 'gruppo':
+            return self.nome or f"Catena di Scambio #{self.catena_scambio_id}"
+        else:
+            altri = self.get_altri_utenti(utente_corrente)
+            if altri.exists():
+                return altri.first().username
+            return "Conversazione"
+
+
+class Messaggio(models.Model):
+    """Singolo messaggio in una conversazione"""
+    conversazione = models.ForeignKey(Conversazione, on_delete=models.CASCADE, related_name='messaggi')
+    mittente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='messaggi_inviati')
+    contenuto = models.TextField()
+
+    # Per messaggi di sistema (es. "Mario ha attivato la catena")
+    is_sistema = models.BooleanField(default=False)
+
+    data_invio = models.DateTimeField(auto_now_add=True)
+    letto_da = models.ManyToManyField(User, through='LetturaMessaggio', related_name='messaggi_letti')
+
+    class Meta:
+        verbose_name = "Messaggio"
+        verbose_name_plural = "Messaggi"
+        ordering = ['data_invio']
+
+    def __str__(self):
+        return f"{self.mittente.username}: {self.contenuto[:50]}..."
+
+    def mark_as_read(self, utente):
+        """Segna il messaggio come letto da un utente"""
+        LetturaMessaggio.objects.get_or_create(messaggio=self, utente=utente)
+
+
+class LetturaMessaggio(models.Model):
+    """Traccia quando un utente ha letto un messaggio"""
+    messaggio = models.ForeignKey(Messaggio, on_delete=models.CASCADE)
+    utente = models.ForeignKey(User, on_delete=models.CASCADE)
+    data_lettura = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('messaggio', 'utente')
+        verbose_name = "Lettura Messaggio"
+        verbose_name_plural = "Letture Messaggi"
+
+
+class CatenaScambio(models.Model):
+    """Rappresenta una catena di scambio attivabile"""
+    STATO_CHOICES = [
+        ('proposta', 'Proposta'),
+        ('attiva', 'Attiva'),
+        ('completata', 'Completata'),
+        ('annullata', 'Annullata'),
+    ]
+
+    catena_id = models.CharField(max_length=100, unique=True, help_text="ID univoco della catena")
+    nome = models.CharField(max_length=200, help_text="Nome descrittivo della catena")
+    descrizione = models.TextField(blank=True, help_text="Descrizione degli scambi nella catena")
+
+    # Dati della catena (JSON)
+    dati_catena = models.JSONField(help_text="Dati completi della catena dal sistema di matching")
+
+    stato = models.CharField(max_length=15, choices=STATO_CHOICES, default='proposta')
+    utente_attivatore = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                        related_name='catene_attivate')
+
+    # Partecipanti
+    partecipanti = models.ManyToManyField(User, through='PartecipazioneScambio', related_name='catene_partecipate')
+
+    data_creazione = models.DateTimeField(auto_now_add=True)
+    data_attivazione = models.DateTimeField(null=True, blank=True)
+    data_completamento = models.DateTimeField(null=True, blank=True)
+
+    # Chat di gruppo collegata
+    conversazione = models.OneToOneField(Conversazione, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Catena di Scambio"
+        verbose_name_plural = "Catene di Scambio"
+        ordering = ['-data_creazione']
+
+    def __str__(self):
+        return f"{self.nome} ({self.get_stato_display()})"
+
+    def attiva_catena(self, utente_attivatore):
+        """Attiva la catena e crea la chat di gruppo"""
+        from .notifications import notifica_catena_attivata
+
+        self.stato = 'attiva'
+        self.utente_attivatore = utente_attivatore
+        self.data_attivazione = timezone.now()
+
+        # Crea chat di gruppo
+        if not self.conversazione:
+            conv = Conversazione.objects.create(
+                tipo='gruppo',
+                nome=self.nome,
+                catena_scambio_id=self.catena_id
+            )
+            conv.utenti.set(self.partecipanti.all())
+            self.conversazione = conv
+
+        self.save()
+
+        # Invia notifiche a tutti i partecipanti
+        for partecipante in self.partecipanti.exclude(id=utente_attivatore.id):
+            notifica_catena_attivata(partecipante, self, utente_attivatore)
+
+        # Messaggio di sistema nella chat
+        if self.conversazione:
+            Messaggio.objects.create(
+                conversazione=self.conversazione,
+                mittente=utente_attivatore,
+                contenuto=f"🎉 {utente_attivatore.username} ha attivato la catena di scambio! Potete ora coordinarvi per completare gli scambi.",
+                is_sistema=True
+            )
+
+
+class PartecipazioneScambio(models.Model):
+    """Partecipazione di un utente a una catena di scambio"""
+    STATO_CHOICES = [
+        ('invitato', 'Invitato'),
+        ('accettato', 'Accettato'),
+        ('completato', 'Completato'),
+        ('rifiutato', 'Rifiutato'),
+    ]
+
+    catena = models.ForeignKey(CatenaScambio, on_delete=models.CASCADE)
+    utente = models.ForeignKey(User, on_delete=models.CASCADE)
+    stato = models.CharField(max_length=15, choices=STATO_CHOICES, default='invitato')
+
+    # Dettagli dello scambio per questo utente
+    annuncio_da_dare = models.ForeignKey(Annuncio, on_delete=models.CASCADE, related_name='scambi_dare')
+    annuncio_da_ricevere = models.ForeignKey(Annuncio, on_delete=models.CASCADE, related_name='scambi_ricevere')
+
+    data_partecipazione = models.DateTimeField(auto_now_add=True)
+    data_completamento = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('catena', 'utente')
+        verbose_name = "Partecipazione Scambio"
+        verbose_name_plural = "Partecipazioni Scambi"
+
+    def __str__(self):
+        return f"{self.utente.username} in {self.catena.nome}"
