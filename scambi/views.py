@@ -338,14 +338,86 @@ def profilo_utente(request, username):
     # Conta solo gli annunci attivi per le statistiche pubbliche
     annunci_attivi = Annuncio.objects.filter(utente=utente, attivo=True)
 
-    return render(request, 'scambi/profilo_utente.html', {
+    context = {
         'utente': utente,
         'profilo': profilo,
         'annunci_offro': annunci_offro,
         'annunci_cerco': annunci_cerco,
         'totale_annunci': annunci_attivi.count(),
         'is_own_profile': request.user == utente
-    })
+    }
+
+    # Se è il proprio profilo e l'utente è loggato, aggiungi la sezione "I Miei Scambi"
+    if request.user == utente and request.user.is_authenticated:
+        # Controlla se l'utente ha annunci attivi
+        ha_annunci = annunci_attivi.exists()
+        ricerca_eseguita = request.GET.get('cerca_scambi', False)
+
+        if ricerca_eseguita and ha_annunci:
+            # Esegui ricerca completa
+            scambi_diretti = trova_scambi_diretti()
+            catene = trova_catene_scambio()
+
+            # Separa catene per qualità (come nella vista originale)
+            catene_alta_qualita = [c for c in catene if c.get('categoria_qualita') == 'alta']
+            catene_generiche = [c for c in catene if c.get('categoria_qualita') == 'generica']
+
+            # Filtra tutto per l'utente attuale
+            scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente(
+                scambi_diretti, catene_alta_qualita + catene_generiche, request.user
+            )
+
+            # Ri-separa per qualità dopo il filtraggio
+            catene_alta_qualita_utente = [c for c in catene_lunghe_utente if c.get('categoria_qualita') == 'alta']
+            catene_generiche_utente = [c for c in catene_lunghe_utente if c.get('categoria_qualita') == 'generica']
+
+            # Separa scambi diretti per qualità
+            scambi_diretti_alta = [s for s in scambi_diretti_utente if s.get('categoria_qualita') == 'alta']
+            scambi_diretti_generici = [s for s in scambi_diretti_utente if s.get('categoria_qualita') == 'generica']
+
+            # Calcola totali
+            totale_scambi_diretti = len(scambi_diretti_utente)
+            totale_catene_lunghe = len(catene_lunghe_utente)
+            totale_catene = totale_scambi_diretti + totale_catene_lunghe
+
+            context.update({
+                'scambi_ricerca_eseguita': True,
+                'scambi_diretti_alta': scambi_diretti_alta,
+                'scambi_diretti_generici': scambi_diretti_generici,
+                'catene_alta_qualita': catene_alta_qualita_utente,
+                'catene_generiche': catene_generiche_utente,
+                'totale_scambi_diretti': totale_scambi_diretti,
+                'totale_catene_lunghe': totale_catene_lunghe,
+                'totale_catene': totale_catene,
+            })
+
+            messages.info(request, f'Trovate {totale_catene} opportunità di scambio per i tuoi annunci!')
+
+        elif ricerca_eseguita and not ha_annunci:
+            # Utente ha cercato ma non ha annunci
+            context.update({
+                'scambi_ricerca_eseguita': True,
+                'scambi_diretti_alta': [],
+                'scambi_diretti_generici': [],
+                'catene_alta_qualita': [],
+                'catene_generiche': [],
+                'totale_scambi_diretti': 0,
+                'totale_catene_lunghe': 0,
+                'totale_catene': 0,
+                'nessun_annuncio': True,
+            })
+
+            messages.warning(request,
+                'Non hai annunci attivi! Pubblica un annuncio per trovare opportunità di scambio.')
+
+        else:
+            # Prima visita o utente senza annunci
+            context.update({
+                'scambi_ricerca_eseguita': False,
+                'ha_annunci': ha_annunci,
+            })
+
+    return render(request, 'scambi/profilo_utente.html', context)
 
 @login_required
 def modifica_profilo(request):

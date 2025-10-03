@@ -47,6 +47,83 @@
   transform: translateY(-1px);
 }
 
+/* Navbar togglers */
+.navbar-toggler {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 4px 8px;
+}
+
+.navbar-toggler:focus {
+  box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+}
+
+.navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Search form in navbar */
+.navbar-nav form.d-flex {
+  margin: 0.5rem 0;
+}
+
+.navbar-nav form.d-flex .form-control {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  font-size: 0.9rem;
+}
+
+.navbar-nav form.d-flex .form-control::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.navbar-nav form.d-flex .form-control:focus {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: white;
+  box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+}
+
+.navbar-nav form.d-flex .btn-outline-primary {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.navbar-nav form.d-flex .btn-outline-primary:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Dropdown menus */
+.dropdown-menu {
+  border: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+}
+
+.dropdown-item {
+  padding: 0.7rem 1rem;
+  font-size: 0.9rem;
+}
+
+.dropdown-item:hover {
+  background-color: var(--polygonum-secondary);
+  color: var(--polygonum-primary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+  .navbar-nav form.d-flex {
+    width: 100%;
+    margin: 1rem 0;
+  }
+
+  .navbar-nav form.d-flex .form-control {
+    min-width: auto;
+    flex: 1;
+  }
+}
+
 /* === BUTTONS === */
 .btn-primary {
   background: linear-gradient(135deg, var(--polygonum-primary) 0%, var(--polygonum-primary-dark) 100%);
