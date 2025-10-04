@@ -179,11 +179,11 @@
 }
 
 .btn-create-ad-minimal:hover {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--polygonum-primary);
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 255, 255, 0.4);
-  color: var(--polygonum-primary) !important;
-  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 5px 15px rgba(var(--polygonum-primary-rgb), 0.4);
+  color: white !important;
+  border-color: var(--polygonum-primary);
   width: 155px;
   padding: 0;
 }
@@ -192,10 +192,12 @@
   opacity: 1;
   transform: translateX(0);
   transition-delay: 0.05s;
+  color: white;
 }
 
 .btn-create-ad-minimal:hover .btn-icon {
   right: 12px; /* Icon stays in exact same position */
+  color: white;
 }
 
 .btn-create-ad-minimal:active {
