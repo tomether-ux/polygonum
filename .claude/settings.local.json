@@ -4,7 +4,9 @@
       "Read(//Users/tommasocus/.npm-global/**)",
       "Bash(pip install:*)",
       "Bash(python manage.py:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
