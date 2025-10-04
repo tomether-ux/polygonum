@@ -36,19 +36,50 @@ class CustomUserCreationForm(UserCreationForm):
         self.fields['password2'].widget.attrs.update({'class': 'form-control'})
 
     def save(self, commit=True):
+        import logging
+        logger = logging.getLogger(__name__)
+
         user = super().save(commit=commit)
         if commit:
             # Disabilita l'utente fino alla verifica email
             user.is_active = False
             user.save()
 
-            # Crea il profilo utente con i dati geografici
-            UserProfile.objects.create(
-                user=user,
-                citta=self.cleaned_data.get('citta', ''),
-                provincia=self.cleaned_data.get('provincia', ''),
-                email_verified=False
-            )
+            # Debug: Log data before creating profile
+            citta_data = self.cleaned_data.get('citta', '')
+            provincia_data = self.cleaned_data.get('provincia', '')
+            logger.info(f"Creating UserProfile for {user.username}")
+            logger.info(f"City data: '{citta_data}'")
+            logger.info(f"Province data: '{provincia_data}'")
+
+            try:
+                # Get or create profile (signal might have already created it)
+                user_profile, created = UserProfile.objects.get_or_create(
+                    user=user,
+                    defaults={
+                        'citta': citta_data,
+                        'provincia': provincia_data,
+                        'email_verified': False
+                    }
+                )
+
+                # If profile already existed (created by signal), update it with form data
+                if not created:
+                    user_profile.citta = citta_data
+                    user_profile.provincia = provincia_data
+                    user_profile.email_verified = False
+                    user_profile.save()
+                    logger.info(f"UserProfile updated with form data - ID: {user_profile.id}")
+                else:
+                    logger.info(f"UserProfile created successfully - ID: {user_profile.id}")
+
+                logger.info(f"Saved City: '{user_profile.citta}'")
+                logger.info(f"Saved Province: '{user_profile.provincia}'")
+
+            except Exception as e:
+                logger.error(f"Error creating/updating UserProfile: {e}")
+                raise
+
         return user
 
 class AnnuncioForm(forms.ModelForm):
