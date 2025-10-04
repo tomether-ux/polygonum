@@ -29,12 +29,12 @@ class Command(BaseCommand):
             self.stdout.write('\n=== SENDING VERIFICATION EMAIL ===')
 
             # Send verification email with timeout
-            result = send_verification_email_with_timeout(request, user, profile, timeout_seconds=10)
+            result = send_verification_email_with_timeout(request, user, profile, timeout_seconds=30)
 
             if result['success']:
                 self.stdout.write(self.style.SUCCESS(f'✅ Verification email sent successfully to {user.email}'))
             elif result['message'] == 'timeout':
-                self.stdout.write(self.style.WARNING(f'⏰ Email sending timed out after 10 seconds'))
+                self.stdout.write(self.style.WARNING(f'⏰ Email sending timed out after 30 seconds'))
             else:
                 self.stdout.write(self.style.ERROR(f'❌ Failed to send email: {result.get("error", "Unknown error")}'))
 
