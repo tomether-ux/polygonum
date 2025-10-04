@@ -308,19 +308,20 @@ def register(request):
                     user_profile = UserProfile.objects.get(user=user)
                     logger.info(f"UserProfile found - City: {user_profile.citta}, Province: {user_profile.provincia}")
 
-                    # Usa la nuova funzione con timeout
+                    # Usa la nuova funzione con timeout esteso per SendGrid
                     from .email_utils import send_verification_email_with_timeout
-                    email_result = send_verification_email_with_timeout(request, user, user_profile, timeout_seconds=5)
+                    email_result = send_verification_email_with_timeout(request, user, user_profile, timeout_seconds=30)
 
                     if email_result["success"]:
                         messages.success(request,
                             f'🎉 Registrazione completata! Ti abbiamo inviato un\'email di verifica a {user.email}. '
                             'Controlla la tua casella di posta e clicca sul link per attivare il tuo account.')
                     elif email_result["message"] == "timeout":
-                        messages.info(request,
-                            f'✅ Registrazione completata! L\'email di verifica per {user.email} è in coda per l\'invio. '
-                            'Potrebbe arrivare con qualche minuto di ritardo. Controlla la tua casella di posta nei prossimi minuti.')
-                        logger.warning(f"Email timeout for user {user.username} but registration successful")
+                        messages.warning(request,
+                            f'✅ Registrazione completata! L\'invio dell\'email di verifica a {user.email} ha richiesto più di 30 secondi. '
+                            'L\'email potrebbe essere ancora in elaborazione e arrivare nei prossimi minuti. '
+                            'Se non la ricevi entro 10 minuti, contatta il supporto.')
+                        logger.warning(f"Email timeout (30s) for user {user.username} but registration successful")
                     else:
                         messages.warning(request,
                             f'✅ Registrazione completata! Tuttavia c\'è stato un problema tecnico nell\'invio immediato dell\'email di verifica a {user.email}. '
