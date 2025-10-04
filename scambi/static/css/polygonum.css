@@ -71,6 +71,8 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
   font-size: 0.9rem;
+  border-radius: 25px;
+  padding-right: 80px; /* Space for both icons */
 }
 
 .navbar-nav form.d-flex .form-control::placeholder {
@@ -84,14 +86,24 @@
   box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
 }
 
+/* Search and advanced search icons */
 .navbar-nav form.d-flex .btn-outline-primary {
-  border-color: rgba(255, 255, 255, 0.3);
-  color: white;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.8);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
 }
 
 .navbar-nav form.d-flex .btn-outline-primary:hover {
   background-color: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
+  color: white;
+  transform: scale(1.1);
 }
 
 /* Dropdown menus */
@@ -166,6 +178,7 @@
   .navbar-nav form.d-flex .form-control {
     min-width: auto;
     flex: 1;
+    padding-right: 80px; /* Maintain space for icons on mobile */
   }
 
   /* Nasconde il bottone centrale su mobile e lo sposta nel menu */
@@ -176,6 +189,12 @@
   /* Fix mobile navbar stacking */
   .navbar-nav.ms-auto {
     gap: 0;
+  }
+
+  /* Adjust search icons position on mobile */
+  .navbar-nav form.d-flex .btn-outline-primary {
+    width: 30px;
+    height: 30px;
   }
 }
 
