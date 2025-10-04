@@ -22,15 +22,16 @@
 }
 
 .navbar-brand {
-  font-family: 'Maddac', sans-serif;
-  font-weight: 700;
-  font-size: 1.8rem;
+  font-family: 'Anton', sans-serif;
+  font-weight: 400;
+  font-size: 1.9rem;
   color: white !important;
   text-decoration: none;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   display: flex;
   align-items: center;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
 
 .navbar-brand img {
@@ -133,29 +134,68 @@
   color: var(--polygonum-primary);
 }
 
-/* Bottone Crea Annuncio centrale */
-.btn-create-ad {
+/* Bottone Crea Annuncio minimale con espansione */
+.btn-create-ad-minimal {
   background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
   border: none;
-  border-radius: 25px;
+  border-radius: 6px;
   font-weight: 600;
-  padding: 0.6rem 1.5rem;
   color: white !important;
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
   box-shadow: 0 3px 10px rgba(40, 167, 69, 0.3);
   white-space: nowrap;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  min-width: 40px;
 }
 
-.btn-create-ad:hover {
+.btn-create-ad-minimal .btn-text {
+  opacity: 0;
+  transform: translateX(-30px);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: absolute;
+  left: 8px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.btn-create-ad-minimal .btn-icon {
+  position: absolute;
+  right: 12px;
+  transition: none;
+  font-size: 1.1rem;
+  z-index: 10;
+}
+
+.btn-create-ad-minimal:hover {
   background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
   color: white !important;
+  width: 155px;
+  padding: 0;
 }
 
-.btn-create-ad:active {
-  transform: translateY(0);
+.btn-create-ad-minimal:hover .btn-text {
+  opacity: 1;
+  transform: translateX(0);
+  transition-delay: 0.05s;
+}
+
+.btn-create-ad-minimal:hover .btn-icon {
+  right: 12px; /* Icon stays in same position */
+}
+
+.btn-create-ad-minimal:active {
+  transform: translateY(-1px);
 }
 
 /* Navbar alignment fixes */
@@ -192,7 +232,7 @@
   }
 
   /* Nasconde il bottone centrale su mobile e lo sposta nel menu */
-  .btn-create-ad {
+  .btn-create-ad-minimal {
     display: none;
   }
 
@@ -205,6 +245,18 @@
   .navbar-nav form.d-flex .btn-outline-primary {
     width: 30px;
     height: 30px;
+  }
+}
+
+/* Additional hover refinements */
+@media (min-width: 992px) {
+  .btn-create-ad-minimal:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3);
+  }
+
+  .btn-create-ad-minimal:focus:hover {
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4), 0 0 0 3px rgba(40, 167, 69, 0.3);
   }
 }
 
