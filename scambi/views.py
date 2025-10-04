@@ -282,24 +282,56 @@ from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 
 def register(request):
+    import logging
+    logger = logging.getLogger(__name__)
+
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
 
-            # Invia email di verifica
-            user_profile = UserProfile.objects.get(user=user)
-            if send_verification_email(request, user, user_profile):
-                messages.success(request,
-                    f'Registrazione completata! Ti abbiamo inviato un\'email di verifica a {user.email}. '
-                    'Controlla la tua casella di posta e clicca sul link per attivare il tuo account.')
-            else:
-                messages.warning(request,
-                    'Registrazione completata ma c\'è stato un problema nell\'invio dell\'email di verifica. '
-                    'Controlla i log del server o contatta il supporto.')
+        # Debug: Log form data received
+        logger.info(f"Registration attempt - Form data: {request.POST}")
+        logger.info(f"City from form: {request.POST.get('citta')}")
+        logger.info(f"Province from form: {request.POST.get('provincia')}")
+
+        if form.is_valid():
+            # Debug: Log cleaned data
+            logger.info(f"Form valid - Cleaned data: {form.cleaned_data}")
+            logger.info(f"City from cleaned_data: {form.cleaned_data.get('citta')}")
+            logger.info(f"Province from cleaned_data: {form.cleaned_data.get('provincia')}")
+
+            try:
+                user = form.save()
+                logger.info(f"User created successfully: {user.username}")
+
+                # Invia email di verifica
+                try:
+                    user_profile = UserProfile.objects.get(user=user)
+                    logger.info(f"UserProfile found - City: {user_profile.citta}, Province: {user_profile.provincia}")
+
+                    if send_verification_email(request, user, user_profile):
+                        messages.success(request,
+                            f'Registrazione completata! Ti abbiamo inviato un\'email di verifica a {user.email}. '
+                            'Controlla la tua casella di posta e clicca sul link per attivare il tuo account.')
+                    else:
+                        messages.warning(request,
+                            'Registrazione completata ma c\'è stato un problema nell\'invio dell\'email di verifica. '
+                            'Controlla i log del server o contatta il supporto.')
+                except UserProfile.DoesNotExist as e:
+                    logger.error(f"UserProfile not found for user {user.username}: {e}")
+                    messages.error(request, 'Errore nella creazione del profilo utente.')
+                except Exception as e:
+                    logger.error(f"Error during profile retrieval/email sending: {e}")
+                    messages.warning(request, 'Registrazione completata ma con problemi nell\'invio email.')
+
+            except Exception as e:
+                logger.error(f"Error during user creation: {e}")
+                messages.error(request, f'Errore durante la registrazione: {e}')
+                return render(request, 'registration/register.html', {'form': form})
 
             return redirect('login')
         else:
+            # Debug: Log form errors
+            logger.warning(f"Form validation failed - Errors: {form.errors}")
             # Aggiungi messaggi di errore per il debug
             for field, errors in form.errors.items():
                 for error in errors:
