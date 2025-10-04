@@ -136,6 +136,26 @@
   transform: translateY(0);
 }
 
+/* Navbar alignment fixes */
+.navbar-collapse {
+  align-items: center;
+}
+
+.navbar-nav {
+  align-items: center;
+}
+
+/* Ensure consistent spacing */
+.navbar-nav.ms-auto {
+  gap: 0.25rem;
+}
+
+/* Fix dropdown alignment */
+.nav-item.dropdown {
+  display: flex;
+  align-items: center;
+}
+
 /* Responsive adjustments */
 @media (max-width: 991.98px) {
   .navbar-nav form.d-flex {
@@ -151,6 +171,11 @@
   /* Nasconde il bottone centrale su mobile e lo sposta nel menu */
   .btn-create-ad {
     display: none;
+  }
+
+  /* Fix mobile navbar stacking */
+  .navbar-nav.ms-auto {
+    gap: 0;
   }
 }
 
