@@ -149,19 +149,21 @@
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   width: 40px;
   height: 40px;
-  padding: 0;
+  padding: 0 !important;
+  margin: 0 2px;
   min-width: 40px;
+  transform-origin: right center;
 }
 
 .btn-create-ad-minimal .btn-text {
   opacity: 0;
-  transform: translateX(-30px);
+  transform: translateX(-20px);
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   position: absolute;
-  left: 8px;
+  right: 50px;
   font-size: 0.85rem;
   white-space: nowrap;
   pointer-events: none;
@@ -191,7 +193,7 @@
 }
 
 .btn-create-ad-minimal:hover .btn-icon {
-  right: 12px; /* Icon stays in same position */
+  right: 12px; /* Icon stays in exact same position */
 }
 
 .btn-create-ad-minimal:active {
