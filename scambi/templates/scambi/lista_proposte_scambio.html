@@ -1,0 +1,202 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Le Mie Proposte di Scambio - Polygonum{% endblock %}
+
+{% block content %}
+<div class="bg-texture-light py-4">
+    <div class="container">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="text-polygonum-primary mb-2">
+                            <i class="fas fa-handshake me-2"></i>Le Mie Proposte di Scambio
+                        </h1>
+                        <p class="text-muted">Gestisci le tue proposte di scambio ricevute e inviate</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card border-info">
+                    <div class="card-body text-center">
+                        <i class="fas fa-inbox fa-2x text-info mb-2"></i>
+                        <h3 class="text-info">{{ total_ricevute }}</h3>
+                        <p class="text-muted mb-0">Proposte Ricevute</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-primary">
+                    <div class="card-body text-center">
+                        <i class="fas fa-paper-plane fa-2x text-primary mb-2"></i>
+                        <h3 class="text-primary">{{ total_inviate }}</h3>
+                        <p class="text-muted mb-0">Proposte Inviate</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs mb-4" id="proposteTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="ricevute-tab" data-bs-toggle="tab" data-bs-target="#ricevute" type="button" role="tab">
+                    <i class="fas fa-inbox me-2"></i>Proposte Ricevute ({{ total_ricevute }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="inviate-tab" data-bs-toggle="tab" data-bs-target="#inviate" type="button" role="tab">
+                    <i class="fas fa-paper-plane me-2"></i>Proposte Inviate ({{ total_inviate }})
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="proposteTabContent">
+            <!-- Proposte Ricevute -->
+            <div class="tab-pane fade show active" id="ricevute" role="tabpanel">
+                {% if proposte_ricevute %}
+                    <div class="row">
+                        {% for proposta in proposte_ricevute %}
+                            <div class="col-lg-6 mb-4">
+                                <div class="card h-100 {% if proposta.stato == 'in_attesa' %}border-warning{% elif proposta.stato == 'accettata' %}border-success{% elif proposta.stato == 'rifiutata' %}border-danger{% endif %}">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>{{ proposta.richiedente.username }}</strong>
+                                            <small class="text-muted">{{ proposta.data_creazione|timesince }} fa</small>
+                                        </div>
+                                        <span class="badge {% if proposta.stato == 'in_attesa' %}bg-warning{% elif proposta.stato == 'accettata' %}bg-success{% elif proposta.stato == 'rifiutata' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {{ proposta.get_stato_display }}
+                                        </span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <h6 class="text-success">Ti offre:</h6>
+                                                <div class="border p-2 rounded bg-light">
+                                                    <strong>{{ proposta.annuncio_offerto.titolo }}</strong>
+                                                    {% if proposta.annuncio_offerto.prezzo_stimato %}
+                                                        <br><small class="text-muted">€{{ proposta.annuncio_offerto.prezzo_stimato }}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <h6 class="text-info">Per il tuo:</h6>
+                                                <div class="border p-2 rounded bg-light">
+                                                    <strong>{{ proposta.annuncio_richiesto.titolo }}</strong>
+                                                    {% if proposta.annuncio_richiesto.prezzo_stimato %}
+                                                        <br><small class="text-muted">€{{ proposta.annuncio_richiesto.prezzo_stimato }}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {% if proposta.messaggio %}
+                                            <div class="mt-3">
+                                                <h6>Messaggio:</h6>
+                                                <p class="bg-light p-2 rounded">{{ proposta.messaggio }}</p>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="card-footer">
+                                        {% if proposta.stato == 'in_attesa' %}
+                                            <div class="d-flex gap-2">
+                                                <a href="{% url 'dettaglio_proposta_scambio' proposta.id %}" class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-eye me-1"></i>Dettagli
+                                                </a>
+                                                <a href="{% url 'rispondi_proposta_scambio' proposta.id %}" class="btn btn-success btn-sm">
+                                                    <i class="fas fa-reply me-1"></i>Rispondi
+                                                </a>
+                                            </div>
+                                        {% else %}
+                                            <a href="{% url 'dettaglio_proposta_scambio' proposta.id %}" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-eye me-1"></i>Vedi Dettagli
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">Nessuna proposta ricevuta</h4>
+                        <p class="text-muted">Quando qualcuno ti proporrà uno scambio, apparirà qui.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Proposte Inviate -->
+            <div class="tab-pane fade" id="inviate" role="tabpanel">
+                {% if proposte_inviate %}
+                    <div class="row">
+                        {% for proposta in proposte_inviate %}
+                            <div class="col-lg-6 mb-4">
+                                <div class="card h-100 {% if proposta.stato == 'in_attesa' %}border-warning{% elif proposta.stato == 'accettata' %}border-success{% elif proposta.stato == 'rifiutata' %}border-danger{% endif %}">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>A: {{ proposta.destinatario.username }}</strong>
+                                            <small class="text-muted">{{ proposta.data_creazione|timesince }} fa</small>
+                                        </div>
+                                        <span class="badge {% if proposta.stato == 'in_attesa' %}bg-warning{% elif proposta.stato == 'accettata' %}bg-success{% elif proposta.stato == 'rifiutata' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {{ proposta.get_stato_display }}
+                                        </span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <h6 class="text-success">Hai offerto:</h6>
+                                                <div class="border p-2 rounded bg-light">
+                                                    <strong>{{ proposta.annuncio_offerto.titolo }}</strong>
+                                                    {% if proposta.annuncio_offerto.prezzo_stimato %}
+                                                        <br><small class="text-muted">€{{ proposta.annuncio_offerto.prezzo_stimato }}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <h6 class="text-info">Per il suo:</h6>
+                                                <div class="border p-2 rounded bg-light">
+                                                    <strong>{{ proposta.annuncio_richiesto.titolo }}</strong>
+                                                    {% if proposta.annuncio_richiesto.prezzo_stimato %}
+                                                        <br><small class="text-muted">€{{ proposta.annuncio_richiesto.prezzo_stimato }}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {% if proposta.messaggio %}
+                                            <div class="mt-3">
+                                                <h6>Il tuo messaggio:</h6>
+                                                <p class="bg-light p-2 rounded">{{ proposta.messaggio }}</p>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="card-footer">
+                                        <a href="{% url 'dettaglio_proposta_scambio' proposta.id %}" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye me-1"></i>Vedi Dettagli
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-paper-plane fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">Nessuna proposta inviata</h4>
+                        <p class="text-muted">Inizia a proporre scambi per vedere le tue proposte qui.</p>
+                        <a href="{% url 'lista_annunci' %}" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>Cerca Annunci
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
