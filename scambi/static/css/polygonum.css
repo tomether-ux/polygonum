@@ -134,14 +134,14 @@
 
 /* Bottone Crea Annuncio minimale con espansione */
 .btn-create-ad-minimal {
-  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-  border: none;
+  background: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 6px;
   font-weight: 600;
-  color: white !important;
+  color: var(--polygonum-primary) !important;
   text-decoration: none;
   transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  box-shadow: 0 3px 10px rgba(40, 167, 69, 0.3);
+  box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
   white-space: nowrap;
   overflow: hidden;
   position: relative;
@@ -165,6 +165,7 @@
   font-size: 0.85rem;
   white-space: nowrap;
   pointer-events: none;
+  color: var(--polygonum-primary);
 }
 
 .btn-create-ad-minimal .btn-icon {
@@ -173,13 +174,15 @@
   transition: none;
   font-size: 1.1rem;
   z-index: 10;
+  color: var(--polygonum-primary);
 }
 
 .btn-create-ad-minimal:hover {
-  background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
+  background: rgba(255, 255, 255, 0.95);
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
-  color: white !important;
+  box-shadow: 0 5px 15px rgba(255, 255, 255, 0.4);
+  color: var(--polygonum-primary) !important;
+  border-color: rgba(255, 255, 255, 0.5);
   width: 155px;
   padding: 0;
 }
@@ -252,11 +255,11 @@
 @media (min-width: 992px) {
   .btn-create-ad-minimal:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3);
+    box-shadow: 0 0 0 3px rgba(var(--polygonum-primary-rgb), 0.3);
   }
 
   .btn-create-ad-minimal:focus:hover {
-    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4), 0 0 0 3px rgba(40, 167, 69, 0.3);
+    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.4), 0 0 0 3px rgba(var(--polygonum-primary-rgb), 0.3);
   }
 }
 
