@@ -25,6 +25,7 @@ urlpatterns = [
     path('preferiti/aggiungi/<int:annuncio_id>/', views.aggiungi_preferito, name='aggiungi_preferito'),
     path('notifiche/', views.lista_notifiche, name='lista_notifiche'),
     path('notifiche/<int:notifica_id>/letta/', views.segna_notifica_letta, name='segna_notifica_letta'),
+    path('notifiche/<int:notifica_id>/click/', views.notifica_click_redirect, name='notifica_click_redirect'),
     path('notifiche/tutte-lette/', views.segna_tutte_notifiche_lette, name='segna_tutte_notifiche_lette'),
 
     # Sistema proposte di scambio
