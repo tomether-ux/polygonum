@@ -119,18 +119,20 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 
 # Email settings
-# Use SMTP if SENDGRID_API_KEY is available, otherwise console
-if os.environ.get('SENDGRID_API_KEY'):
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-else:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Development
-
 EMAIL_HOST = 'smtp.sendgrid.net'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'apikey'
 EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'polygonum.noreply@gmail.com')
+
+# Email backend logic
+if os.environ.get('SENDGRID_API_KEY'):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    print(f"📧 Using SMTP backend with SendGrid API key")
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    print(f"📧 Using console backend (no SendGrid API key)")
 
 # Email verification settings
 EMAIL_VERIFICATION_REQUIRED = True
@@ -194,5 +196,5 @@ if os.environ.get('RENDER'):
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-    # Email in production - use SendGrid
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    # Email configuration is already set above based on SENDGRID_API_KEY
+    # No need to override EMAIL_BACKEND here
