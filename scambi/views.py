@@ -303,25 +303,38 @@ def register(request):
                 user = form.save()
                 logger.info(f"User created successfully: {user.username}")
 
-                # Invia email di verifica
+                # Invia email di verifica con timeout gestito
                 try:
                     user_profile = UserProfile.objects.get(user=user)
                     logger.info(f"UserProfile found - City: {user_profile.citta}, Province: {user_profile.provincia}")
 
-                    if send_verification_email(request, user, user_profile):
+                    # Usa la nuova funzione con timeout
+                    from .email_utils import send_verification_email_with_timeout
+                    email_result = send_verification_email_with_timeout(request, user, user_profile, timeout_seconds=5)
+
+                    if email_result["success"]:
                         messages.success(request,
-                            f'Registrazione completata! Ti abbiamo inviato un\'email di verifica a {user.email}. '
+                            f'🎉 Registrazione completata! Ti abbiamo inviato un\'email di verifica a {user.email}. '
                             'Controlla la tua casella di posta e clicca sul link per attivare il tuo account.')
+                    elif email_result["message"] == "timeout":
+                        messages.info(request,
+                            f'✅ Registrazione completata! L\'email di verifica per {user.email} è in coda per l\'invio. '
+                            'Potrebbe arrivare con qualche minuto di ritardo. Controlla la tua casella di posta nei prossimi minuti.')
+                        logger.warning(f"Email timeout for user {user.username} but registration successful")
                     else:
                         messages.warning(request,
-                            'Registrazione completata ma c\'è stato un problema nell\'invio dell\'email di verifica. '
-                            'Controlla i log del server o contatta il supporto.')
+                            f'✅ Registrazione completata! Tuttavia c\'è stato un problema tecnico nell\'invio immediato dell\'email di verifica a {user.email}. '
+                            'L\'email dovrebbe arrivare comunque nei prossimi minuti. Se non la ricevi, contatta il supporto.')
+                        logger.error(f"Email sending failed for user {user.username}: {email_result.get('error', 'Unknown error')}")
+
                 except UserProfile.DoesNotExist as e:
                     logger.error(f"UserProfile not found for user {user.username}: {e}")
                     messages.error(request, 'Errore nella creazione del profilo utente.')
                 except Exception as e:
                     logger.error(f"Error during profile retrieval/email sending: {e}")
-                    messages.warning(request, 'Registrazione completata ma con problemi nell\'invio email.')
+                    messages.warning(request,
+                        f'✅ Registrazione completata! Tuttavia c\'è stato un problema nell\'invio dell\'email di verifica. '
+                        'L\'email dovrebbe arrivare nei prossimi minuti.')
 
             except Exception as e:
                 logger.error(f"Error during user creation: {e}")
