@@ -161,11 +161,12 @@
   transform: translateX(-20px);
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   position: absolute;
-  right: 50px;
+  left: 12px;
   font-size: 0.85rem;
   white-space: nowrap;
   pointer-events: none;
   color: var(--polygonum-primary);
+  font-weight: 600;
 }
 
 .btn-create-ad-minimal .btn-icon {
