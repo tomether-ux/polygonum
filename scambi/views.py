@@ -662,6 +662,25 @@ def segna_tutte_notifiche_lette(request):
     })
 
 
+@login_required
+def notifica_click_redirect(request, notifica_id):
+    """Vista per segnare una notifica come letta e reindirizzare alla destinazione"""
+    notifica = get_object_or_404(Notifica, id=notifica_id, utente=request.user)
+
+    # Segna come letta
+    if not notifica.letta:
+        notifica.mark_as_read()
+
+    # Determina dove reindirizzare
+    if notifica.url_azione:
+        redirect_url = notifica.url_azione
+    else:
+        # Fallback alla lista notifiche
+        redirect_url = reverse('lista_notifiche')
+
+    return redirect(redirect_url)
+
+
 def context_processor_notifiche(request):
     """Context processor per aggiungere dati notifiche a tutti i template"""
     if request.user.is_authenticated:
