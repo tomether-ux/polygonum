@@ -196,5 +196,16 @@ if os.environ.get('RENDER'):
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+    # HTTPS and Security settings for production
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+    # CSRF settings for HTTPS
+    CSRF_COOKIE_SECURE = True
+    CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
+
+    # Session security
+    SESSION_COOKIE_SECURE = True
+
     # Email configuration is already set above based on SENDGRID_API_KEY
     # No need to override EMAIL_BACKEND here
