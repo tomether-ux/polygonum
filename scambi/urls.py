@@ -40,7 +40,9 @@ urlpatterns = [
 
     # Sistema messaggistica
     path('messaggi/', views.lista_messaggi, name='lista_messaggi'),
-    path('chat/<int:conversazione_id>/', views.chat_conversazione, name='chat_conversazione'),
+    path('messaggi/<int:conversazione_id>/', views.chat_conversazione, name='chat_conversazione'),
+    path('messaggi/verifica-conversazione/<int:user_id>/', views.verifica_conversazione_esistente, name='verifica_conversazione_esistente'),
+    path('messaggi/invia-da-annuncio/', views.invia_messaggio_da_annuncio, name='invia_messaggio_da_annuncio'),
     path('inizia-conversazione/<str:username>/', views.inizia_conversazione, name='inizia_conversazione'),
 
     # Sistema catene di scambio attivabili

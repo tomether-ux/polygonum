@@ -1164,3 +1164,99 @@ def dettaglio_catena(request, catena_id):
     }
 
     return render(request, 'scambi/dettaglio_catena.html', context)
+
+
+@login_required
+def verifica_conversazione_esistente(request, user_id):
+    """API endpoint per verificare se esiste già una conversazione con un utente"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Metodo non supportato'}, status=405)
+
+    try:
+        destinatario = get_object_or_404(User, id=user_id)
+
+        if destinatario == request.user:
+            return JsonResponse({'error': 'Non puoi avviare una conversazione con te stesso'}, status=400)
+
+        # Verifica se esiste già una conversazione tra i due utenti
+        conversazione_esistente = Conversazione.objects.filter(
+            tipo='privata',
+            utenti=request.user
+        ).filter(
+            utenti=destinatario
+        ).first()
+
+        if conversazione_esistente:
+            return JsonResponse({
+                'conversazione_esistente': True,
+                'conversazione_id': conversazione_esistente.id
+            })
+        else:
+            return JsonResponse({
+                'conversazione_esistente': False
+            })
+
+    except Exception as e:
+        return JsonResponse({'error': 'Errore del server'}, status=500)
+
+
+@login_required
+def invia_messaggio_da_annuncio(request):
+    """API endpoint per inviare un messaggio riguardo a un annuncio"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Metodo non supportato'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        destinatario_id = data.get('destinatario_id')
+        messaggio_testo = data.get('messaggio', '').strip()
+        annuncio_id = data.get('annuncio_id')
+
+        if not messaggio_testo:
+            return JsonResponse({'error': 'Il messaggio non può essere vuoto'}, status=400)
+
+        destinatario = get_object_or_404(User, id=destinatario_id)
+        annuncio = get_object_or_404(Annuncio, id=annuncio_id)
+
+        if destinatario == request.user:
+            return JsonResponse({'error': 'Non puoi inviare un messaggio a te stesso'}, status=400)
+
+        # Verifica se esiste già una conversazione
+        conversazione = Conversazione.objects.filter(
+            tipo='privata',
+            utenti=request.user
+        ).filter(
+            utenti=destinatario
+        ).first()
+
+        # Se non esiste, creala
+        if not conversazione:
+            conversazione = Conversazione.objects.create(tipo='privata')
+            conversazione.utenti.add(request.user, destinatario)
+
+        # Crea il messaggio con riferimento all'annuncio
+        messaggio_contenuto = f"Riguardo all'annuncio '{annuncio.titolo}':\n\n{messaggio_testo}"
+
+        messaggio = Messaggio.objects.create(
+            conversazione=conversazione,
+            mittente=request.user,
+            contenuto=messaggio_contenuto
+        )
+
+        # Aggiorna timestamp conversazione
+        conversazione.ultimo_messaggio = timezone.now()
+        conversazione.save()
+
+        # Notifica il destinatario
+        notifica_nuovo_messaggio(destinatario, messaggio)
+
+        return JsonResponse({
+            'success': True,
+            'conversazione_id': conversazione.id,
+            'messaggio': 'Messaggio inviato con successo!'
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Dati JSON non validi'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': 'Errore del server'}, status=500)

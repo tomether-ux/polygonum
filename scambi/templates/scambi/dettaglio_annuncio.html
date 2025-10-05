@@ -165,6 +165,10 @@
                                 <i class="fas fa-heart me-2"></i>
                                 <span id="txtPreferito">Aggiungi ai Preferiti</span>
                             </button>
+
+                            <button class="btn btn-outline-primary" onclick="apriModalMessaggio()">
+                                <i class="fas fa-envelope me-2"></i>Invia Messaggio
+                            </button>
                         {% endif %}
 
                         <a href="{% url 'catene_scambio' %}" class="btn btn-primary btn-lg">
@@ -193,6 +197,43 @@
                         che coinvolgono questo annuncio insieme ad altri utenti!
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Invia Messaggio -->
+<div class="modal fade" id="modalMessaggio" tabindex="-1" aria-labelledby="modalMessaggioLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-polygonum-primary" id="modalMessaggioLabel">
+                    <i class="fas fa-envelope me-2"></i>Invia Messaggio a {{ annuncio.utente.username }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formMessaggio">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Riguardo all'annuncio:</label>
+                        <div class="bg-light rounded p-3 mb-3">
+                            <strong class="text-polygonum-primary">{{ annuncio.titolo }}</strong>
+                            <small class="text-muted d-block">{{ annuncio.categoria.nome }}</small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="messaggioTesto" class="form-label">Il tuo messaggio:</label>
+                        <textarea class="form-control" id="messaggioTesto" rows="4"
+                                  placeholder="Scrivi qui il tuo messaggio..." required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" onclick="inviaMessaggio()">
+                    <i class="fas fa-paper-plane me-2"></i>Invia Messaggio
+                </button>
             </div>
         </div>
     </div>
@@ -275,6 +316,86 @@ function showToast(message, type) {
     toastContainer.innerHTML = toastHTML;
     const toast = new bootstrap.Toast(toastContainer.querySelector('.toast'));
     toast.show();
+}
+
+function apriModalMessaggio() {
+    // Prima controlla se esiste già una conversazione
+    fetch(`/messaggi/verifica-conversazione/{{ annuncio.utente.id }}/`, {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.conversazione_esistente) {
+            // Se esiste già una conversazione, rimanda a quella
+            window.location.href = `/messaggi/${data.conversazione_id}/`;
+        } else {
+            // Se non esiste, apri il modal per creare un nuovo messaggio
+            const modal = new bootstrap.Modal(document.getElementById('modalMessaggio'));
+            modal.show();
+        }
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        // In caso di errore, apri comunque il modal
+        const modal = new bootstrap.Modal(document.getElementById('modalMessaggio'));
+        modal.show();
+    });
+}
+
+function inviaMessaggio() {
+    const testo = document.getElementById('messaggioTesto').value.trim();
+
+    if (!testo) {
+        showToast('Per favore scrivi un messaggio', 'error');
+        return;
+    }
+
+    // Disabilita il bottone durante l'invio
+    const btnInvia = document.querySelector('#modalMessaggio .btn-primary');
+    btnInvia.disabled = true;
+    btnInvia.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Invio...';
+
+    fetch('/messaggi/invia-da-annuncio/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            destinatario_id: {{ annuncio.utente.id }},
+            messaggio: testo,
+            annuncio_id: {{ annuncio.id }}
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Messaggio inviato con successo!', 'success');
+            // Chiudi il modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalMessaggio'));
+            modal.hide();
+            // Pulisci il form
+            document.getElementById('messaggioTesto').value = '';
+            // Reindirizza alla conversazione
+            setTimeout(() => {
+                window.location.href = `/messaggi/${data.conversazione_id}/`;
+            }, 1000);
+        } else {
+            showToast(data.error || 'Errore durante l\'invio del messaggio', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        showToast('Si è verificato un errore. Riprova più tardi.', 'error');
+    })
+    .finally(() => {
+        // Riabilita il bottone
+        btnInvia.disabled = false;
+        btnInvia.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Invia Messaggio';
+    });
 }
 
 // Verifica stato iniziale del preferito quando la pagina si carica
