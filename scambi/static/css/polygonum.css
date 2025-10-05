@@ -133,6 +133,7 @@
 }
 
 /* Bottone Crea Annuncio minimale con espansione */
+a.btn-create-ad-minimal.nav-link,
 a.btn-create-ad-minimal,
 .btn-create-ad-minimal {
   background: white !important;
@@ -179,6 +180,7 @@ a.btn-create-ad-minimal,
   color: var(--polygonum-primary) !important;
 }
 
+a.btn-create-ad-minimal.nav-link:hover,
 a.btn-create-ad-minimal:hover,
 .btn-create-ad-minimal:hover {
   background: rgba(255, 255, 255, 0.98) !important;
