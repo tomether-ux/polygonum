@@ -1008,19 +1008,33 @@ from django.db.models import Q, Prefetch
 @login_required
 def lista_messaggi(request):
     """Vista per mostrare tutte le conversazioni dell'utente"""
-    conversazioni = Conversazione.objects.filter(
-        utenti=request.user,
-        attiva=True
-    ).prefetch_related(
-        'utenti',
-        Prefetch('messaggi', queryset=Messaggio.objects.order_by('-data_invio')[:1])
-    ).order_by('-ultimo_messaggio')
+    try:
+        conversazioni = Conversazione.objects.filter(
+            utenti=request.user,
+            attiva=True
+        ).prefetch_related(
+            'utenti',
+            Prefetch('messaggi', queryset=Messaggio.objects.order_by('-data_invio')[:1])
+        ).order_by('-data_creazione')  # Usa data_creazione invece di ultimo_messaggio
 
-    context = {
-        'conversazioni': conversazioni,
-    }
+        context = {
+            'conversazioni': conversazioni,
+        }
+        return render(request, 'scambi/lista_messaggi.html', context)
 
-    return render(request, 'scambi/lista_messaggi.html', context)
+    except Exception as e:
+        # Log dell'errore per debug
+        print(f"Errore in lista_messaggi: {e}")
+        # Fallback semplice
+        conversazioni = Conversazione.objects.filter(
+            utenti=request.user,
+            attiva=True
+        ).order_by('-data_creazione')
+
+        context = {
+            'conversazioni': conversazioni,
+        }
+        return render(request, 'scambi/lista_messaggi.html', context)
 
 
 @login_required
