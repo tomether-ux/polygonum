@@ -133,27 +133,28 @@
 }
 
 /* Bottone Crea Annuncio minimale con espansione */
+a.btn-create-ad-minimal,
 .btn-create-ad-minimal {
-  background: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 6px;
-  font-weight: 600;
+  background: white !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
   color: var(--polygonum-primary) !important;
-  text-decoration: none;
-  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
-  white-space: nowrap;
-  overflow: hidden;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
+  text-decoration: none !important;
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+  box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
   padding: 0 !important;
-  margin: 0 2px;
-  min-width: 40px;
-  transform-origin: right center;
+  margin: 0 2px !important;
+  min-width: 40px !important;
+  transform-origin: right center !important;
 }
 
 .btn-create-ad-minimal .btn-text {
@@ -165,7 +166,7 @@
   font-size: 0.85rem;
   white-space: nowrap;
   pointer-events: none;
-  color: var(--polygonum-primary);
+  color: var(--polygonum-primary) !important;
   font-weight: 600;
 }
 
@@ -175,29 +176,30 @@
   transition: none;
   font-size: 1.1rem;
   z-index: 10;
-  color: var(--polygonum-primary);
+  color: var(--polygonum-primary) !important;
 }
 
+a.btn-create-ad-minimal:hover,
 .btn-create-ad-minimal:hover {
-  background: rgba(255, 255, 255, 0.98);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.98) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 5px 15px rgba(255, 255, 255, 0.4) !important;
   color: var(--polygonum-primary) !important;
-  border-color: rgba(255, 255, 255, 0.8);
-  width: 155px;
-  padding: 0;
+  border-color: rgba(255, 255, 255, 0.8) !important;
+  width: 155px !important;
+  padding: 0 !important;
 }
 
 .btn-create-ad-minimal:hover .btn-text {
   opacity: 1;
   transform: translateX(0);
   transition-delay: 0.05s;
-  color: var(--polygonum-primary);
+  color: var(--polygonum-primary) !important;
 }
 
 .btn-create-ad-minimal:hover .btn-icon {
   right: 12px; /* Icon stays in exact same position */
-  color: var(--polygonum-primary);
+  color: var(--polygonum-primary) !important;
 }
 
 .btn-create-ad-minimal:active {
