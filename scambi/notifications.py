@@ -67,7 +67,7 @@ def notifica_nuova_catena(utente, numero_catene):
         tipo='nuova_catena',
         titolo=titolo,
         messaggio=messaggio,
-        url_azione=reverse('catene_scambio') + "?cerca=true"
+        url_azione=reverse('catene_scambio')
     )
 
 
