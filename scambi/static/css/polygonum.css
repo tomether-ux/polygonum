@@ -556,4 +556,21 @@ a.btn-create-ad-minimal:hover,
   .navbar .position-relative .badge {
     font-size: 0.65em;
   }
+
+  /* Mobile: Fix dropdown notifiche che esce dallo schermo */
+  .navbar .dropdown-menu {
+    position: fixed !important;
+    top: 60px !important;
+    right: 10px !important;
+    left: auto !important;
+    transform: none !important;
+    max-width: calc(100vw - 20px) !important;
+    min-width: 280px !important;
+  }
+
+  /* Mobile: dropdown delle notifiche più piccolo */
+  #notificheDropdownMobile + .dropdown-menu {
+    width: 320px !important;
+    max-width: calc(100vw - 20px) !important;
+  }
 }
