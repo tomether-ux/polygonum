@@ -296,6 +296,11 @@ def catene_scambio(request):
     catene_alta_qualita.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
     catene_generiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
 
+    # Aggiungi flag per i preferiti se l'utente è autenticato
+    if request.user.is_authenticated:
+        for catena in scambi_diretti_alta + scambi_diretti_generici + catene_alta_qualita + catene_generiche:
+            catena['is_favorita'] = is_catena_preferita(request.user, catena)
+
     return render(request, 'scambi/catene_scambio.html', {
         'scambi_diretti_alta': scambi_diretti_alta,
         'scambi_diretti_generici': scambi_diretti_generici,
@@ -731,11 +736,20 @@ def le_mie_catene(request):
         catene_alta_qualita.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
         catene_generiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
 
+        # Aggiungi flag per i preferiti se l'utente è autenticato
+        if request.user.is_authenticated:
+            for catena in scambi_diretti_alta + scambi_diretti_generici + catene_alta_qualita + catene_generiche:
+                catena['is_favorita'] = is_catena_preferita(request.user, catena)
+
+        # Ottieni le catene preferite dell'utente
+        catene_preferite = CatenaPreferita.objects.filter(utente=request.user).order_by('-data_creazione')
+
         context = {
             'scambi_diretti_alta': scambi_diretti_alta,
             'scambi_diretti_generici': scambi_diretti_generici,
             'catene_alta_qualita': catene_alta_qualita,
             'catene_generiche': catene_generiche,
+            'catene_preferite': catene_preferite,
             'totale_catene': len(catene_uniche),
             'totale_scambi_diretti': len(scambi_diretti),
             'totale_catene_lunghe': len(catene_lunghe),
@@ -745,11 +759,15 @@ def le_mie_catene(request):
 
     elif cerca_nuove and not ha_annunci:
         # Utente ha cercato ma non ha annunci
+        # Ottieni le catene preferite dell'utente
+        catene_preferite = CatenaPreferita.objects.filter(utente=request.user).order_by('-data_creazione')
+
         context = {
             'scambi_diretti_alta': [],
             'scambi_diretti_generici': [],
             'catene_alta_qualita': [],
             'catene_generiche': [],
+            'catene_preferite': catene_preferite,
             'totale_catene': 0,
             'totale_scambi_diretti': 0,
             'totale_catene_lunghe': 0,
@@ -760,13 +778,46 @@ def le_mie_catene(request):
         messages.warning(request, 'Non hai annunci attivi! Pubblica un annuncio per trovare opportunità di scambio.')
     else:
         # Prima visita - mostra interfaccia vuota
+        # Ottieni le catene preferite dell'utente
+        catene_preferite = CatenaPreferita.objects.filter(utente=request.user).order_by('-data_creazione')
+
         context = {
             'ricerca_eseguita': False,
             'personalizzato': True,
             'ha_annunci': ha_annunci,
+            'catene_preferite': catene_preferite,
         }
 
     return render(request, 'scambi/catene_scambio.html', context)
+
+
+# === HELPER FUNCTIONS PER CATENE PREFERITE ===
+import hashlib
+import json
+
+def genera_hash_catena(catena_data):
+    """Genera un hash univoco per una catena basato sui partecipanti e annunci"""
+    # Crea una rappresentazione stabile della catena
+    utenti = sorted(catena_data.get('utenti', []))
+    annunci = []
+    for item in catena_data.get('annunci_coinvolti', []):
+        annunci.append({
+            'annuncio_id': item.get('annuncio', {}).get('id') if hasattr(item.get('annuncio'), 'id') else item.get('annuncio'),
+            'utente': item.get('utente'),
+            'ruolo': item.get('ruolo')
+        })
+    annunci = sorted(annunci, key=lambda x: (x['annuncio_id'], x['utente']))
+
+    # Crea stringa per hash
+    hash_string = f"{'-'.join(utenti)}:{json.dumps(annunci, sort_keys=True)}"
+    return hashlib.md5(hash_string.encode()).hexdigest()
+
+def is_catena_preferita(user, catena_data):
+    """Controlla se una catena è già nei preferiti dell'utente"""
+    if not user.is_authenticated:
+        return False
+    catena_hash = genera_hash_catena(catena_data)
+    return CatenaPreferita.objects.filter(utente=user, catena_hash=catena_hash).exists()
 
 
 # === SISTEMA NOTIFICHE E PREFERITI ===
@@ -776,7 +827,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from .models import Preferiti, Notifica, PropostaScambio
+from .models import Preferiti, Notifica, PropostaScambio, CatenaPreferita
 from .notifications import (
     notifica_preferito_aggiunto,
     conta_notifiche_non_lette,
@@ -833,6 +884,51 @@ def lista_preferiti(request):
     }
 
     return render(request, 'scambi/lista_preferiti.html', context)
+
+
+@login_required
+@require_POST
+def aggiungi_catena_preferita(request):
+    """Vista AJAX per aggiungere/rimuovere una catena dai preferiti"""
+    try:
+        # Recupera i dati della catena dal POST
+        catena_data_json = request.POST.get('catena_data')
+        if not catena_data_json:
+            return JsonResponse({'success': False, 'error': 'Dati catena mancanti'})
+
+        catena_data = json.loads(catena_data_json)
+        catena_hash = genera_hash_catena(catena_data)
+
+        # Controlla se la catena è già nei preferiti
+        catena_preferita, created = CatenaPreferita.objects.get_or_create(
+            utente=request.user,
+            catena_hash=catena_hash,
+            defaults={
+                'catena_data': catena_data,
+                'tipo_catena': catena_data.get('tipo', 'catena_lunga'),
+                'categoria_qualita': catena_data.get('categoria_qualita', 'generica'),
+            }
+        )
+
+        if created:
+            action = 'added'
+            message = 'Catena aggiunta ai preferiti!'
+        else:
+            # Rimuovi dai preferiti
+            catena_preferita.delete()
+            action = 'removed'
+            message = 'Catena rimossa dai preferiti'
+
+        return JsonResponse({
+            'success': True,
+            'action': action,
+            'message': message
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Dati catena non validi'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Errore: {str(e)}'})
 
 
 @login_required

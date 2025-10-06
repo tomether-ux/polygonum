@@ -23,6 +23,7 @@ urlpatterns = [
     # Sistema notifiche e preferiti
     path('preferiti/', views.lista_preferiti, name='lista_preferiti'),
     path('preferiti/aggiungi/<int:annuncio_id>/', views.aggiungi_preferito, name='aggiungi_preferito'),
+    path('catene/aggiungi-preferita/', views.aggiungi_catena_preferita, name='aggiungi_catena_preferita'),
     path('notifiche/', views.lista_notifiche, name='lista_notifiche'),
     path('notifiche/<int:notifica_id>/letta/', views.segna_notifica_letta, name='segna_notifica_letta'),
     path('notifiche/<int:notifica_id>/click/', views.notifica_click_redirect, name='notifica_click_redirect'),
