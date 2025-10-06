@@ -122,6 +122,16 @@
                     </li>
                     {% endif %}
 
+                    <!-- Mobile: Crea Annuncio nel menu a tendina -->
+                    {% if user.is_authenticated %}
+                    <li class="nav-item d-lg-none">
+                        <a class="nav-link text-success fw-bold" href="{% url 'crea_annuncio' %}">
+                            <i class="fas fa-plus me-2"></i>Crea Annuncio
+                        </a>
+                    </li>
+                    <li class="d-lg-none"><hr class="dropdown-divider border-secondary"></li>
+                    {% endif %}
+
                     <!-- Links principali (sempre visibili) -->
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'home' %}">Home</a>
