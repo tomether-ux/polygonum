@@ -532,3 +532,28 @@ a.btn-create-ad-minimal:hover,
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* === MOBILE NAVBAR LAYOUT === */
+@media (max-width: 991.98px) {
+  /* Mobile: spazio tra logo e icone profilo/notifiche */
+  .navbar-brand {
+    flex-grow: 1;
+  }
+
+  /* Mobile: le icone notifiche e profilo hanno padding corretto */
+  .navbar .dropdown .nav-link {
+    padding: 0.75rem;
+    color: white !important;
+  }
+
+  /* Mobile: hover effect per le icone */
+  .navbar .dropdown .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+
+  /* Mobile: badge notifiche posizionato correttamente */
+  .navbar .position-relative .badge {
+    font-size: 0.65em;
+  }
+}
