@@ -641,6 +641,134 @@ def mie_catene_scambio(request):
     return render(request, 'scambi/catene_scambio.html', context)
 
 
+@login_required
+def le_mie_catene(request):
+    """Vista ottimizzata per le catene personali dell'utente"""
+    import time
+
+    # Controlla se l'utente ha annunci attivi
+    annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
+    ha_annunci = annunci_utente.exists()
+
+    # Controlla se è stata richiesta una nuova ricerca
+    cerca_nuove = request.GET.get('cerca') == 'true'
+
+    if cerca_nuove and ha_annunci:
+        # Ricarica il modulo matching per applicare eventuali modifiche
+        importlib.reload(matching)
+        from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente
+
+        print(f"🔍 RICERCA LE MIE CATENE per utente: {request.user.username}")
+
+        try:
+            start_time = time.time()
+            timeout_seconds = 30  # 30 secondi di timeout
+
+            # Esegui ricerca con limitazioni per evitare timeout
+            print("⏰ Inizio ricerca scambi diretti...")
+            scambi_diretti = trova_scambi_diretti()
+
+            if time.time() - start_time > timeout_seconds:
+                messages.error(request, 'Ricerca interrotta per timeout. Troppi dati da elaborare.')
+                tutte_catene = scambi_diretti
+            else:
+                print("⏰ Inizio ricerca catene lunghe (limitata a 3 utenti)...")
+                try:
+                    # Limita la ricerca delle catene a max 3 utenti per velocizzare
+                    catene = trova_catene_scambio(max_lunghezza=3)
+
+                    if time.time() - start_time > timeout_seconds:
+                        messages.warning(request, 'Ricerca parziale completata (timeout raggiunto). Mostrando solo scambi diretti.')
+                        tutte_catene = scambi_diretti
+                    else:
+                        # Separa catene per qualità
+                        catene_alta_qualita = [c for c in catene if c.get('categoria_qualita') == 'alta']
+                        catene_generiche = [c for c in catene if c.get('categoria_qualita') == 'generica']
+
+                        # Filtra tutto per l'utente attuale
+                        scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente(
+                            scambi_diretti, catene_alta_qualita + catene_generiche, request.user
+                        )
+
+                        # Ricomponi le catene filtrate
+                        tutte_catene = scambi_diretti_utente + catene_lunghe_utente
+
+                        elapsed = time.time() - start_time
+                        messages.success(request, f'Ricerca completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} opportunità di scambio per te!')
+                except Exception as e:
+                    print(f"Errore durante ricerca catene lunghe: {e}")
+                    tutte_catene = scambi_diretti
+                    messages.warning(request, 'Errore nella ricerca catene lunghe. Mostrando solo scambi diretti.')
+
+        except Exception as e:
+            print(f"Errore generale durante ricerca catene: {e}")
+            messages.error(request, 'Errore durante la ricerca delle catene. Riprova più tardi.')
+            tutte_catene = []
+
+        # Rimuovi duplicati e organizza
+        catene_uniche = []
+        combinazioni_viste = set()
+
+        for catena in tutte_catene:
+            utenti_ordinati = tuple(sorted(catena['utenti']))
+            if utenti_ordinati not in combinazioni_viste:
+                combinazioni_viste.add(utenti_ordinati)
+                catene_uniche.append(catena)
+
+        # Separa scambi diretti e catene lunghe
+        scambi_diretti = [c for c in catene_uniche if c.get('tipo') == 'scambio_diretto']
+        catene_lunghe = [c for c in catene_uniche if c.get('tipo') != 'scambio_diretto']
+
+        # Ordina per qualità
+        scambi_diretti_alta = [c for c in scambi_diretti if c.get('categoria_qualita') == 'alta']
+        scambi_diretti_generici = [c for c in scambi_diretti if c.get('categoria_qualita') == 'generica']
+        catene_alta_qualita = [c for c in catene_lunghe if c.get('categoria_qualita') == 'alta']
+        catene_generiche = [c for c in catene_lunghe if c.get('categoria_qualita') == 'generica']
+
+        # Ordina per punteggio
+        scambi_diretti_alta.sort(key=lambda x: -x.get('punteggio_qualita', 0))
+        scambi_diretti_generici.sort(key=lambda x: -x.get('punteggio_qualita', 0))
+        catene_alta_qualita.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
+        catene_generiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
+
+        context = {
+            'scambi_diretti_alta': scambi_diretti_alta,
+            'scambi_diretti_generici': scambi_diretti_generici,
+            'catene_alta_qualita': catene_alta_qualita,
+            'catene_generiche': catene_generiche,
+            'totale_catene': len(catene_uniche),
+            'totale_scambi_diretti': len(scambi_diretti),
+            'totale_catene_lunghe': len(catene_lunghe),
+            'ricerca_eseguita': True,
+            'personalizzato': True,
+        }
+
+    elif cerca_nuove and not ha_annunci:
+        # Utente ha cercato ma non ha annunci
+        context = {
+            'scambi_diretti_alta': [],
+            'scambi_diretti_generici': [],
+            'catene_alta_qualita': [],
+            'catene_generiche': [],
+            'totale_catene': 0,
+            'totale_scambi_diretti': 0,
+            'totale_catene_lunghe': 0,
+            'ricerca_eseguita': True,
+            'personalizzato': True,
+            'nessun_annuncio': True,
+        }
+        messages.warning(request, 'Non hai annunci attivi! Pubblica un annuncio per trovare opportunità di scambio.')
+    else:
+        # Prima visita - mostra interfaccia vuota
+        context = {
+            'ricerca_eseguita': False,
+            'personalizzato': True,
+            'ha_annunci': ha_annunci,
+        }
+
+    return render(request, 'scambi/catene_scambio.html', context)
+
+
 # === SISTEMA NOTIFICHE E PREFERITI ===
 
 from django.contrib.auth.decorators import login_required

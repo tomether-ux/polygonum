@@ -49,4 +49,7 @@ urlpatterns = [
     path('catene-attivabili/', views.lista_catene_attivabili, name='lista_catene_attivabili'),
     path('catena/<str:catena_id>/', views.dettaglio_catena, name='dettaglio_catena'),
     path('catena/<str:catena_id>/attiva/', views.attiva_catena, name='attiva_catena'),
+
+    # Le mie catene personali
+    path('le-mie-catene/', views.le_mie_catene, name='le_mie_catene'),
 ]
