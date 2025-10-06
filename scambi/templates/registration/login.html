@@ -150,14 +150,20 @@ function togglePassword() {
 
 /* Fix per mobile: più spazio per l'icona dell'occhio */
 @media (max-width: 768px) {
-    .password-input-mobile {
-        padding-right: 3.5rem !important; /* Più spazio per l'icona */
+    input.form-control.password-input-mobile {
+        padding-right: 4rem !important; /* Ancora più spazio per l'icona */
     }
 
-    .password-toggle-mobile {
-        right: 0.75rem !important; /* Posiziona l'icona più a destra */
-        padding: 0.5rem !important; /* Area di click più grande */
-        min-width: 2.5rem !important; /* Larghezza minima */
+    button.password-toggle-mobile {
+        right: 0.5rem !important; /* Posiziona l'icona ancora più a destra */
+        padding: 0.75rem !important; /* Area di click più grande */
+        min-width: 3rem !important; /* Larghezza minima maggiore */
+        width: 3rem !important; /* Larghezza fissa */
+    }
+
+    /* Assicurati che l'input non sia troppo piccolo */
+    .form-control.password-input-mobile {
+        min-height: 3.5rem !important;
     }
 }
 </style>
