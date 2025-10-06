@@ -21,6 +21,76 @@
                 <img src="{% static 'img/polygonum-logo.png' %}" alt="POLYGONUM Logo" class="me-3" style="height: 28px; width: auto;">POLYGONUM
             </a>
 
+            <!-- Mobile Icons (Only on mobile between logo and hamburger) -->
+            {% if user.is_authenticated %}
+            <div class="d-lg-none d-flex align-items-center me-3">
+                <!-- Notifiche Mobile -->
+                <div class="nav-item dropdown me-3">
+                    <a class="nav-link position-relative" href="#" id="notificheDropdownMobile" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer; color: white;">
+                        <i class="fas fa-bell"></i>
+                        {% if notifiche_non_lette > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ notifiche_non_lette }}
+                                <span class="visually-hidden">notifiche non lette</span>
+                            </span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificheDropdownMobile" style="min-width: 300px;">
+                        <li><h6 class="dropdown-header">Notifiche Recenti</h6></li>
+                        {% if notifiche_recenti %}
+                            {% for notifica in notifiche_recenti %}
+                                <li>
+                                    <a class="dropdown-item {% if not notifica.letta %}fw-bold bg-light{% endif %}"
+                                       href="{% url 'notifica_click_redirect' notifica.id %}">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="me-auto">
+                                                <div class="small">{{ notifica.titolo|truncatechars:30 }}</div>
+                                                <div class="text-muted small">{{ notifica.data_creazione|timesince }} fa</div>
+                                            </div>
+                                            {% if not notifica.letta %}
+                                                <span class="badge bg-primary rounded-pill">Nuovo</span>
+                                            {% endif %}
+                                        </div>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-center" href="{% url 'lista_notifiche' %}">Vedi tutte</a></li>
+                        {% else %}
+                            <li><span class="dropdown-item text-muted">Nessuna notifica</span></li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- Profilo Mobile (solo icona) -->
+                <div class="nav-item dropdown">
+                    <a class="nav-link" href="#" id="userDropdownMobile" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: white;">
+                        <i class="fas fa-user"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{% url 'profilo_utente' user.username %}">
+                            <i class="fas fa-user me-2"></i>Il Mio Profilo
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'lista_preferiti' %}">
+                            <i class="fas fa-heart me-2"></i>I Miei Preferiti
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'lista_proposte_scambio' %}">
+                            <i class="fas fa-handshake me-2"></i>Le Mie Proposte
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/admin/">
+                            <i class="fas fa-cog me-2"></i>Admin
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Toggle button for mobile -->
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -42,14 +112,17 @@
 
                 <!-- Menu principale -->
                 <ul class="navbar-nav ms-auto">
+                    <!-- Desktop: Crea Annuncio Button -->
                     {% if user.is_authenticated %}
-                    <li class="nav-item">
+                    <li class="nav-item d-none d-lg-block">
                         <a class="btn-create-ad-minimal nav-link" href="{% url 'crea_annuncio' %}">
                             <span class="btn-text">Crea Annuncio</span>
                             <i class="fas fa-plus btn-icon"></i>
                         </a>
                     </li>
                     {% endif %}
+
+                    <!-- Links principali (sempre visibili) -->
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'home' %}">Home</a>
                     </li>
@@ -59,16 +132,19 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'catene_scambio' %}">Catene</a>
                     </li>
-
                     {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'lista_messaggi' %}" title="Messaggi">
-                                <i class="fas fa-comments"></i>
-                            </a>
-                        </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'lista_messaggi' %}">
+                            <span class="d-lg-none">Messaggi</span>
+                            <i class="fas fa-comments d-none d-lg-inline" title="Messaggi"></i>
+                        </a>
+                    </li>
+                    {% endif %}
 
-                        <!-- Dropdown Notifiche -->
-                        <li class="nav-item dropdown">
+                    <!-- Desktop: Notifiche e Profilo (nascosti su mobile) -->
+                    {% if user.is_authenticated %}
+                        <!-- Dropdown Notifiche (solo desktop) -->
+                        <li class="nav-item dropdown d-none d-lg-block">
                             <a class="nav-link position-relative" href="#" id="notificheDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
                                 <i class="fas fa-bell"></i>
                                 {% if notifiche_non_lette > 0 %}
@@ -105,18 +181,12 @@
                             </ul>
                         </li>
 
-                        <!-- User Dropdown -->
-                        <li class="nav-item dropdown">
+                        <!-- User Dropdown (solo desktop) -->
+                        <li class="nav-item dropdown d-none d-lg-block">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-user me-1"></i>{{ user.username }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <!-- Solo su mobile: Crea Annuncio -->
-                                <li class="d-lg-none"><a class="dropdown-item text-success fw-bold" href="{% url 'crea_annuncio' %}">
-                                    <i class="fas fa-plus me-2"></i>Crea Annuncio
-                                </a></li>
-                                <li class="d-lg-none"><hr class="dropdown-divider"></li>
-
                                 <li><a class="dropdown-item" href="{% url 'profilo_utente' user.username %}">
                                     <i class="fas fa-user me-2"></i>Il Mio Profilo
                                 </a></li>
@@ -138,6 +208,7 @@
                             </ul>
                         </li>
                     {% else %}
+                        <!-- Login/Register per utenti non autenticati -->
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'login' %}">Login</a>
                         </li>
