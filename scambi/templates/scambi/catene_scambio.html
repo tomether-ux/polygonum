@@ -131,6 +131,23 @@
                     </div>
                 {% endif %}
 
+                <!-- Filtro per annuncio specifico (solo per utenti autenticati) -->
+                {% if user.is_authenticated and miei_annunci %}
+                <div class="mb-3">
+                    <label for="annuncioFiltro" class="form-label">
+                        <i class="fas fa-filter me-1"></i>Cerca catene per un tuo annuncio specifico (opzionale):
+                    </label>
+                    <select id="annuncioFiltro" class="form-select">
+                        <option value="">🔍 Tutte le catene che mi coinvolgono</option>
+                        {% for annuncio in miei_annunci %}
+                            <option value="{{ annuncio.id }}" {% if annuncio_selezionato and annuncio.id == annuncio_selezionato.id %}selected{% endif %}>
+                                {% if annuncio.tipo == 'offro' %}🟢 Offro{% else %}🔵 Cerco{% endif %}: {{ annuncio.titolo|truncatechars:50 }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
                 <button id="searchButton" onclick="startSearch()" class="btn btn-primary btn-lg">
                     <i class="fas fa-search me-2"></i>
                     <span id="buttonText">{% if personalizzato %}Cerca I Miei Scambi{% else %}Cerca Catene di Scambio{% endif %}</span>
@@ -498,6 +515,14 @@ function startSearch() {
     // Avvia la ricerca effettiva
     const currentUrl = new URL(window.location);
     currentUrl.searchParams.set('cerca', 'true');
+
+    // Aggiungi filtro per annuncio se selezionato
+    const annuncioFiltro = document.getElementById('annuncioFiltro');
+    if (annuncioFiltro && annuncioFiltro.value) {
+        currentUrl.searchParams.set('annuncio_id', annuncioFiltro.value);
+    } else {
+        currentUrl.searchParams.delete('annuncio_id');
+    }
 
     // Delay minimo per mostrare l'animazione
     setTimeout(() => {

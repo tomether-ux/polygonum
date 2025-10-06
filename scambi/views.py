@@ -187,6 +187,8 @@ def catene_scambio(request):
     """Mostra le catene di scambio divise per qualità"""
     # Controlla se è stata richiesta una nuova ricerca
     cerca_nuove = request.GET.get('cerca') == 'true'
+    # Filtro per annuncio specifico
+    annuncio_filtro_id = request.GET.get('annuncio_id')
 
     if cerca_nuove:
         import time
@@ -289,6 +291,31 @@ def catene_scambio(request):
     catene_generiche = [c for c in catene_lunghe if c.get('categoria_qualita') == 'generica']
 
 
+    # Filtra per annuncio specifico se richiesto
+    if annuncio_filtro_id and request.user.is_authenticated:
+        try:
+            annuncio_filtro = Annuncio.objects.get(id=annuncio_filtro_id, utente=request.user, attivo=True)
+
+            # Filtra solo catene che coinvolgono questo annuncio
+            scambi_diretti_alta = [c for c in scambi_diretti_alta if any(
+                item.get('annuncio', {}).id == int(annuncio_filtro_id) if hasattr(item.get('annuncio', {}), 'id')
+                else False for item in c.get('annunci_coinvolti', [])
+            )]
+            scambi_diretti_generici = [c for c in scambi_diretti_generici if any(
+                item.get('annuncio', {}).id == int(annuncio_filtro_id) if hasattr(item.get('annuncio', {}), 'id')
+                else False for item in c.get('annunci_coinvolti', [])
+            )]
+            catene_alta_qualita = [c for c in catene_alta_qualita if any(
+                item.get('annuncio', {}).id == int(annuncio_filtro_id) if hasattr(item.get('annuncio', {}), 'id')
+                else False for item in c.get('annunci_coinvolti', [])
+            )]
+            catene_generiche = [c for c in catene_generiche if any(
+                item.get('annuncio', {}).id == int(annuncio_filtro_id) if hasattr(item.get('annuncio', {}), 'id')
+                else False for item in c.get('annunci_coinvolti', [])
+            )]
+        except Annuncio.DoesNotExist:
+            pass  # Ignora se l'annuncio non esiste
+
     # Ordina per punteggio
     scambi_diretti_alta.sort(key=lambda x: -x.get('punteggio_qualita', 0))
     scambi_diretti_generici.sort(key=lambda x: -x.get('punteggio_qualita', 0))
@@ -300,6 +327,17 @@ def catene_scambio(request):
         for catena in scambi_diretti_alta + scambi_diretti_generici + catene_alta_qualita + catene_generiche:
             catena['is_favorita'] = is_catena_preferita(request.user, catena)
 
+    # Aggiungi annunci utente per dropdown filtro
+    miei_annunci = []
+    annuncio_selezionato = None
+    if request.user.is_authenticated:
+        miei_annunci = Annuncio.objects.filter(utente=request.user, attivo=True).order_by('-data_creazione')
+        if annuncio_filtro_id:
+            try:
+                annuncio_selezionato = Annuncio.objects.get(id=annuncio_filtro_id, utente=request.user, attivo=True)
+            except Annuncio.DoesNotExist:
+                pass
+
     return render(request, 'scambi/catene_scambio.html', {
         'scambi_diretti_alta': scambi_diretti_alta,
         'scambi_diretti_generici': scambi_diretti_generici,
@@ -309,7 +347,9 @@ def catene_scambio(request):
         'totale_scambi_diretti': len(scambi_diretti),
         'totale_catene_lunghe': len(catene_lunghe),
         'ricerca_eseguita': cerca_nuove,
-        'user_filtered': request.user.is_authenticated and cerca_nuove
+        'user_filtered': request.user.is_authenticated and cerca_nuove,
+        'miei_annunci': miei_annunci,
+        'annuncio_selezionato': annuncio_selezionato
     })
 
 # La funzione test_matching rimane uguale...
