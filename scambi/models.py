@@ -371,3 +371,34 @@ class PartecipazioneScambio(models.Model):
 
     def __str__(self):
         return f"{self.utente.username} in {self.catena.nome}"
+
+
+class CatenaPreferita(models.Model):
+    """Modello per gestire le catene di scambio preferite degli utenti"""
+    utente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='catene_preferite')
+
+    # ID univoco della catena basato sui partecipanti e annunci
+    catena_hash = models.CharField(max_length=64, help_text="Hash unico della catena basato sui partecipanti")
+
+    # Dati della catena salvati per visualizzazione futura
+    catena_data = models.JSONField(help_text="Dati completi della catena per visualizzazione")
+
+    # Metadati
+    data_aggiunta = models.DateTimeField(auto_now_add=True)
+    tipo_catena = models.CharField(max_length=20, choices=[
+        ('scambio_diretto', 'Scambio Diretto'),
+        ('catena_lunga', 'Catena Lunga'),
+    ])
+    categoria_qualita = models.CharField(max_length=20, choices=[
+        ('alta', 'Alta Qualità'),
+        ('generica', 'Generica'),
+    ])
+
+    class Meta:
+        unique_together = ('utente', 'catena_hash')
+        verbose_name = "Catena Preferita"
+        verbose_name_plural = "Catene Preferite"
+        ordering = ['-data_aggiunta']
+
+    def __str__(self):
+        return f"Catena preferita di {self.utente.username} ({self.tipo_catena})"
