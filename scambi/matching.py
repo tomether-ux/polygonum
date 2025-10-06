@@ -12,19 +12,19 @@ def trova_scambi_diretti():
     utenti = list(User.objects.filter(annuncio__attivo=True).distinct())
     print(f"🔍 Trovati {len(utenti)} utenti totali")
 
-    if len(utenti) > 25:
-        print(f"⚡ Limitando a 25 utenti per velocità ottimizzata")
-        utenti = utenti[:25]
+    if len(utenti) > 10:
+        print(f"⚡ Limitando a 10 utenti per stabilità massima")
+        utenti = utenti[:10]
 
     scambi_diretti = []
 
     # Timeout per scambi diretti
     import time
     start_time = time.time()
-    timeout_scambi_diretti = 12.0  # 12 secondi max per scambi diretti (bilanciato)
+    timeout_scambi_diretti = 5.0  # 5 secondi max per scambi diretti (ultra-sicuro)
 
     iterazioni_totali = 0
-    max_iterazioni = 5000  # Limite massimo di iterazioni per sicurezza
+    max_iterazioni = 1000  # Limite massimo di iterazioni per sicurezza (ridotto)
 
     for i, utente_a in enumerate(utenti):
         if time.time() - start_time > timeout_scambi_diretti:
@@ -283,26 +283,26 @@ def trova_catene_ricorsive(max_lunghezza=3):
     print(f"DEBUG: Trovati {len(utenti)} utenti con annunci attivi")
 
     # OTTIMIZZAZIONE AVANZATA: Limita ulteriormente per velocità
-    if len(utenti) > 15:
-        print(f"⚠️ Troppi utenti ({len(utenti)}), limitando a 15 per performance ottimizzata")
+    if len(utenti) > 8:
+        print(f"⚠️ Troppi utenti ({len(utenti)}), limitando a 8 per stabilità massima")
         # Ordina per numero di annunci attivi (utenti più attivi hanno priorità)
         utenti_con_count = []
         for utente in utenti:
             count_annunci = Annuncio.objects.filter(utente=utente, attivo=True).count()
             utenti_con_count.append((utente, count_annunci))
 
-        # Prendi i 15 utenti con più annunci attivi
+        # Prendi i 8 utenti con più annunci attivi
         utenti_con_count.sort(key=lambda x: x[1], reverse=True)
-        utenti = [u[0] for u in utenti_con_count[:15]]
-        print(f"🎯 Selezionati i 15 utenti più attivi")
+        utenti = [u[0] for u in utenti_con_count[:8]]
+        print(f"🎯 Selezionati i 8 utenti più attivi")
 
     catene_trovate = []
     start_time = time.time()
-    timeout_per_utente = 2.0  # 2 secondi max per utente (bilanciato)
-    timeout_totale = 18.0     # 18 secondi totali (bilanciato per evitare errori)
+    timeout_per_utente = 1.0  # 1 secondo max per utente (ultra-sicuro)
+    timeout_totale = 8.0      # 8 secondi totali (ultra-sicuro per evitare errori)
 
     iterazioni_ricorsive = 0
-    max_iterazioni_ricorsive = 2000  # Limite per catene ricorsive
+    max_iterazioni_ricorsive = 500  # Limite per catene ricorsive (ridotto)
 
     for i, utente_partenza in enumerate(utenti):
         if time.time() - start_time > timeout_totale:
