@@ -21,7 +21,7 @@ def trova_scambi_diretti():
     # Timeout per scambi diretti
     import time
     start_time = time.time()
-    timeout_scambi_diretti = 10.0  # 10 secondi max per scambi diretti
+    timeout_scambi_diretti = 12.0  # 12 secondi max per scambi diretti (bilanciato)
 
     for i, utente_a in enumerate(utenti):
         if time.time() - start_time > timeout_scambi_diretti:
@@ -285,8 +285,8 @@ def trova_catene_ricorsive(max_lunghezza=3):
 
     catene_trovate = []
     start_time = time.time()
-    timeout_per_utente = 1.0  # 1 secondo max per utente (ottimizzato)
-    timeout_totale = 15.0     # 15 secondi totali (ridotto per velocità)
+    timeout_per_utente = 2.0  # 2 secondi max per utente (bilanciato)
+    timeout_totale = 18.0     # 18 secondi totali (bilanciato per evitare errori)
 
     for i, utente_partenza in enumerate(utenti):
         if time.time() - start_time > timeout_totale:
