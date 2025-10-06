@@ -460,7 +460,7 @@
             {% if not is_own_profile and user.is_authenticated %}
             <div class="alert alert-light">
                 <p class="mb-2">Interessato agli annunci di {{ utente.username }}?</p>
-                <a href="{% url 'catene_scambio' %}?cerca=true" class="btn btn-primary">
+                <a href="{% url 'catene_scambio' %}" class="btn btn-primary">
                     <i class="fas fa-search me-1"></i>Cerca Scambi Possibili
                 </a>
             </div>
