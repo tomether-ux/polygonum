@@ -5,16 +5,36 @@ import re
 import math
 
 def trova_scambi_diretti():
-    """Trova scambi diretti tra 2 persone (massima priorità)"""
-    print("\n🔄 === RICERCA SCAMBI DIRETTI (2 PERSONE) ===")
+    """Trova scambi diretti tra 2 persone (massima priorità) - VERSIONE OTTIMIZZATA"""
+    print("\n🔄 === RICERCA SCAMBI DIRETTI OTTIMIZZATA (2 PERSONE) ===")
 
+    # Ottimizzazione: Limita gli utenti anche per scambi diretti
     utenti = list(User.objects.filter(annuncio__attivo=True).distinct())
+    print(f"🔍 Trovati {len(utenti)} utenti totali")
+
+    if len(utenti) > 25:
+        print(f"⚡ Limitando a 25 utenti per velocità ottimizzata")
+        utenti = utenti[:25]
+
     scambi_diretti = []
 
-    for utente_a in utenti:
+    # Timeout per scambi diretti
+    import time
+    start_time = time.time()
+    timeout_scambi_diretti = 10.0  # 10 secondi max per scambi diretti
+
+    for i, utente_a in enumerate(utenti):
+        if time.time() - start_time > timeout_scambi_diretti:
+            print(f"⏰ Timeout scambi diretti raggiunto dopo {i} utenti")
+            break
         for utente_b in utenti:
             if utente_a == utente_b:
                 continue
+
+            # Check timeout anche nel loop interno
+            if time.time() - start_time > timeout_scambi_diretti:
+                print(f"⏰ Timeout scambi diretti raggiunto nel loop interno")
+                break
 
             # Trova cosa offre A e cosa cerca B
             offerte_a = Annuncio.objects.filter(utente=utente_a, tipo='offro', attivo=True)
@@ -249,15 +269,24 @@ def trova_catene_ricorsive(max_lunghezza=3):
     utenti = list(User.objects.filter(annuncio__attivo=True).distinct())
     print(f"DEBUG: Trovati {len(utenti)} utenti con annunci attivi")
 
-    # OTTIMIZZAZIONE: Limita il numero di utenti di partenza per evitare esplosione computazionale
-    if len(utenti) > 20:
-        print(f"⚠️ Troppi utenti ({len(utenti)}), limitando a 20 per performance")
-        utenti = utenti[:20]
+    # OTTIMIZZAZIONE AVANZATA: Limita ulteriormente per velocità
+    if len(utenti) > 15:
+        print(f"⚠️ Troppi utenti ({len(utenti)}), limitando a 15 per performance ottimizzata")
+        # Ordina per numero di annunci attivi (utenti più attivi hanno priorità)
+        utenti_con_count = []
+        for utente in utenti:
+            count_annunci = Annuncio.objects.filter(utente=utente, attivo=True).count()
+            utenti_con_count.append((utente, count_annunci))
+
+        # Prendi i 15 utenti con più annunci attivi
+        utenti_con_count.sort(key=lambda x: x[1], reverse=True)
+        utenti = [u[0] for u in utenti_con_count[:15]]
+        print(f"🎯 Selezionati i 15 utenti più attivi")
 
     catene_trovate = []
     start_time = time.time()
-    timeout_per_utente = 2.0  # 2 secondi max per utente
-    timeout_totale = 25.0     # 25 secondi totali
+    timeout_per_utente = 1.0  # 1 secondo max per utente (ottimizzato)
+    timeout_totale = 15.0     # 15 secondi totali (ridotto per velocità)
 
     for i, utente_partenza in enumerate(utenti):
         if time.time() - start_time > timeout_totale:
@@ -516,12 +545,12 @@ def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
     print(f"🔍 Cercato - Titolo: '{annuncio_cercato.titolo}', Descrizione: '{annuncio_cercato.descrizione or 'VUOTA'}'")
     print(f"🔍 Categorie - Offerto: '{annuncio_offerto.categoria}', Cercato: '{annuncio_cercato.categoria}'")
 
-    # 1. MATCH SPECIFICO: Confronta titolo + descrizione
-    testo_offerto = f"{annuncio_offerto.titolo} {annuncio_offerto.descrizione or ''}"
-    testo_cercato = f"{annuncio_cercato.titolo} {annuncio_cercato.descrizione or ''}"
+    # 1. MATCH SPECIFICO OTTIMIZZATO: Usa solo i titoli per velocità
+    testo_offerto = annuncio_offerto.titolo
+    testo_cercato = annuncio_cercato.titolo
 
-    print(f"🔍 Testo completo offerto: '{testo_offerto}'")
-    print(f"🔍 Testo completo cercato: '{testo_cercato}'")
+    print(f"🔍 Testo offerto (solo titolo): '{testo_offerto}'")
+    print(f"🔍 Testo cercato (solo titolo): '{testo_cercato}'")
 
     parole_offerto = estrai_parole_chiave(testo_offerto)
     parole_cercato = estrai_parole_chiave(testo_cercato)
