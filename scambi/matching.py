@@ -240,6 +240,67 @@ def crea_scambio_diretto_avanzato(utente_a, utente_b, offerta_a, richiesta_b, of
         'distanza_limite_b': offerta_b.distanza_massima_km
     }
 
+def trova_catene_per_annuncio(annuncio_specifico, max_lunghezza=6):
+    """Trova catene che coinvolgono uno specifico annuncio - OTTIMIZZATO"""
+    print(f"\n=== RICERCA OTTIMIZZATA PER ANNUNCIO: {annuncio_specifico.titolo} ===")
+
+    utente_proprietario = annuncio_specifico.utente
+    catene_trovate = []
+
+    # 1. Cerca scambi diretti che coinvolgono questo annuncio
+    print("🔍 Cercando scambi diretti per l'annuncio specifico...")
+
+    utenti = list(User.objects.filter(annuncio__attivo=True).distinct())[:10]  # Limite per performance
+
+    for altro_utente in utenti:
+        if altro_utente == utente_proprietario:
+            continue
+
+        # Se l'annuncio è "offro", cerca chi cerca qualcosa di compatibile
+        if annuncio_specifico.tipo == 'offro':
+            richieste_altri = Annuncio.objects.filter(utente=altro_utente, tipo='cerco', attivo=True)
+            for richiesta in richieste_altri:
+                if oggetti_compatibili(annuncio_specifico, richiesta):
+                    # Controlla se c'è uno scambio di ritorno
+                    offerte_altri = Annuncio.objects.filter(utente=altro_utente, tipo='offro', attivo=True)
+                    richieste_proprietario = Annuncio.objects.filter(utente=utente_proprietario, tipo='cerco', attivo=True)
+
+                    for offerta_altro in offerte_altri:
+                        for richiesta_proprietario in richieste_proprietario:
+                            if oggetti_compatibili(offerta_altro, richiesta_proprietario):
+                                # Scambio diretto trovato!
+                                scambio = crea_scambio_diretto(
+                                    utente_proprietario, altro_utente,
+                                    annuncio_specifico, richiesta,
+                                    offerta_altro, richiesta_proprietario
+                                )
+                                catene_trovate.append(scambio)
+                                print(f"✅ Scambio diretto: {utente_proprietario.username} ↔ {altro_utente.username}")
+
+        # Se l'annuncio è "cerco", cerca chi offre qualcosa di compatibile
+        elif annuncio_specifico.tipo == 'cerco':
+            offerte_altri = Annuncio.objects.filter(utente=altro_utente, tipo='offro', attivo=True)
+            for offerta in offerte_altri:
+                if oggetti_compatibili(offerta, annuncio_specifico):
+                    # Controlla se c'è uno scambio di ritorno
+                    offerte_proprietario = Annuncio.objects.filter(utente=utente_proprietario, tipo='offro', attivo=True)
+                    richieste_altri = Annuncio.objects.filter(utente=altro_utente, tipo='cerco', attivo=True)
+
+                    for offerta_proprietario in offerte_proprietario:
+                        for richiesta_altro in richieste_altri:
+                            if oggetti_compatibili(offerta_proprietario, richiesta_altro):
+                                # Scambio diretto trovato!
+                                scambio = crea_scambio_diretto(
+                                    altro_utente, utente_proprietario,
+                                    offerta, annuncio_specifico,
+                                    offerta_proprietario, richiesta_altro
+                                )
+                                catene_trovate.append(scambio)
+                                print(f"✅ Scambio diretto: {altro_utente.username} ↔ {utente_proprietario.username}")
+
+    print(f"=== RICERCA OTTIMIZZATA: Trovati {len(catene_trovate)} scambi per '{annuncio_specifico.titolo}' ===")
+    return rimuovi_duplicati(catene_trovate)
+
 def trova_catene_scambio(max_lunghezza=6):
     """Trova catene di scambio con classificazione di qualità"""
     print("\n=== DEBUG: Inizio ricerca catene ===")

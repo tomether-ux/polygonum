@@ -3,7 +3,7 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth.forms import UserCreationForm  # Se usi il form base
 from django.shortcuts import render
 from django.http import HttpResponse
-from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente
+from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente, trova_catene_per_annuncio
 from .models import Annuncio
 import importlib
 from . import matching
@@ -193,9 +193,6 @@ def catene_scambio(request):
     if cerca_nuove:
         import time
 
-        # Import delle funzioni di matching
-        from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente
-
         print("🔍 RICERCA CATENE ATTIVATA MANUALMENTE")
 
         try:
@@ -209,41 +206,60 @@ def catene_scambio(request):
                 if annunci_utente.exists():
                     print(f"🔍 Filtrando catene per utente: {request.user.username}")
 
-                    # Esegui ricerca con limitazioni per evitare timeout
-                    print("⏰ Inizio ricerca scambi diretti...")
-                    scambi_diretti = trova_scambi_diretti()
-
-                    if time.time() - start_time > timeout_seconds:
-                        messages.error(request, 'Ricerca interrotta per timeout. Troppi dati da elaborare.')
-                        tutte_catene = scambi_diretti
-                    else:
-                        print("⏰ Inizio ricerca catene lunghe (limitata a 3 utenti)...")
+                    # OTTIMIZZAZIONE: Se è stato selezionato un annuncio specifico, usa ricerca ottimizzata
+                    if annuncio_filtro_id:
                         try:
-                            # Limita la ricerca delle catene a max 3 utenti per velocizzare
-                            catene = trova_catene_scambio(max_lunghezza=3)
+                            annuncio_specifico = Annuncio.objects.get(id=annuncio_filtro_id, utente=request.user, attivo=True)
+                            print(f"🎯 RICERCA OTTIMIZZATA per annuncio: {annuncio_specifico.titolo}")
 
-                            if time.time() - start_time > timeout_seconds:
-                                messages.warning(request, 'Ricerca parziale completata (timeout raggiunto). Mostrando solo scambi diretti.')
-                                tutte_catene = scambi_diretti
-                            else:
-                                # Separa catene per qualità
-                                catene_alta_qualita = [c for c in catene if c.get('categoria_qualita') == 'alta']
-                                catene_generiche = [c for c in catene if c.get('categoria_qualita') == 'generica']
+                            # Usa la funzione ottimizzata che cerca solo catene per questo annuncio
+                            tutte_catene = trova_catene_per_annuncio(annuncio_specifico, max_lunghezza=6)
 
-                                # Filtra tutto per l'utente attuale
-                                scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente(
-                                    scambi_diretti, catene_alta_qualita + catene_generiche, request.user
-                                )
+                            elapsed = time.time() - start_time
+                            messages.success(request, f'🎯 Ricerca ottimizzata completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} catene per "{annuncio_specifico.titolo}"!')
 
-                                # Ricomponi le catene filtrate
-                                tutte_catene = scambi_diretti_utente + catene_lunghe_utente
+                        except Annuncio.DoesNotExist:
+                            print("❌ Annuncio specificato non valido, eseguo ricerca completa")
+                            # Fallback alla ricerca completa se l'annuncio non esiste
+                            annuncio_filtro_id = None
 
-                                elapsed = time.time() - start_time
-                                messages.success(request, f'Ricerca completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} opportunità di scambio!')
-                        except Exception as e:
-                            print(f"Errore durante ricerca catene lunghe: {e}")
+                    # Se non c'è filtro specifico, esegui ricerca completa
+                    if not annuncio_filtro_id:
+                        # Esegui ricerca con limitazioni per evitare timeout
+                        print("⏰ Inizio ricerca scambi diretti...")
+                        scambi_diretti = trova_scambi_diretti()
+
+                        if time.time() - start_time > timeout_seconds:
+                            messages.error(request, 'Ricerca interrotta per timeout. Troppi dati da elaborare.')
                             tutte_catene = scambi_diretti
-                            messages.warning(request, 'Errore nella ricerca catene lunghe. Mostrando solo scambi diretti.')
+                        else:
+                            print("⏰ Inizio ricerca catene lunghe (limitata a 3 utenti)...")
+                            try:
+                                # Limita la ricerca delle catene a max 3 utenti per velocizzare
+                                catene = trova_catene_scambio(max_lunghezza=3)
+
+                                if time.time() - start_time > timeout_seconds:
+                                    messages.warning(request, 'Ricerca parziale completata (timeout raggiunto). Mostrando solo scambi diretti.')
+                                    tutte_catene = scambi_diretti
+                                else:
+                                    # Separa catene per qualità
+                                    catene_alta_qualita = [c for c in catene if c.get('categoria_qualita') == 'alta']
+                                    catene_generiche = [c for c in catene if c.get('categoria_qualita') == 'generica']
+
+                                    # Filtra tutto per l'utente attuale
+                                    scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente(
+                                        scambi_diretti, catene_alta_qualita + catene_generiche, request.user
+                                    )
+
+                                    # Ricomponi le catene filtrate
+                                    tutte_catene = scambi_diretti_utente + catene_lunghe_utente
+
+                                    elapsed = time.time() - start_time
+                                    messages.success(request, f'Ricerca completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} opportunità di scambio!')
+                            except Exception as e:
+                                print(f"Errore durante ricerca catene lunghe: {e}")
+                                tutte_catene = scambi_diretti
+                                messages.warning(request, 'Errore nella ricerca catene lunghe. Mostrando solo scambi diretti.')
                 else:
                     tutte_catene = []
                     messages.warning(request, 'Non hai annunci attivi! Pubblica un annuncio per partecipare agli scambi.')
