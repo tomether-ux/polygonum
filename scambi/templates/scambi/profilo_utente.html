@@ -111,7 +111,8 @@
             <div class="row">
                 {% for annuncio in annunci_offro %}
                 <div class="col-md-6 col-lg-4 mb-3">
-                    <div class="card border-success {% if not annuncio.attivo %}opacity-75{% endif %}">
+                    <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none">
+                        <div class="card border-success {% if not annuncio.attivo %}opacity-75{% endif %}" style="cursor: pointer;">
                         {% if annuncio.immagine %}
                         <img src="{{ annuncio.get_image_url }}" class="card-img-top" alt="{{ annuncio.titolo }}" style="height: 200px; object-fit: cover;">
                         {% endif %}
@@ -157,7 +158,8 @@
                             </div>
                             {% endif %}
                         </div>
-                    </div>
+                        </div>
+                    </a>
                 </div>
                 {% endfor %}
             </div>
@@ -173,7 +175,8 @@
             <div class="row">
                 {% for annuncio in annunci_cerco %}
                 <div class="col-md-6 col-lg-4 mb-3">
-                    <div class="card border-info {% if not annuncio.attivo %}opacity-75{% endif %}">
+                    <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none">
+                        <div class="card border-info {% if not annuncio.attivo %}opacity-75{% endif %}" style="cursor: pointer;">
                         {% if annuncio.immagine %}
                         <img src="{{ annuncio.get_image_url }}" class="card-img-top" alt="{{ annuncio.titolo }}" style="height: 200px; object-fit: cover;">
                         {% endif %}
@@ -219,7 +222,8 @@
                             </div>
                             {% endif %}
                         </div>
-                    </div>
+                        </div>
+                    </a>
                 </div>
                 {% endfor %}
             </div>
