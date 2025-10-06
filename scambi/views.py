@@ -189,42 +189,80 @@ def catene_scambio(request):
     cerca_nuove = request.GET.get('cerca') == 'true'
 
     if cerca_nuove:
+        import time
+
         # Ricarica il modulo matching per applicare eventuali modifiche
         importlib.reload(matching)
         from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente
 
         print("🔍 RICERCA CATENE ATTIVATA MANUALMENTE")
 
-        # Se l'utente è autenticato, mostra solo le catene che lo coinvolgono
-        if request.user.is_authenticated:
-            # Controlla se l'utente ha annunci attivi
-            annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
-            if annunci_utente.exists():
-                print(f"🔍 Filtrando catene per utente: {request.user.username}")
+        try:
+            start_time = time.time()
+            timeout_seconds = 30  # 30 secondi di timeout
 
-                # Esegui ricerca completa
-                scambi_diretti = trova_scambi_diretti()
-                catene = trova_catene_scambio()
+            # Se l'utente è autenticato, mostra solo le catene che lo coinvolgono
+            if request.user.is_authenticated:
+                # Controlla se l'utente ha annunci attivi
+                annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
+                if annunci_utente.exists():
+                    print(f"🔍 Filtrando catene per utente: {request.user.username}")
 
-                # Separa catene per qualità (come nella vista originale)
-                catene_alta_qualita = [c for c in catene if c.get('categoria_qualita') == 'alta']
-                catene_generiche = [c for c in catene if c.get('categoria_qualita') == 'generica']
+                    # Esegui ricerca con limitazioni per evitare timeout
+                    print("⏰ Inizio ricerca scambi diretti...")
+                    scambi_diretti = trova_scambi_diretti()
 
-                # Filtra tutto per l'utente attuale
-                scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente(
-                    scambi_diretti, catene_alta_qualita + catene_generiche, request.user
-                )
+                    if time.time() - start_time > timeout_seconds:
+                        messages.error(request, 'Ricerca interrotta per timeout. Troppi dati da elaborare.')
+                        tutte_catene = scambi_diretti
+                    else:
+                        print("⏰ Inizio ricerca catene lunghe (limitata a 3 utenti)...")
+                        try:
+                            # Limita la ricerca delle catene a max 3 utenti per velocizzare
+                            catene = trova_catene_scambio(max_lunghezza=3)
 
-                # Ricomponi le catene filtrate
-                tutte_catene = scambi_diretti_utente + catene_lunghe_utente
+                            if time.time() - start_time > timeout_seconds:
+                                messages.warning(request, 'Ricerca parziale completata (timeout raggiunto). Mostrando solo scambi diretti.')
+                                tutte_catene = scambi_diretti
+                            else:
+                                # Separa catene per qualità
+                                catene_alta_qualita = [c for c in catene if c.get('categoria_qualita') == 'alta']
+                                catene_generiche = [c for c in catene if c.get('categoria_qualita') == 'generica']
 
-                messages.info(request, f'Mostrando solo le catene che coinvolgono i tuoi annunci!')
+                                # Filtra tutto per l'utente attuale
+                                scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente(
+                                    scambi_diretti, catene_alta_qualita + catene_generiche, request.user
+                                )
+
+                                # Ricomponi le catene filtrate
+                                tutte_catene = scambi_diretti_utente + catene_lunghe_utente
+
+                                elapsed = time.time() - start_time
+                                messages.success(request, f'Ricerca completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} opportunità di scambio!')
+                        except Exception as e:
+                            print(f"Errore durante ricerca catene lunghe: {e}")
+                            tutte_catene = scambi_diretti
+                            messages.warning(request, 'Errore nella ricerca catene lunghe. Mostrando solo scambi diretti.')
+                else:
+                    tutte_catene = []
+                    messages.warning(request, 'Non hai annunci attivi! Pubblica un annuncio per partecipare agli scambi.')
             else:
-                tutte_catene = []
-                messages.warning(request, 'Non hai annunci attivi! Pubblica un annuncio per partecipare agli scambi.')
-        else:
-            # Utente non autenticato - mostra tutte le catene
-            tutte_catene = trova_catene_scambio()
+                # Utente non autenticato - ricerca molto limitata
+                print("🔍 Ricerca per utente non autenticato (limitata a scambi diretti)")
+                try:
+                    scambi_diretti = trova_scambi_diretti()
+                    tutte_catene = scambi_diretti
+                    elapsed = time.time() - start_time
+                    messages.info(request, f'Ricerca completata in {elapsed:.1f} secondi. Solo scambi diretti per utenti non registrati.')
+                except Exception as e:
+                    print(f"Errore durante ricerca: {e}")
+                    tutte_catene = []
+                    messages.error(request, 'Errore durante la ricerca. Riprova più tardi.')
+
+        except Exception as e:
+            print(f"Errore generale durante ricerca catene: {e}")
+            messages.error(request, 'Errore durante la ricerca delle catene. Riprova più tardi.')
+            tutte_catene = []
     else:
         # Se non è stata richiesta ricerca, mostra risultati vuoti o cached
         print("📋 Visualizzazione catene senza ricerca")
