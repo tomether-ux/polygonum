@@ -23,17 +23,30 @@ def trova_scambi_diretti():
     start_time = time.time()
     timeout_scambi_diretti = 12.0  # 12 secondi max per scambi diretti (bilanciato)
 
+    iterazioni_totali = 0
+    max_iterazioni = 5000  # Limite massimo di iterazioni per sicurezza
+
     for i, utente_a in enumerate(utenti):
         if time.time() - start_time > timeout_scambi_diretti:
             print(f"⏰ Timeout scambi diretti raggiunto dopo {i} utenti")
             break
+
+        if iterazioni_totali > max_iterazioni:
+            print(f"🛡️ Limite iterazioni raggiunto ({max_iterazioni}) per sicurezza")
+            break
+
         for utente_b in utenti:
+            iterazioni_totali += 1
             if utente_a == utente_b:
                 continue
 
-            # Check timeout anche nel loop interno
+            # Check timeout e iterazioni anche nel loop interno
             if time.time() - start_time > timeout_scambi_diretti:
                 print(f"⏰ Timeout scambi diretti raggiunto nel loop interno")
+                break
+
+            if iterazioni_totali > max_iterazioni:
+                print(f"🛡️ Limite iterazioni raggiunto nel loop interno")
                 break
 
             # Trova cosa offre A e cosa cerca B
@@ -287,6 +300,9 @@ def trova_catene_ricorsive(max_lunghezza=3):
     start_time = time.time()
     timeout_per_utente = 2.0  # 2 secondi max per utente (bilanciato)
     timeout_totale = 18.0     # 18 secondi totali (bilanciato per evitare errori)
+
+    iterazioni_ricorsive = 0
+    max_iterazioni_ricorsive = 2000  # Limite per catene ricorsive
 
     for i, utente_partenza in enumerate(utenti):
         if time.time() - start_time > timeout_totale:
