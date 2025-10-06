@@ -191,8 +191,7 @@ def catene_scambio(request):
     if cerca_nuove:
         import time
 
-        # Ricarica il modulo matching per applicare eventuali modifiche
-        importlib.reload(matching)
+        # Import delle funzioni di matching
         from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente
 
         print("🔍 RICERCA CATENE ATTIVATA MANUALMENTE")
@@ -659,8 +658,7 @@ def le_mie_catene(request):
     cerca_nuove = request.GET.get('cerca') == 'true'
 
     if cerca_nuove and ha_annunci:
-        # Ricarica il modulo matching per applicare eventuali modifiche
-        importlib.reload(matching)
+        # Import delle funzioni di matching
         from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente
 
         print(f"🔍 RICERCA LE MIE CATENE per utente: {request.user.username}")
