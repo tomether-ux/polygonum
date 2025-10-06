@@ -957,12 +957,23 @@ def lista_preferiti(request):
 def aggiungi_catena_preferita(request):
     """Vista AJAX per aggiungere/rimuovere una catena dai preferiti"""
     try:
-        # Recupera i dati della catena dal POST
-        catena_data_json = request.POST.get('catena_data')
+        # Recupera i dati della catena dal POST (supporta sia form data che JSON)
+        if request.content_type == 'application/json':
+            # Dati inviati come JSON nel body
+            data = json.loads(request.body)
+            catena_data_json = data.get('catena_data')
+        else:
+            # Dati inviati come form data
+            catena_data_json = request.POST.get('catena_data')
+
         if not catena_data_json:
             return JsonResponse({'success': False, 'error': 'Dati catena mancanti'})
 
-        catena_data = json.loads(catena_data_json)
+        # Se catena_data_json è già un dict, non fare json.loads
+        if isinstance(catena_data_json, str):
+            catena_data = json.loads(catena_data_json)
+        else:
+            catena_data = catena_data_json
         catena_hash = genera_hash_catena(catena_data)
 
         # Controlla se la catena è già nei preferiti
