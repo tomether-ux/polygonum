@@ -145,7 +145,7 @@
                             {% for item in scambio.annunci_coinvolti %}
                             <div class="card mb-2 border-warning">
                                 <div class="card-body p-2">
-                                    <strong>{{ item.annuncio.titolo }}</strong>
+                                    <strong><a href="{% url 'dettaglio_annuncio' item.annuncio.id %}" class="text-decoration-none text-dark">{{ item.annuncio.titolo }}</a></strong>
                                     <br><small><a href="{% url 'profilo_utente' item.utente %}" class="text-muted">{{ item.utente }}</a> - {{ item.annuncio.categoria.nome }}</small>
                                     <br>
                                     {% if item.ruolo == 'offre' %}
@@ -197,7 +197,7 @@
                             {% for item in scambio.annunci_coinvolti %}
                             <div class="card mb-2 border-warning">
                                 <div class="card-body p-2">
-                                    <strong>{{ item.annuncio.titolo }}</strong>
+                                    <strong><a href="{% url 'dettaglio_annuncio' item.annuncio.id %}" class="text-decoration-none text-dark">{{ item.annuncio.titolo }}</a></strong>
                                     <br><small><a href="{% url 'profilo_utente' item.utente %}" class="text-muted">{{ item.utente }}</a> - {{ item.annuncio.categoria.nome }}</small>
                                     <br>
                                     {% if item.ruolo == 'offre' %}
@@ -498,6 +498,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .bg-polygonum-secondary {
     background-color: var(--polygonum-secondary) !important;
+}
+
+/* Stili per gli annunci cliccabili */
+.card-body a.text-dark {
+    transition: color 0.2s ease, text-decoration 0.2s ease;
+}
+
+.card-body a.text-dark:hover {
+    color: var(--polygonum-primary) !important;
+    text-decoration: underline !important;
+}
+
+.card-body:hover {
+    transform: translateY(-1px);
+    transition: transform 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 </style>
 {% endblock %}
