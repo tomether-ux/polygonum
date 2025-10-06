@@ -799,8 +799,20 @@ def genera_hash_catena(catena_data):
     utenti = sorted(catena_data.get('utenti', []))
     annunci = []
     for item in catena_data.get('annunci_coinvolti', []):
+        # Gestisce sia oggetti Annuncio che dizionari
+        annuncio = item.get('annuncio')
+        if hasattr(annuncio, 'id'):
+            # È un oggetto Annuncio
+            annuncio_id = annuncio.id
+        elif isinstance(annuncio, dict):
+            # È un dizionario
+            annuncio_id = annuncio.get('id')
+        else:
+            # È probabilmente già un ID
+            annuncio_id = annuncio
+
         annunci.append({
-            'annuncio_id': item.get('annuncio', {}).get('id') if hasattr(item.get('annuncio'), 'id') else item.get('annuncio'),
+            'annuncio_id': annuncio_id,
             'utente': item.get('utente'),
             'ruolo': item.get('ruolo')
         })
