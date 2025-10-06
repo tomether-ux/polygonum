@@ -65,11 +65,11 @@
                                     <input type="password"
                                            name="{{ form.password.name }}"
                                            id="{{ form.password.id_for_label }}"
-                                           class="form-control form-control-lg border-2 pe-5"
+                                           class="form-control form-control-lg border-2 pe-5 password-input-mobile"
                                            placeholder="Inserisci la tua password"
                                            required>
                                     <button type="button"
-                                            class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 text-muted"
+                                            class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 text-muted password-toggle-mobile"
                                             onclick="togglePassword()"
                                             style="border: none; background: none; z-index: 10;">
                                         <i id="passwordToggleIcon" class="fas fa-eye"></i>
@@ -146,6 +146,19 @@ function togglePassword() {
 
 .btn-link:hover {
     color: var(--polygonum-primary) !important;
+}
+
+/* Fix per mobile: più spazio per l'icona dell'occhio */
+@media (max-width: 768px) {
+    .password-input-mobile {
+        padding-right: 3.5rem !important; /* Più spazio per l'icona */
+    }
+
+    .password-toggle-mobile {
+        right: 0.75rem !important; /* Posiziona l'icona più a destra */
+        padding: 0.5rem !important; /* Area di click più grande */
+        min-width: 2.5rem !important; /* Larghezza minima */
+    }
 }
 </style>
 {% endblock %}
