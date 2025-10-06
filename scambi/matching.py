@@ -240,35 +240,64 @@ def rimuovi_duplicati(catene):
     print(f"🔧 Deduplicazione: {len(catene)} → {len(catene_uniche)} catene uniche")
     return catene_uniche
 
-def trova_catene_ricorsive(max_lunghezza=6):
-    """Algoritmo per trovare catene con annunci dettagliati"""
-    print(f"\n=== RICERCA CATENE CON CLASSIFICAZIONE QUALITÀ ===")
-    
+def trova_catene_ricorsive(max_lunghezza=3):
+    """Algoritmo per trovare catene con annunci dettagliati - VERSIONE OTTIMIZZATA"""
+    import time
+
+    print(f"\n=== RICERCA CATENE CON CLASSIFICAZIONE QUALITÀ (MAX {max_lunghezza} UTENTI) ===")
+
     utenti = list(User.objects.filter(annuncio__attivo=True).distinct())
     print(f"DEBUG: Trovati {len(utenti)} utenti con annunci attivi")
-    
+
+    # OTTIMIZZAZIONE: Limita il numero di utenti di partenza per evitare esplosione computazionale
+    if len(utenti) > 20:
+        print(f"⚠️ Troppi utenti ({len(utenti)}), limitando a 20 per performance")
+        utenti = utenti[:20]
+
     catene_trovate = []
-    
-    for utente_partenza in utenti:
-        print(f"DEBUG: Inizio ricerca da utente {utente_partenza.username}")
-        catene = cerca_catene_con_annunci(
-            utente_partenza,
-            utente_partenza, 
-            [],
-            [],
-            utenti,
-            max_lunghezza
-        )
-        catene_trovate.extend(catene)
-        print(f"DEBUG: Utente {utente_partenza.username} ha generato {len(catene)} catene")
-    
-    print(f"Trovate {len(catene_trovate)} catene complete")
+    start_time = time.time()
+    timeout_per_utente = 2.0  # 2 secondi max per utente
+    timeout_totale = 25.0     # 25 secondi totali
+
+    for i, utente_partenza in enumerate(utenti):
+        if time.time() - start_time > timeout_totale:
+            print(f"⏰ Timeout totale raggiunto dopo {i} utenti")
+            break
+
+        print(f"DEBUG: Inizio ricerca da utente {utente_partenza.username} ({i+1}/{len(utenti)})")
+
+        utente_start_time = time.time()
+        try:
+            catene = cerca_catene_con_annunci(
+                utente_partenza,
+                utente_partenza,
+                [],
+                [],
+                utenti,
+                max_lunghezza,
+                timeout_per_utente,
+                utente_start_time
+            )
+            catene_trovate.extend(catene)
+            print(f"DEBUG: Utente {utente_partenza.username} ha generato {len(catene)} catene")
+        except Exception as e:
+            print(f"⚠️ Errore durante ricerca per {utente_partenza.username}: {e}")
+            continue
+
+    elapsed = time.time() - start_time
+    print(f"Trovate {len(catene_trovate)} catene complete in {elapsed:.1f} secondi")
     return catene_trovate
 
-def cerca_catene_con_annunci(utente_corrente, utente_partenza, percorso_utenti, percorso_annunci, tutti_utenti, max_lunghezza):
-    """Ricerca catene includendo gli annunci specifici"""
+def cerca_catene_con_annunci(utente_corrente, utente_partenza, percorso_utenti, percorso_annunci, tutti_utenti, max_lunghezza, timeout_per_utente=None, start_time=None):
+    """Ricerca catene includendo gli annunci specifici - VERSIONE OTTIMIZZATA"""
+    import time
     catene = []
-    
+
+    # Controllo timeout per utente
+    if timeout_per_utente and start_time and (time.time() - start_time > timeout_per_utente):
+        print(f"⏰ Timeout per utente raggiunto")
+        return catene
+
     if len(percorso_utenti) > max_lunghezza:
         return catene
     
@@ -325,7 +354,9 @@ def cerca_catene_con_annunci(utente_corrente, utente_partenza, percorso_utenti, 
                                 nuovo_percorso,
                                 nuovi_annunci,
                                 tutti_utenti,
-                                max_lunghezza
+                                max_lunghezza,
+                                timeout_per_utente,
+                                start_time
                             )
                             catene.extend(catene_ricorsive)
                         else:
