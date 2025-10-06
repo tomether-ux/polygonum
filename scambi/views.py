@@ -198,7 +198,7 @@ def catene_scambio(request):
 
         try:
             start_time = time.time()
-            timeout_seconds = 25  # 25 secondi di timeout (bilanciato)
+            timeout_seconds = 15  # 15 secondi di timeout (ultra-sicuro)
 
             # Se l'utente è autenticato, mostra solo le catene che lo coinvolgono
             if request.user.is_authenticated:
@@ -665,7 +665,7 @@ def le_mie_catene(request):
 
         try:
             start_time = time.time()
-            timeout_seconds = 25  # 25 secondi di timeout (bilanciato)
+            timeout_seconds = 15  # 15 secondi di timeout (ultra-sicuro)
 
             # Esegui ricerca con limitazioni per evitare timeout
             print("⏰ Inizio ricerca scambi diretti...")
