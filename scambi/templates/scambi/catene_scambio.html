@@ -66,10 +66,11 @@
                                     🔗 Catena {{ preferita.catena_data.utenti|length }} Persone:
                                     {% for utente in preferita.catena_data.utenti %}{{ utente }}{% if not forloop.last %} → {% endif %}{% endfor %}
                                 {% endif %}
-                                <span class="badge bg-light text-dark">Salvata il {{ preferita.data_creazione|date:"d/m/Y" }}</span>
+                                <span class="badge bg-light text-dark">Salvata il {{ preferita.data_aggiunta|date:"d/m/Y" }}</span>
                             </h5>
                             <button class="btn btn-outline-light btn-sm stella-preferiti"
-                                    data-catena='{{ preferita.catena_data|escapejs }}'
+                                    data-catena='{{preferita.catena_data|safe }}'
+                                    data-hash="{{ preferita.catena_hash }}"
                                     title="Rimuovi dai preferiti">
                                 <i class="fas fa-star text-warning" style="font-size: 1.2rem;"></i>
                             </button>
@@ -155,7 +156,7 @@
                     <span id="buttonText">{% if personalizzato %}Cerca I Miei Scambi{% else %}Cerca Catene di Scambio{% endif %}</span>
                 </button>
                 {% if personalizzato %}
-                <a href="{% url 'mie_catene_scambio' %}" class="btn btn-outline-secondary ms-2">
+                <a href="{% url 'le_mie_catene' %}" class="btn btn-outline-secondary ms-2">
                     <i class="fas fa-refresh me-2"></i>Reset
                 </a>
                 {% else %}
@@ -213,7 +214,8 @@
                         </h5>
                         {% if user.is_authenticated %}
                         <button class="btn btn-link p-0 stella-preferiti"
-                                data-catena='{{ scambio|escapejs }}'
+                                data-catena='{{ scambio.json_data|safe }}'
+                                data-hash="{{ scambio.hash_catena }}"
                                 title="{% if scambio.is_favorita %}Rimuovi dai preferiti{% else %}Aggiungi ai preferiti{% endif %}">
                             <i class="fas fa-star {% if scambio.is_favorita %}text-warning{% else %}text-muted{% endif %}" style="font-size: 1.5rem;"></i>
                         </button>
@@ -276,7 +278,8 @@
                         </h5>
                         {% if user.is_authenticated %}
                         <button class="btn btn-link p-0 stella-preferiti"
-                                data-catena='{{ scambio|escapejs }}'
+                                data-catena='{{ scambio.json_data|safe }}'
+                                data-hash="{{ scambio.hash_catena }}"
                                 title="{% if scambio.is_favorita %}Rimuovi dai preferiti{% else %}Aggiungi ai preferiti{% endif %}">
                             <i class="fas fa-star {% if scambio.is_favorita %}text-warning{% else %}text-muted{% endif %}" style="font-size: 1.5rem;"></i>
                         </button>
@@ -357,7 +360,8 @@
                     </h5>
                     {% if user.is_authenticated %}
                     <button class="btn btn-link p-0 stella-preferiti"
-                            data-catena='{{ catena|escapejs }}'
+                            data-catena='{{ catena.json_data|safe }}'
+                            data-hash="{{ catena.hash_catena }}"
                             title="{% if catena.is_favorita %}Rimuovi dai preferiti{% else %}Aggiungi ai preferiti{% endif %}">
                         <i class="fas fa-star {% if catena.is_favorita %}text-warning{% else %}text-muted{% endif %}" style="font-size: 1.5rem;"></i>
                     </button>
@@ -419,7 +423,8 @@
                     </h5>
                     {% if user.is_authenticated %}
                     <button class="btn btn-link p-0 stella-preferiti"
-                            data-catena='{{ catena|escapejs }}'
+                            data-catena='{{ catena.json_data|safe }}'
+                            data-hash="{{ catena.hash_catena }}"
                             title="{% if catena.is_favorita %}Rimuovi dai preferiti{% else %}Aggiungi ai preferiti{% endif %}">
                         <i class="fas fa-star {% if catena.is_favorita %}text-warning{% else %}text-muted{% endif %}" style="font-size: 1.5rem;"></i>
                     </button>
@@ -608,9 +613,23 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function(e) {
             e.preventDefault();
 
-            const catenaData = this.getAttribute('data-catena');
+            const catenaDataRaw = this.getAttribute('data-catena');
+            const catenaHash = this.getAttribute('data-hash');
             const stellaIcon = this.querySelector('i');
             const isCurrentlyFavorite = stellaIcon.classList.contains('text-warning');
+
+            // Determina quale metodo usare (hash se disponibile, altrimenti dati completi)
+            const useHashMethod = catenaHash && catenaHash.length > 0;
+
+            // Il template Django già fornisce i dati JSON escaped, parsali come oggetto
+            let catenaData;
+            try {
+                catenaData = JSON.parse(catenaDataRaw);
+            } catch (e) {
+                console.error('Errore parsing JSON catena:', e);
+                alert('Errore: dati della catena non validi');
+                return;
+            }
 
             // Mostra feedback immediato
             stellaIcon.classList.toggle('text-warning');
@@ -626,26 +645,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify({
+                body: JSON.stringify(useHashMethod ? {
+                    'catena_hash': catenaHash,
+                    'catena_data': catenaData  // Ora è un oggetto valido
+                } : {
                     'catena_data': catenaData
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                return response.json();
+            })
             .then(data => {
                 if (!data.success) {
                     // Se c'è un errore, ripristina lo stato precedente
                     stellaIcon.classList.toggle('text-warning');
                     stellaIcon.classList.toggle('text-muted');
                     this.title = isCurrentlyFavorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti';
-                    alert('Errore nel salvare la catena nei preferiti');
+                    alert('Errore nel salvare la catena nei preferiti: ' + (data.error || 'Errore sconosciuto'));
                 }
             })
             .catch(error => {
+                console.error('Errore nel salvare nei preferiti:', error);
                 // Se c'è un errore, ripristina lo stato precedente
                 stellaIcon.classList.toggle('text-warning');
                 stellaIcon.classList.toggle('text-muted');
                 this.title = isCurrentlyFavorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti';
-                console.error('Errore:', error);
+                alert('Errore nel salvare la catena nei preferiti: ' + error.message);
             });
         });
     });
