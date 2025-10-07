@@ -69,7 +69,7 @@
                                 <span class="badge bg-light text-dark">Salvata il {{ preferita.data_aggiunta|date:"d/m/Y" }}</span>
                             </h5>
                             <button class="btn btn-outline-light btn-sm stella-preferiti"
-                                    data-catena='{{preferita.catena_data|safe }}'
+                                    data-catena='{{ preferita.json_data|safe }}'
                                     data-hash="{{ preferita.catena_hash }}"
                                     title="Rimuovi dai preferiti">
                                 <i class="fas fa-star text-warning" style="font-size: 1.2rem;"></i>

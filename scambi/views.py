@@ -804,10 +804,14 @@ def le_mie_catene(request):
         # Ottieni le catene preferite dell'utente
         catene_preferite = CatenaPreferita.objects.filter(utente=request.user).order_by('-data_aggiunta')
 
-        # Converti i dati delle catene preferite in JSON string per il template
+        # Mantieni i dati delle catene preferite come dict per il template
+        # Il template ha bisogno di accedere ai singoli campi (utenti, scambi, ecc.)
         for catena_preferita in catene_preferite:
-            if isinstance(catena_preferita.catena_data, dict):
-                catena_preferita.catena_data = json.dumps(catena_preferita.catena_data)
+            # Assicurati che catena_data sia un dict per il template
+            if isinstance(catena_preferita.catena_data, str):
+                catena_preferita.catena_data = json.loads(catena_preferita.catena_data)
+            # Aggiungi anche la versione JSON per il JavaScript
+            catena_preferita.json_data = json.dumps(catena_preferita.catena_data, default=str)
 
         context = {
             'scambi_diretti_alta': scambi_diretti_alta,
@@ -827,10 +831,14 @@ def le_mie_catene(request):
         # Ottieni le catene preferite dell'utente
         catene_preferite = CatenaPreferita.objects.filter(utente=request.user).order_by('-data_aggiunta')
 
-        # Converti i dati delle catene preferite in JSON string per il template
+        # Mantieni i dati delle catene preferite come dict per il template
+        # Il template ha bisogno di accedere ai singoli campi (utenti, scambi, ecc.)
         for catena_preferita in catene_preferite:
-            if isinstance(catena_preferita.catena_data, dict):
-                catena_preferita.catena_data = json.dumps(catena_preferita.catena_data)
+            # Assicurati che catena_data sia un dict per il template
+            if isinstance(catena_preferita.catena_data, str):
+                catena_preferita.catena_data = json.loads(catena_preferita.catena_data)
+            # Aggiungi anche la versione JSON per il JavaScript
+            catena_preferita.json_data = json.dumps(catena_preferita.catena_data, default=str)
 
         context = {
             'scambi_diretti_alta': [],
@@ -851,10 +859,14 @@ def le_mie_catene(request):
         # Ottieni le catene preferite dell'utente
         catene_preferite = CatenaPreferita.objects.filter(utente=request.user).order_by('-data_aggiunta')
 
-        # Converti i dati delle catene preferite in JSON string per il template
+        # Mantieni i dati delle catene preferite come dict per il template
+        # Il template ha bisogno di accedere ai singoli campi (utenti, scambi, ecc.)
         for catena_preferita in catene_preferite:
-            if isinstance(catena_preferita.catena_data, dict):
-                catena_preferita.catena_data = json.dumps(catena_preferita.catena_data)
+            # Assicurati che catena_data sia un dict per il template
+            if isinstance(catena_preferita.catena_data, str):
+                catena_preferita.catena_data = json.loads(catena_preferita.catena_data)
+            # Aggiungi anche la versione JSON per il JavaScript
+            catena_preferita.json_data = json.dumps(catena_preferita.catena_data, default=str)
 
         context = {
             'ricerca_eseguita': False,
