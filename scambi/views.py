@@ -802,16 +802,8 @@ def le_mie_catene(request):
                 catena['json_data'] = json.dumps(catena, default=str)
 
         # Ottieni le catene preferite dell'utente
-        catene_preferite = CatenaPreferita.objects.filter(utente=request.user).order_by('-data_aggiunta')
-
-        # Mantieni i dati delle catene preferite come dict per il template
-        # Il template ha bisogno di accedere ai singoli campi (utenti, scambi, ecc.)
-        for catena_preferita in catene_preferite:
-            # Assicurati che catena_data sia un dict per il template
-            if isinstance(catena_preferita.catena_data, str):
-                catena_preferita.catena_data = json.loads(catena_preferita.catena_data)
-            # Aggiungi anche la versione JSON per il JavaScript
-            catena_preferita.json_data = json.dumps(catena_preferita.catena_data, default=str)
+        catene_preferite_qs = CatenaPreferita.objects.filter(utente=request.user).order_by('-data_aggiunta')
+        catene_preferite = processa_catene_preferite(catene_preferite_qs)
 
         context = {
             'scambi_diretti_alta': scambi_diretti_alta,
@@ -829,16 +821,8 @@ def le_mie_catene(request):
     elif cerca_nuove and not ha_annunci:
         # Utente ha cercato ma non ha annunci
         # Ottieni le catene preferite dell'utente
-        catene_preferite = CatenaPreferita.objects.filter(utente=request.user).order_by('-data_aggiunta')
-
-        # Mantieni i dati delle catene preferite come dict per il template
-        # Il template ha bisogno di accedere ai singoli campi (utenti, scambi, ecc.)
-        for catena_preferita in catene_preferite:
-            # Assicurati che catena_data sia un dict per il template
-            if isinstance(catena_preferita.catena_data, str):
-                catena_preferita.catena_data = json.loads(catena_preferita.catena_data)
-            # Aggiungi anche la versione JSON per il JavaScript
-            catena_preferita.json_data = json.dumps(catena_preferita.catena_data, default=str)
+        catene_preferite_qs = CatenaPreferita.objects.filter(utente=request.user).order_by('-data_aggiunta')
+        catene_preferite = processa_catene_preferite(catene_preferite_qs)
 
         context = {
             'scambi_diretti_alta': [],
@@ -857,16 +841,8 @@ def le_mie_catene(request):
     else:
         # Prima visita - mostra interfaccia vuota
         # Ottieni le catene preferite dell'utente
-        catene_preferite = CatenaPreferita.objects.filter(utente=request.user).order_by('-data_aggiunta')
-
-        # Mantieni i dati delle catene preferite come dict per il template
-        # Il template ha bisogno di accedere ai singoli campi (utenti, scambi, ecc.)
-        for catena_preferita in catene_preferite:
-            # Assicurati che catena_data sia un dict per il template
-            if isinstance(catena_preferita.catena_data, str):
-                catena_preferita.catena_data = json.loads(catena_preferita.catena_data)
-            # Aggiungi anche la versione JSON per il JavaScript
-            catena_preferita.json_data = json.dumps(catena_preferita.catena_data, default=str)
+        catene_preferite_qs = CatenaPreferita.objects.filter(utente=request.user).order_by('-data_aggiunta')
+        catene_preferite = processa_catene_preferite(catene_preferite_qs)
 
         context = {
             'ricerca_eseguita': False,
@@ -881,6 +857,30 @@ def le_mie_catene(request):
 # === HELPER FUNCTIONS PER CATENE PREFERITE ===
 import hashlib
 import json
+
+def processa_catene_preferite(catene_preferite):
+    """
+    Processa una queryset di catene preferite, gestendo eventuali dati JSON corrotti.
+    Rimuove automaticamente le catene con dati non validi dal database.
+    """
+    catene_preferite_valide = []
+    for catena_preferita in catene_preferite:
+        try:
+            # Assicurati che catena_data sia un dict per il template
+            if isinstance(catena_preferita.catena_data, str):
+                catena_preferita.catena_data = json.loads(catena_preferita.catena_data)
+            # Aggiungi anche la versione JSON per il JavaScript
+            catena_preferita.json_data = json.dumps(catena_preferita.catena_data, default=str)
+            catene_preferite_valide.append(catena_preferita)
+        except (json.JSONDecodeError, TypeError) as e:
+            print(f"⚠️ Errore nel parsing dei dati di catena preferita ID {catena_preferita.id}: {e}")
+            # Rimuovi la catena preferita corrotta dal database
+            try:
+                catena_preferita.delete()
+                print(f"✅ Catena preferita corrotta ID {catena_preferita.id} rimossa dal database")
+            except Exception as delete_error:
+                print(f"❌ Errore nella rimozione della catena preferita ID {catena_preferita.id}: {delete_error}")
+    return catene_preferite_valide
 
 def genera_hash_catena(catena_data):
     """Genera un hash univoco per una catena basato sui partecipanti e annunci"""
