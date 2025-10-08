@@ -338,14 +338,6 @@
                         Catena #{{ forloop.counter }} - {{ catena.utenti|length }} Persone
                         <span class="badge bg-success">Punteggio: {{ catena.punteggio_qualita }}</span>
                     </h5>
-                    {% if user.is_authenticated %}
-                    <button class="btn btn-link p-0 stella-preferiti"
-                            data-catena='{{ catena.json_data|safe }}'
-                            data-hash="{{ catena.hash_catena }}"
-                            title="{% if catena.is_favorita %}Rimuovi dai preferiti{% else %}Aggiungi ai preferiti{% endif %}">
-                        <i class="fas fa-star {% if catena.is_favorita %}text-warning{% else %}text-muted{% endif %}" style="font-size: 1.5rem;"></i>
-                    </button>
-                    {% endif %}
                 </div>
             </div>
             <div class="card-body">
@@ -401,14 +393,6 @@
                         Catena #{{ forloop.counter }} - {{ catena.utenti|length }} Persone
                         <span class="badge bg-info">Punteggio: {{ catena.punteggio_qualita }}</span>
                     </h5>
-                    {% if user.is_authenticated %}
-                    <button class="btn btn-link p-0 stella-preferiti"
-                            data-catena='{{ catena.json_data|safe }}'
-                            data-hash="{{ catena.hash_catena }}"
-                            title="{% if catena.is_favorita %}Rimuovi dai preferiti{% else %}Aggiungi ai preferiti{% endif %}">
-                        <i class="fas fa-star {% if catena.is_favorita %}text-warning{% else %}text-muted{% endif %}" style="font-size: 1.5rem;"></i>
-                    </button>
-                    {% endif %}
                 </div>
             </div>
             <div class="card-body">
