@@ -917,3 +917,212 @@ def classifica_distanza(distanza_km):
         return "lontano", 3
     else:
         return "molto_lontano", 1
+
+
+# === SISTEMA CALCOLO CICLI SEPARATO ===
+
+import hashlib
+import json
+from datetime import datetime
+
+
+class CycleFinder:
+    """
+    Classe per trovare cicli di scambio usando algoritmo DFS
+    Ottimizzata per il sistema di calcolo separato
+    """
+
+    def __init__(self):
+        self.grafo = {}  # dict: user_id -> [list di user_id con cui può scambiare]
+        self.cicli_trovati = []
+        self.cicli_hash_set = set()  # Per evitare duplicati
+
+    def costruisci_grafo(self):
+        """
+        Costruisce il grafo delle compatibilità dagli annunci attivi
+        """
+        print(f"[{datetime.now()}] 🔨 Costruzione grafo compatibilità...")
+
+        self.grafo.clear()
+        utenti = User.objects.filter(annuncio__attivo=True).distinct()
+
+        for utente_a in utenti:
+            if utente_a.id not in self.grafo:
+                self.grafo[utente_a.id] = []
+
+            for utente_b in utenti:
+                if utente_a.id != utente_b.id:
+                    # Verifica se A può scambiare con B
+                    if self._c_e_match_tra_utenti(utente_a, utente_b):
+                        self.grafo[utente_a.id].append(utente_b.id)
+
+        # Rimuovi nodi senza collegamenti
+        self.grafo = {k: v for k, v in self.grafo.items() if v}
+
+        print(f"[{datetime.now()}] ✅ Grafo costruito: {len(self.grafo)} utenti, "
+              f"{sum(len(v) for v in self.grafo.values())} collegamenti")
+
+    def _c_e_match_tra_utenti(self, utente_a, utente_b):
+        """
+        Verifica se due utenti possono scambiare direttamente
+        """
+        offerte_a = Annuncio.objects.filter(utente=utente_a, tipo='offro', attivo=True)
+        richieste_b = Annuncio.objects.filter(utente=utente_b, tipo='cerco', attivo=True)
+
+        for offerta in offerte_a:
+            for richiesta in richieste_b:
+                if oggetti_compatibili(offerta, richiesta):
+                    return True
+        return False
+
+    def trova_tutti_cicli(self, max_length=6):
+        """
+        Trova tutti i cicli possibili fino a max_length utenti
+        """
+        print(f"[{datetime.now()}] 🔍 Ricerca cicli (max lunghezza: {max_length})...")
+
+        self.cicli_trovati.clear()
+        self.cicli_hash_set.clear()
+
+        if not self.grafo:
+            print(f"[{datetime.now()}] ⚠️ Grafo vuoto, nessun ciclo possibile")
+            return []
+
+        # Per ogni nodo, cerca cicli che iniziano da quel nodo
+        for start_node in self.grafo.keys():
+            self._trova_cicli_da_nodo(start_node, [start_node], max_length)
+
+        print(f"[{datetime.now()}] ✅ Trovati {len(self.cicli_trovati)} cicli unici")
+        return self.cicli_trovati
+
+    def _trova_cicli_da_nodo(self, current_node, path, max_length):
+        """
+        DFS ricorsivo per trovare cicli da un nodo specifico
+        """
+        if len(path) > max_length:
+            return
+
+        # Se siamo tornati al nodo di partenza e abbiamo almeno 2 utenti
+        if len(path) >= 3 and current_node in self.grafo:
+            if path[0] in self.grafo[current_node]:
+                # Ciclo trovato! Normalizza e aggiungi se unico
+                ciclo_normalizzato = self._normalizza_ciclo(path)
+                ciclo_hash = self._hash_ciclo(ciclo_normalizzato)
+
+                if ciclo_hash not in self.cicli_hash_set:
+                    self.cicli_hash_set.add(ciclo_hash)
+
+                    dettagli = self._get_dettagli_ciclo(ciclo_normalizzato)
+                    ciclo_completo = {
+                        'users': ciclo_normalizzato,
+                        'lunghezza': len(ciclo_normalizzato),
+                        'dettagli': dettagli,
+                        'hash_ciclo': ciclo_hash
+                    }
+                    self.cicli_trovati.append(ciclo_completo)
+                return
+
+        # Continua la ricerca
+        if current_node in self.grafo:
+            for next_node in self.grafo[current_node]:
+                if next_node not in path:  # Evita cicli interni
+                    self._trova_cicli_da_nodo(next_node, path + [next_node], max_length)
+
+    def _normalizza_ciclo(self, ciclo):
+        """
+        Normalizza un ciclo per evitare duplicati
+        [1,3,7] = [3,7,1] = [7,1,3] tutti diventano [1,3,7]
+        """
+        if not ciclo:
+            return []
+
+        # Trova l'indice dell'elemento minimo
+        min_idx = ciclo.index(min(ciclo))
+
+        # Ruota il ciclo per iniziare dall'elemento minimo
+        return ciclo[min_idx:] + ciclo[:min_idx]
+
+    def _hash_ciclo(self, ciclo):
+        """
+        Calcola hash MD5 di un ciclo per identificazione unica
+        """
+        ciclo_str = ','.join(map(str, sorted(ciclo)))
+        return hashlib.md5(ciclo_str.encode()).hexdigest()
+
+    def _get_dettagli_ciclo(self, user_ids):
+        """
+        Ottiene i dettagli completi del ciclo (oggetti scambiati, etc.)
+        """
+        dettagli = {
+            'scambi': [],
+            'oggetti': [],
+            'timestamp': datetime.now().isoformat()
+        }
+
+        for i in range(len(user_ids)):
+            user_da = user_ids[i]
+            user_a = user_ids[(i + 1) % len(user_ids)]
+
+            # Trova cosa scambia user_da con user_a
+            scambio = self._trova_oggetto_scambiato(user_da, user_a)
+            if scambio:
+                dettagli['scambi'].append(scambio)
+                dettagli['oggetti'].extend(scambio['oggetti'])
+
+        return dettagli
+
+    def _trova_oggetto_scambiato(self, user_id_da, user_id_a):
+        """
+        Trova quale oggetto user_da dà a user_a
+        """
+        try:
+            utente_da = User.objects.get(id=user_id_da)
+            utente_a = User.objects.get(id=user_id_a)
+
+            offerte_da = Annuncio.objects.filter(utente=utente_da, tipo='offro', attivo=True)
+            richieste_a = Annuncio.objects.filter(utente=utente_a, tipo='cerco', attivo=True)
+
+            for offerta in offerte_da:
+                for richiesta in richieste_a:
+                    if oggetti_compatibili(offerta, richiesta):
+                        return {
+                            'da_user': user_id_da,
+                            'a_user': user_id_a,
+                            'oggetti': [
+                                {
+                                    'offerto': {
+                                        'id': offerta.id,
+                                        'titolo': offerta.titolo,
+                                        'categoria': offerta.categoria.nome
+                                    },
+                                    'richiesto': {
+                                        'id': richiesta.id,
+                                        'titolo': richiesta.titolo,
+                                        'categoria': richiesta.categoria.nome
+                                    }
+                                }
+                            ]
+                        }
+        except User.DoesNotExist:
+            pass
+
+        return None
+
+
+# === FUNZIONI HELPER PER IL CALCOLO CICLI ===
+
+def costruisci_grafo():
+    """
+    Funzione helper per costruire il grafo (usata dal management command)
+    """
+    finder = CycleFinder()
+    finder.costruisci_grafo()
+    return finder.grafo
+
+
+def get_dettagli_ciclo(user_ids):
+    """
+    Funzione helper per ottenere dettagli di un ciclo (usata dal management command)
+    """
+    finder = CycleFinder()
+    return finder._get_dettagli_ciclo(user_ids)

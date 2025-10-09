@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.conf import settings
 
 class Categoria(models.Model):
     nome = models.CharField(max_length=100)
@@ -402,3 +403,123 @@ class CatenaPreferita(models.Model):
 
     def __str__(self):
         return f"Catena preferita di {self.utente.username} ({self.tipo_catena})"
+
+
+# === SISTEMA CALCOLO CICLI SEPARATO ===
+
+class CicloScambio(models.Model):
+    """
+    Modello per memorizzare i cicli di scambio precalcolati
+    Utilizzato dal sistema di calcolo separato per performance ottimali
+    """
+
+    # Array di user_id che formano il ciclo (ordinato e normalizzato)
+    # Es: [1, 3, 7] significa User(1) -> User(3) -> User(7) -> User(1)
+    users = models.JSONField(
+        help_text="Array ordinato di user_id che formano il ciclo"
+    )
+
+    # Lunghezza del ciclo (2-6 utenti)
+    lunghezza = models.IntegerField(
+        help_text="Numero di utenti nel ciclo"
+    )
+
+    # Dettagli completi del ciclo (annunci coinvolti, oggetti scambiati, etc.)
+    dettagli = models.JSONField(
+        help_text="Dettagli completi del ciclo: annunci, oggetti, compatibilità"
+    )
+
+    # Metadati di calcolo
+    calcolato_at = models.DateTimeField(
+        auto_now=True,
+        help_text="Timestamp dell'ultimo calcolo"
+    )
+
+    # Flag per invalidare cicli vecchi/non più validi
+    valido = models.BooleanField(
+        default=True,
+        help_text="Indica se il ciclo è ancora valido (annunci attivi)"
+    )
+
+    # Hash unico del ciclo per evitare duplicati
+    hash_ciclo = models.CharField(
+        max_length=64,
+        unique=True,
+        help_text="Hash MD5 del ciclo per rilevare duplicati"
+    )
+
+    class Meta:
+        verbose_name = "Ciclo di Scambio"
+        verbose_name_plural = "Cicli di Scambio"
+        ordering = ['lunghezza', '-calcolato_at']
+
+        # Indici per query veloci
+        indexes = [
+            models.Index(fields=['valido', 'lunghezza']),
+            models.Index(fields=['calcolato_at']),
+            models.Index(fields=['hash_ciclo']),
+        ]
+
+    def __str__(self):
+        users_str = " → ".join([f"User({uid})" for uid in self.users])
+        return f"Ciclo {self.lunghezza} utenti: {users_str}"
+
+    def to_dict(self):
+        """
+        Serializza il ciclo per l'API JSON
+        """
+        return {
+            'id': self.id,
+            'users': self.users,
+            'lunghezza': self.lunghezza,
+            'dettagli': self.dettagli,
+            'calcolato_at': self.calcolato_at.isoformat(),
+            'valido': self.valido,
+            'hash_ciclo': self.hash_ciclo
+        }
+
+    def contains_user(self, user_id):
+        """
+        Verifica se un utente è presente nel ciclo
+        """
+        return user_id in self.users
+
+    @classmethod
+    def find_for_user(cls, user_id, limit=50):
+        """
+        Query ottimizzata per trovare cicli contenenti un utente specifico
+        """
+        from django.db.models import Q
+
+        # Costruisce query JSON per PostgreSQL o fallback per SQLite
+        if 'postgresql' in settings.DATABASES['default']['ENGINE']:
+            # PostgreSQL: usa operatori JSON nativi
+            return cls.objects.filter(
+                valido=True,
+                users__contains=user_id
+            ).order_by('lunghezza', '-calcolato_at')[:limit]
+        else:
+            # SQLite: usa icontains come fallback (meno efficiente ma funziona)
+            return cls.objects.filter(
+                valido=True,
+                users__icontains=f'"{user_id}"'
+            ).order_by('lunghezza', '-calcolato_at')[:limit]
+
+    @classmethod
+    def invalidate_all(cls):
+        """
+        Invalida tutti i cicli esistenti (chiamato prima del ricalcolo)
+        """
+        return cls.objects.update(valido=False)
+
+    @classmethod
+    def cleanup_old(cls, days=7):
+        """
+        Rimuove i cicli invalidati più vecchi di N giorni
+        """
+        from django.utils import timezone
+        cutoff = timezone.now() - timezone.timedelta(days=days)
+        return cls.objects.filter(
+            valido=False,
+            calcolato_at__lt=cutoff
+        ).delete()

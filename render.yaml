@@ -1,0 +1,65 @@
+databases:
+  - name: polygonum-postgres
+    databaseName: polygonum
+    user: polygonum_user
+    plan: free
+
+services:
+  # Servizio web principale Django
+  - type: web
+    name: polygonum-web
+    env: python
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+      python manage.py migrate
+    startCommand: |
+      python manage.py runserver 0.0.0.0:$PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: polygonum-postgres
+          property: connectionString
+      - key: DJANGO_SETTINGS_MODULE
+        value: scambio_sito.settings
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".render.com,polygonum.onrender.com,localhost,127.0.0.1"
+      - key: RENDER_ENVIRONMENT
+        value: "production"
+    healthCheckPath: /
+    domains:
+      - polygonum.onrender.com
+
+  # Cron job per calcolo cicli ogni 30 minuti
+  - type: cron
+    name: polygonum-cycle-calculator
+    env: python
+    plan: free
+    schedule: "*/30 * * * *"  # Ogni 30 minuti
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: |
+      python scripts/calcola_cicli.py
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: polygonum-postgres
+          property: connectionString
+      - key: DJANGO_SETTINGS_MODULE
+        value: scambio_sito.settings
+      - key: DJANGO_SECRET_KEY
+        sync: false  # Usa la stessa del web service
+      - key: RENDER_ENVIRONMENT
+        value: "cron"
+
+    # Timeout più lungo per il calcolo cicli
+    timeoutSeconds: 900  # 15 minuti max
+
+# Configurazioni globali
+previewsEnabled: false
+region: oregon

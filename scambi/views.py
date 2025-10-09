@@ -1686,3 +1686,120 @@ def invia_messaggio_da_annuncio(request):
         return JsonResponse({'error': 'Dati JSON non validi'}, status=400)
     except Exception as e:
         return JsonResponse({'error': 'Errore del server'}, status=500)
+
+
+# === API SISTEMA CALCOLO CICLI SEPARATO ===
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
+from .models import CicloScambio
+import time
+
+
+@require_http_methods(["GET"])
+@login_required
+def api_cicli_utente(request, user_id):
+    """
+    API endpoint per ottenere i cicli di scambio per un utente specifico
+    Performance target: < 50ms
+    """
+    start_time = time.time()
+
+    try:
+        # Verifica che l'utente possa accedere ai propri cicli
+        if request.user.id != user_id and not request.user.is_staff:
+            return JsonResponse({
+                'error': 'Non autorizzato'
+            }, status=403)
+
+        # Query ottimizzata per trovare cicli dell'utente
+        limit = min(int(request.GET.get('limit', 50)), 100)  # Max 100 cicli
+        offset = int(request.GET.get('offset', 0))
+
+        # Usa il metodo ottimizzato del model
+        cicli_queryset = CicloScambio.find_for_user(user_id, limit + offset)[offset:offset + limit]
+        cicli_data = [ciclo.to_dict() for ciclo in cicli_queryset]
+
+        # Statistiche totali
+        cicli_totali = CicloScambio.objects.filter(valido=True).count()
+        ultimo_aggiornamento = CicloScambio.objects.filter(valido=True).order_by('-calcolato_at').first()
+
+        response_data = {
+            'success': True,
+            'cicli': cicli_data,
+            'total': len(cicli_data),
+            'cicli_totali_sistema': cicli_totali,
+            'ultimo_aggiornamento': ultimo_aggiornamento.calcolato_at.isoformat() if ultimo_aggiornamento else None,
+            'performance': {
+                'query_time_ms': round((time.time() - start_time) * 1000, 2),
+                'cache_hit': True  # Sempre True dato che leggiamo dal DB pre-calcolato
+            },
+            'pagination': {
+                'limit': limit,
+                'offset': offset,
+                'has_more': len(cicli_data) == limit
+            }
+        }
+
+        # Aggiungi header per caching (5 minuti)
+        response = JsonResponse(response_data)
+        response['Cache-Control'] = 'public, max-age=300'
+        response['X-Performance-Ms'] = str(round((time.time() - start_time) * 1000, 2))
+
+        return response
+
+    except Exception as e:
+        return JsonResponse({
+            'error': 'Errore del server',
+            'message': str(e)
+        }, status=500)
+
+
+@require_http_methods(["GET"])
+def api_cicli_stats(request):
+    """
+    API endpoint per statistiche generali sui cicli
+    Accessibile pubblicamente per dashboard
+    """
+    start_time = time.time()
+
+    try:
+        # Query ottimizzate per statistiche
+        stats = {
+            'cicli_totali': CicloScambio.objects.filter(valido=True).count(),
+            'cicli_per_lunghezza': {},
+            'ultimo_calcolo': None,
+            'sistema_attivo': True
+        }
+
+        # Statistiche per lunghezza ciclo
+        for lunghezza in range(2, 7):  # 2-6 utenti
+            count = CicloScambio.objects.filter(valido=True, lunghezza=lunghezza).count()
+            stats['cicli_per_lunghezza'][f'{lunghezza}_utenti'] = count
+
+        # Ultimo calcolo
+        ultimo_ciclo = CicloScambio.objects.filter(valido=True).order_by('-calcolato_at').first()
+        if ultimo_ciclo:
+            stats['ultimo_calcolo'] = ultimo_ciclo.calcolato_at.isoformat()
+
+        response_data = {
+            'success': True,
+            'stats': stats,
+            'performance': {
+                'query_time_ms': round((time.time() - start_time) * 1000, 2)
+            }
+        }
+
+        # Caching più aggressivo per stats (15 minuti)
+        response = JsonResponse(response_data)
+        response['Cache-Control'] = 'public, max-age=900'
+        response['X-Performance-Ms'] = str(round((time.time() - start_time) * 1000, 2))
+
+        return response
+
+    except Exception as e:
+        return JsonResponse({
+            'error': 'Errore del server',
+            'message': str(e)
+        }, status=500)
