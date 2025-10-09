@@ -1126,3 +1126,202 @@ def get_dettagli_ciclo(user_ids):
     """
     finder = CycleFinder()
     return finder._get_dettagli_ciclo(user_ids)
+
+
+# ===== FUNZIONI OTTIMIZZATE CHE USANO CICLI PRE-CALCOLATI =====
+
+def get_cicli_precalcolati():
+    """
+    Funzione ottimizzata che legge i cicli pre-calcolati dal database invece di fare brute-force.
+    Sostituisce le vecchie funzioni trova_scambi_diretti() e trova_catene_scambio().
+
+    Returns:
+        dict: {
+            'scambi_diretti': [],     # Cicli di lunghezza 2
+            'catene': [],            # Cicli di lunghezza 3+
+            'totale': int,
+            'tempo': float
+        }
+    """
+    import time
+    from .models import CicloScambio
+
+    start_time = time.time()
+
+    print("📊 Caricando cicli pre-calcolati dal database...")
+
+    # Carica tutti i cicli validi
+    cicli_db = CicloScambio.objects.filter(valido=True).order_by('-calcolato_at')
+
+    scambi_diretti = []
+    catene_lunghe = []
+
+    for ciclo_db in cicli_db:
+        try:
+            # Converti il ciclo dal database al formato compatibile con le views
+            ciclo_convertito = converti_ciclo_db_a_view_format(ciclo_db)
+
+            if ciclo_convertito:
+                if ciclo_db.lunghezza == 2:
+                    scambi_diretti.append(ciclo_convertito)
+                else:
+                    catene_lunghe.append(ciclo_convertito)
+
+        except Exception as e:
+            print(f"⚠️ Errore conversione ciclo {ciclo_db.id}: {e}")
+            continue
+
+    elapsed = time.time() - start_time
+    totale = len(scambi_diretti) + len(catene_lunghe)
+
+    print(f"✅ Caricati {totale} cicli pre-calcolati in {elapsed:.3f}s ({len(scambi_diretti)} diretti, {len(catene_lunghe)} catene)")
+
+    return {
+        'scambi_diretti': scambi_diretti,
+        'catene': catene_lunghe,
+        'totale': totale,
+        'tempo': elapsed
+    }
+
+
+def converti_ciclo_db_a_view_format(ciclo_db):
+    """
+    Converte un CicloScambio dal database al formato richiesto dalle views.
+
+    Args:
+        ciclo_db: Istanza CicloScambio dal database
+
+    Returns:
+        dict: Ciclo nel formato compatibile con le views esistenti
+    """
+    from django.contrib.auth.models import User
+    from .models import Annuncio
+
+    try:
+        # Carica gli utenti del ciclo
+        user_ids = ciclo_db.users
+        utenti = User.objects.filter(id__in=user_ids)
+
+        if len(utenti) != len(user_ids):
+            print(f"⚠️ Alcuni utenti del ciclo {ciclo_db.id} non esistono più")
+            return None
+
+        # Usa i dettagli già processati dal database
+        dettagli = ciclo_db.dettagli
+
+        # Calcola categoria qualità basata sui dettagli
+        categoria_qualita = calcola_categoria_qualita_da_dettagli(dettagli)
+
+        # Costruisci il formato di output compatibile
+        ciclo_output = {
+            'utenti': [{'user': u, 'offerta': None, 'richiede': None} for u in utenti],
+            'dettagli': dettagli,
+            'categoria_qualita': categoria_qualita,
+            'lunghezza': ciclo_db.lunghezza,
+            'id_ciclo': str(ciclo_db.id),
+            'calcolato_at': ciclo_db.calcolato_at,
+            'da_database': True  # Flag per identificare cicli pre-calcolati
+        }
+
+        # Aggiungi informazioni sugli annunci se disponibili nei dettagli
+        if 'annunci' in dettagli:
+            for i, annuncio_info in enumerate(dettagli['annunci']):
+                if i < len(ciclo_output['utenti']):
+                    try:
+                        annuncio = Annuncio.objects.get(id=annuncio_info['id'])
+                        ciclo_output['utenti'][i]['offerta'] = annuncio
+                    except Annuncio.DoesNotExist:
+                        pass
+
+        return ciclo_output
+
+    except Exception as e:
+        print(f"⚠️ Errore conversione ciclo {ciclo_db.id}: {e}")
+        return None
+
+
+def calcola_categoria_qualita_da_dettagli(dettagli):
+    """
+    Determina la categoria di qualità di un ciclo basandosi sui suoi dettagli.
+
+    Args:
+        dettagli: Dizionario con i dettagli del ciclo
+
+    Returns:
+        str: 'alta' o 'generica'
+    """
+    # Logica semplificata per determinare la qualità
+    # Puoi espandere questa logica secondo le tue esigenze
+
+    if 'score_qualita' in dettagli:
+        return 'alta' if dettagli['score_qualita'] > 0.7 else 'generica'
+
+    # Fallback: analizza i match tra annunci
+    if 'annunci' in dettagli:
+        match_perfetti = 0
+        totale_match = 0
+
+        for annuncio_info in dettagli['annunci']:
+            if 'compatibilita_score' in annuncio_info:
+                totale_match += 1
+                if annuncio_info['compatibilita_score'] > 0.8:
+                    match_perfetti += 1
+
+        if totale_match > 0:
+            percentuale_perfetti = match_perfetti / totale_match
+            return 'alta' if percentuale_perfetti > 0.6 else 'generica'
+
+    # Default
+    return 'generica'
+
+
+def trova_scambi_diretti_ottimizzato():
+    """
+    Versione ottimizzata che sostituisce trova_scambi_diretti().
+    Legge solo i cicli di lunghezza 2 dal database.
+    """
+    risultato = get_cicli_precalcolati()
+    return risultato['scambi_diretti']
+
+
+def trova_catene_scambio_ottimizzato(max_lunghezza=6):
+    """
+    Versione ottimizzata che sostituisce trova_catene_scambio().
+    Legge i cicli pre-calcolati dal database e filtra per lunghezza.
+
+    Args:
+        max_lunghezza: Lunghezza massima delle catene da restituire
+    """
+    risultato = get_cicli_precalcolati()
+
+    # Filtra per lunghezza se specificata
+    if max_lunghezza:
+        catene_filtrate = [
+            catena for catena in risultato['catene']
+            if catena['lunghezza'] <= max_lunghezza
+        ]
+        return catene_filtrate
+
+    return risultato['catene']
+
+
+def filtra_catene_per_utente_ottimizzato(scambi_diretti, catene, utente):
+    """
+    Versione ottimizzata di filtra_catene_per_utente che lavora sui cicli pre-calcolati.
+    """
+    scambi_diretti_utente = []
+    catene_lunghe_utente = []
+
+    # Filtra scambi diretti per utente
+    for scambio in scambi_diretti:
+        if any(u['user'].id == utente.id for u in scambio['utenti']):
+            scambi_diretti_utente.append(scambio)
+
+    # Filtra catene lunghe per utente
+    for catena in catene:
+        if any(u['user'].id == utente.id for u in catena['utenti']):
+            catene_lunghe_utente.append(catena)
+
+    print(f"🎯 Filtrato per {utente.username}: {len(scambi_diretti_utente)} scambi diretti, {len(catene_lunghe_utente)} catene")
+
+    return scambi_diretti_utente, catene_lunghe_utente
