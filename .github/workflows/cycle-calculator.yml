@@ -1,5 +1,7 @@
 name: Polygonum Cycle Calculator
 on:
+  push:
+    branches: [ main ]
   schedule:
     # Ogni 30 minuti (stessa cadenza del cron job di Render)
     - cron: '*/30 * * * *'
