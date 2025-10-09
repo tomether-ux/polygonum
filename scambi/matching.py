@@ -655,12 +655,15 @@ def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
     print(f"🔍 Parole chiave offerto: {parole_offerto}")
     print(f"🔍 Parole chiave cercato: {parole_cercato}")
 
-    # Controlla se ci sono parole in comune
-    parole_comuni = parole_offerto & parole_cercato
-    print(f"🔍 Parole in comune trovate: {parole_comuni}")
+    # NUOVA LOGICA: L'offerta deve contenere TUTTE le parole richieste
+    # Questo permette ricerche specifiche ("iPhone 12 Pro") o generiche ("telefono")
+    parole_mancanti = parole_cercato - parole_offerto
+    print(f"🔍 Parole richieste: {parole_cercato}")
+    print(f"🔍 Parole nell'offerta: {parole_offerto}")
+    print(f"🔍 Parole mancanti nell'offerta: {parole_mancanti}")
 
-    if parole_comuni:
-        print(f"✅ MATCH SPECIFICO: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (parole comuni: {parole_comuni})")
+    if not parole_mancanti:  # Tutte le parole richieste sono presenti nell'offerta
+        print(f"✅ MATCH SPECIFICO: '{annuncio_offerto.titolo}' contiene tutte le parole richieste: {parole_cercato}")
         return True, "specifico"
 
     # 2. MATCH PARZIALE: Alcune parole dell'offerta sono contenute nella ricerca
