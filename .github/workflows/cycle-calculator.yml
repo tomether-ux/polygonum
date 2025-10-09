@@ -15,8 +15,8 @@ jobs:
         run: |
           echo "🚀 Triggering Polygonum cycle calculation..."
 
-          # Chiama il webhook endpoint di Polygonum
-          response=$(curl -s -w "%{http_code}" \
+          # Chiama il webhook endpoint di Polygonum (timeout 2 minuti per servizi free)
+          response=$(curl -s -w "%{http_code}" --max-time 120 \
             -X POST \
             -H "Authorization: Bearer ${{ secrets.POLYGONUM_WEBHOOK_SECRET }}" \
             -H "Content-Type: application/json" \
