@@ -31,30 +31,12 @@ services:
         value: ".render.com,polygonum.onrender.com,localhost,127.0.0.1"
       - key: RENDER_ENVIRONMENT
         value: "production"
+      - key: POLYGONUM_WEBHOOK_SECRET
+        generateValue: true
     healthCheckPath: /
     domains:
       - polygonum.onrender.com
 
-  # Cron job per calcolo cicli ogni 30 minuti
-  - type: cron
-    name: polygonum-cycle-calculator
-    env: python
-    schedule: "*/30 * * * *"  # Ogni 30 minuti
-    buildCommand: |
-      pip install -r requirements.txt
-    startCommand: |
-      python scripts/calcola_cicli.py
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: polygonum-database
-          property: connectionString
-      - key: DJANGO_SETTINGS_MODULE
-        value: scambio_sito.settings
-      - key: DJANGO_SECRET_KEY
-        sync: false  # Usa la stessa del web service
-      - key: RENDER_ENVIRONMENT
-        value: "cron"
 
 # Configurazioni globali
 previewsEnabled: false

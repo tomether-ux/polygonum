@@ -1,0 +1,36 @@
+name: Polygonum Cycle Calculator
+on:
+  schedule:
+    # Ogni 30 minuti (stessa cadenza del cron job di Render)
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # Permette esecuzione manuale
+
+jobs:
+  calculate-cycles:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger cycle calculation
+        run: |
+          echo "🚀 Triggering Polygonum cycle calculation..."
+
+          # Chiama il webhook endpoint di Polygonum
+          response=$(curl -s -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.POLYGONUM_WEBHOOK_SECRET }}" \
+            -H "Content-Type: application/json" \
+            https://polygonum.onrender.com/webhook/calcola-cicli/)
+
+          http_code="${response: -3}"
+          response_body="${response%???}"
+
+          echo "📊 Response code: $http_code"
+          echo "📄 Response body: $response_body"
+
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Cycle calculation completed successfully!"
+            echo "$response_body" | jq '.' || echo "$response_body"
+          else
+            echo "❌ Cycle calculation failed with code $http_code"
+            echo "$response_body"
+            exit 1
+          fi

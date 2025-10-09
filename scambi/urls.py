@@ -57,4 +57,7 @@ urlpatterns = [
     # API Sistema calcolo cicli separato
     path('api/cicli/<int:user_id>/', views.api_cicli_utente, name='api_cicli_utente'),
     path('api/cicli/stats/', views.api_cicli_stats, name='api_cicli_stats'),
+
+    # Webhook per calcolo cicli (alternativa gratuita al cron job)
+    path('webhook/calcola-cicli/', views.webhook_calcola_cicli, name='webhook_calcola_cicli'),
 ]

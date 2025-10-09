@@ -2,10 +2,15 @@ from django.contrib.auth import login
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.forms import UserCreationForm  # Se usi il form base
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente, trova_catene_per_annuncio
 from .models import Annuncio
 import importlib
+import hashlib
+import hmac
+import os
 from . import matching
 
 def test_matching(request):
@@ -1803,3 +1808,81 @@ def api_cicli_stats(request):
             'error': 'Errore del server',
             'message': str(e)
         }, status=500)
+
+
+
+# === WEBHOOK SYSTEM FOR FREE CYCLE CALCULATION ===
+
+@csrf_exempt
+@require_POST
+def webhook_calcola_cicli(request):
+    """
+    Webhook endpoint per calcolare i cicli da servizio esterno
+    Alternativa gratuita al cron job di Render
+    """
+    import time
+    try:
+        # Verifica autorizzazione con secret token
+        webhook_secret = os.environ.get("POLYGONUM_WEBHOOK_SECRET", "default-secret-change-me")
+
+        # Verifica header Authorization
+        auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+        if not auth_header.startswith("Bearer "):
+            return JsonResponse({"error": "Missing or invalid authorization header"}, status=401)
+
+        token = auth_header[7:]  # Rimuove "Bearer "
+        if token != webhook_secret:
+            return JsonResponse({"error": "Invalid webhook secret"}, status=401)
+
+        # Importa il comando di calcolo cicli
+        from django.core.management import call_command
+        from io import StringIO
+        import sys
+
+        # Cattura l'output del comando
+        output_buffer = StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = output_buffer
+
+        start_time = time.time()
+
+        # Esegui il comando di calcolo cicli
+        call_command(
+            "calcola_cicli",
+            max_length=6,
+            commit_batch_size=50,
+            cleanup_old=True,
+            verbosity=1
+        )
+
+        # Ripristina stdout
+        sys.stdout = old_stdout
+        command_output = output_buffer.getvalue()
+
+        # Statistiche finali
+        from .models import CicloScambio
+        cicli_totali = CicloScambio.objects.count()
+        cicli_validi = CicloScambio.objects.filter(valido=True).count()
+
+        execution_time = time.time() - start_time
+
+        return JsonResponse({
+            "success": True,
+            "message": "Calcolo cicli completato con successo",
+            "stats": {
+                "cicli_totali": cicli_totali,
+                "cicli_validi": cicli_validi,
+                "execution_time_seconds": round(execution_time, 2)
+            },
+            "output": command_output,
+            "timestamp": time.time()
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "success": False,
+            "error": "Errore durante il calcolo cicli",
+            "message": str(e),
+            "timestamp": time.time()
+        }, status=500)
+
