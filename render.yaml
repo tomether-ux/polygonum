@@ -57,9 +57,5 @@ services:
       - key: RENDER_ENVIRONMENT
         value: "cron"
 
-    # Timeout più lungo per il calcolo cicli
-    timeoutSeconds: 900  # 15 minuti max
-
 # Configurazioni globali
 previewsEnabled: false
-region: oregon
