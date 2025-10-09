@@ -39,7 +39,6 @@ services:
   - type: cron
     name: polygonum-cycle-calculator
     env: python
-    plan: free
     schedule: "*/30 * * * *"  # Ogni 30 minuti
     buildCommand: |
       pip install -r requirements.txt
