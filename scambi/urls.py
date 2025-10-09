@@ -53,4 +53,8 @@ urlpatterns = [
 
     # Le mie catene personali
     path('le-mie-catene/', views.le_mie_catene, name='le_mie_catene'),
+
+    # API Sistema calcolo cicli separato
+    path('api/cicli/<int:user_id>/', views.api_cicli_utente, name='api_cicli_utente'),
+    path('api/cicli/stats/', views.api_cicli_stats, name='api_cicli_stats'),
 ]
