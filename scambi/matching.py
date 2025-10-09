@@ -169,7 +169,13 @@ def crea_scambio_diretto(utente_a, utente_b, offerta_a, richiesta_b, offerta_b, 
     punteggio_oggetti = (punteggio_match_1 + punteggio_match_2) / 2
     punteggio_qualita = (punteggio_oggetti * 0.7) + (bonus_distanza * 0.3)  # 70% oggetti, 30% distanza
 
-    categoria_qualita = "alta" if punteggio_qualita >= 7 else "generica"
+    # Se c'è anche un solo match "categoria" o "generico", lo scambio è generico
+    ha_match_non_specifici = any(match in ["categoria", "generico"] for match in [tipo_match_1, tipo_match_2])
+
+    if ha_match_non_specifici:
+        categoria_qualita = "generica"
+    else:
+        categoria_qualita = "alta" if punteggio_qualita >= 7 else "generica"
 
     return {
         'tipo': 'scambio_diretto',
@@ -196,7 +202,16 @@ def crea_scambio_diretto_avanzato(utente_a, utente_b, offerta_a, richiesta_b, of
                                 distanza_km, punteggio_totale, dettagli_ab, dettagli_ba):
     """Crea la struttura dati per uno scambio diretto con algoritmo avanzato"""
 
-    categoria_qualita = "alta" if punteggio_totale >= 60 else "generica"
+    # Verifica se ci sono match per sola categoria o generici
+    _, tipo_match_1 = oggetti_compatibili_con_tipo(offerta_a, richiesta_b)
+    _, tipo_match_2 = oggetti_compatibili_con_tipo(offerta_b, richiesta_a)
+
+    ha_match_non_specifici = any(match in ["categoria", "generico"] for match in [tipo_match_1, tipo_match_2])
+
+    if ha_match_non_specifici:
+        categoria_qualita = "generica"
+    else:
+        categoria_qualita = "alta" if punteggio_totale >= 60 else "generica"
 
     # Raggruppa dettagli per categorie
     dettagli_prezzo = []
@@ -544,8 +559,13 @@ def crea_catena_dettagliata(percorso_utenti, annunci_scambi):
     # Determina categoria di qualità
     num_scambi = len(annunci_scambi)
     punteggio_medio = punteggio_qualita / num_scambi if num_scambi > 0 else 0
-    
-    if punteggio_medio >= 2.5:
+
+    # Se c'è anche un solo match "categoria" o "generico", la catena è generica
+    ha_match_non_specifici = any(match in ["categoria", "generico"] for match in tipi_match)
+
+    if ha_match_non_specifici:
+        categoria_qualita = "generica"
+    elif punteggio_medio >= 2.5:
         categoria_qualita = "alta"
     else:
         categoria_qualita = "generica"
