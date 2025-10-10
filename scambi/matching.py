@@ -1063,8 +1063,8 @@ class CycleFinder:
         if len(path) > max_length:
             return
 
-        # Se siamo tornati al nodo di partenza e abbiamo almeno 2 utenti
-        if len(path) >= 3 and current_node in self.grafo:
+        # Se siamo tornati al nodo di partenza e abbiamo almeno 2 utenti (include scambi diretti)
+        if len(path) >= 2 and current_node in self.grafo:
             if path[0] in self.grafo[current_node]:
                 # Ciclo trovato! Normalizza e aggiungi se unico
                 ciclo_normalizzato = self._normalizza_ciclo(path)
