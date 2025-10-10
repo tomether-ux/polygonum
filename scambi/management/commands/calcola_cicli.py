@@ -58,22 +58,22 @@ class Command(BaseCommand):
                     self.style.WARNING(f"[{datetime.now()}] 🧹 Rimossi {deleted_count} cicli vecchi")
                 )
 
-            # Step 2: Invalida tutti i cicli esistenti
-            updated_count = CicloScambio.invalidate_all()
+            # Step 2: Rimuovi tutti i cicli esistenti (per evitare conflitti di hash)
+            deleted_count, _ = CicloScambio.objects.all().delete()
             self.stdout.write(
-                self.style.WARNING(f"[{datetime.now()}] ❌ Invalidati {updated_count} cicli esistenti")
+                self.style.WARNING(f"[{datetime.now()}] 🗑️ Rimossi {deleted_count} cicli esistenti")
             )
 
             # Step 3: Calcola nuovi cicli
             finder = CycleFinder()
             finder.costruisci_grafo()
 
-            # Trova sia scambi diretti che catene lunghe
-            scambi_diretti = finder.trova_scambi_diretti()
-            catene_lunghe = finder.trova_tutti_cicli(max_length=max_length)
+            # Trova tutti i cicli (da 2 a max_length utenti) con un unico algoritmo
+            cicli = finder.trova_tutti_cicli(max_length=max_length)
 
-            # Combina tutti i cicli
-            cicli = scambi_diretti + catene_lunghe
+            # Conta per lunghezza per stats
+            scambi_diretti = [c for c in cicli if c['lunghezza'] == 2]
+            catene_lunghe = [c for c in cicli if c['lunghezza'] > 2]
 
             self.stdout.write(
                 self.style.HTTP_INFO(
@@ -138,7 +138,7 @@ class Command(BaseCommand):
                             errori += 1
                             self.stdout.write(
                                 self.style.WARNING(
-                                    f"[{datetime.now()}] ⚠️ Errore salvando ciclo {ciclo_data.get('hash_ciclo', 'unknown')}: {e}"
+                                    f"[{datetime.now()}] ⚠️ Errore salvando ciclo {ciclo_data.get('hash_ciclo', 'unknown')}: {type(e).__name__}: {e}"
                                 )
                             )
 
