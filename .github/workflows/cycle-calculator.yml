@@ -15,24 +15,43 @@ jobs:
         run: |
           echo "🚀 Triggering Polygonum cycle calculation..."
 
-          # Chiama il webhook endpoint di Polygonum (timeout 2 minuti per servizi free)
-          response=$(curl -s -w "%{http_code}" --max-time 120 \
-            -X POST \
-            -H "Authorization: Bearer ${{ secrets.POLYGONUM_WEBHOOK_SECRET }}" \
-            -H "Content-Type: application/json" \
-            https://polygonum.onrender.com/webhook/calcola-cicli/)
+          # Funzione per chiamare il webhook con retry
+          call_webhook() {
+            local attempt=$1
+            local timeout=$2
+            echo "⏰ Attempt $attempt with timeout ${timeout}s..."
 
-          http_code="${response: -3}"
-          response_body="${response%???}"
+            response=$(curl -s -w "%{http_code}" --max-time $timeout \
+              -X POST \
+              -H "Authorization: Bearer ${{ secrets.POLYGONUM_WEBHOOK_SECRET }}" \
+              -H "Content-Type: application/json" \
+              https://polygonum.onrender.com/webhook/calcola-cicli/)
 
-          echo "📊 Response code: $http_code"
-          echo "📄 Response body: $response_body"
+            http_code="${response: -3}"
+            response_body="${response%???}"
 
-          if [ "$http_code" -eq 200 ]; then
-            echo "✅ Cycle calculation completed successfully!"
-            echo "$response_body" | jq '.' || echo "$response_body"
-          else
-            echo "❌ Cycle calculation failed with code $http_code"
-            echo "$response_body"
-            exit 1
+            echo "📊 Response code: $http_code"
+            echo "📄 Response body: $response_body"
+
+            return $http_code
+          }
+
+          # Primo tentativo: wake-up veloce (60s)
+          echo "🔌 Attempting to wake up Render service..."
+          if call_webhook 1 60; then
+            echo "✅ Cycle calculation completed successfully on first attempt!"
+            exit 0
           fi
+
+          # Secondo tentativo: timeout lungo per servizi dormienti (240s = 4 minuti)
+          echo "😴 Service seems asleep, trying with longer timeout..."
+          sleep 10  # Pausa breve tra i tentativi
+
+          if call_webhook 2 240; then
+            echo "✅ Cycle calculation completed successfully on second attempt!"
+            exit 0
+          fi
+
+          # Fallback: se tutti i tentativi falliscono
+          echo "❌ All attempts failed. Service may be down or overloaded."
+          exit 1
