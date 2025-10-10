@@ -964,14 +964,37 @@ class CycleFinder:
 
     def _c_e_match_tra_utenti(self, utente_a, utente_b):
         """
-        Verifica se due utenti possono scambiare direttamente
+        Verifica se due utenti possono scambiare direttamente usando logica avanzata
         """
         offerte_a = Annuncio.objects.filter(utente=utente_a, tipo='offro', attivo=True)
         richieste_b = Annuncio.objects.filter(utente=utente_b, tipo='cerco', attivo=True)
 
+        # Calcola distanza tra gli utenti (o usa valore predefinito)
+        try:
+            profile_a = utente_a.userprofile
+            profile_b = utente_b.userprofile
+
+            if profile_a.latitudine and profile_a.longitudine and profile_b.latitudine and profile_b.longitudine:
+                from math import radians, sin, cos, sqrt, atan2
+
+                lat1, lon1 = radians(profile_a.latitudine), radians(profile_a.longitudine)
+                lat2, lon2 = radians(profile_b.latitudine), radians(profile_b.longitudine)
+
+                dlat = lat2 - lat1
+                dlon = lon2 - lon1
+                a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+                c = 2 * atan2(sqrt(a), sqrt(1-a))
+                distanza_km = 6371 * c  # Raggio della Terra in km
+            else:
+                distanza_km = 50  # Default per utenti senza coordinate
+        except:
+            distanza_km = 50  # Default per errori
+
         for offerta in offerte_a:
             for richiesta in richieste_b:
-                if oggetti_compatibili(offerta, richiesta):
+                # Usa logica avanzata invece di quella semplice
+                compatible, punteggio, _ = oggetti_compatibili_avanzato(offerta, richiesta, distanza_km)
+                if compatible and punteggio >= 20:  # Soglia minima di qualità (ridotta)
                     return True
         return False
 
@@ -1082,9 +1105,32 @@ class CycleFinder:
             offerte_da = Annuncio.objects.filter(utente=utente_da, tipo='offro', attivo=True)
             richieste_a = Annuncio.objects.filter(utente=utente_a, tipo='cerco', attivo=True)
 
+            # Calcola distanza per usare logica avanzata
+            try:
+                profile_da = utente_da.userprofile
+                profile_a = utente_a.userprofile
+
+                if profile_da.latitudine and profile_da.longitudine and profile_a.latitudine and profile_a.longitudine:
+                    from math import radians, sin, cos, sqrt, atan2
+
+                    lat1, lon1 = radians(profile_da.latitudine), radians(profile_da.longitudine)
+                    lat2, lon2 = radians(profile_a.latitudine), radians(profile_a.longitudine)
+
+                    dlat = lat2 - lat1
+                    dlon = lon2 - lon1
+                    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+                    c = 2 * atan2(sqrt(a), sqrt(1-a))
+                    distanza_km = 6371 * c
+                else:
+                    distanza_km = 50
+            except:
+                distanza_km = 50
+
             for offerta in offerte_da:
                 for richiesta in richieste_a:
-                    if oggetti_compatibili(offerta, richiesta):
+                    # Usa logica avanzata con soglia di qualità
+                    compatible, punteggio, _ = oggetti_compatibili_avanzato(offerta, richiesta, distanza_km)
+                    if compatible and punteggio >= 20:  # Soglia minima di qualità (ridotta)
                         return {
                             'da_user': user_id_da,
                             'a_user': user_id_a,
