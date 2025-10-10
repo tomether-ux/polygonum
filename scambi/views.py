@@ -295,9 +295,10 @@ def catene_scambio(request):
     combinazioni_viste = set()
 
     for catena in tutte_catene:
-        utenti_ordinati = tuple(sorted(catena['utenti']))
-        if utenti_ordinati not in combinazioni_viste:
-            combinazioni_viste.add(utenti_ordinati)
+        # Ordina per ID utente invece di oggetti utente completi
+        utenti_ids = tuple(sorted([u['user'].id for u in catena['utenti']]))
+        if utenti_ids not in combinazioni_viste:
+            combinazioni_viste.add(utenti_ids)
             catene_uniche.append(catena)
 
     # Separa scambi diretti e catene lunghe
@@ -890,7 +891,14 @@ def processa_catene_preferite(catene_preferite):
 def genera_hash_catena(catena_data):
     """Genera un hash univoco per una catena basato sui partecipanti e annunci"""
     # Crea una rappresentazione stabile della catena
-    utenti = sorted(catena_data.get('utenti', []))
+    # Ordina per ID utente invece di oggetti utente completi
+    utenti_data = catena_data.get('utenti', [])
+    if utenti_data and isinstance(utenti_data[0], dict):
+        # Nuovo formato ottimizzato con dizionari
+        utenti = sorted([u['user'].id for u in utenti_data])
+    else:
+        # Formato legacy con oggetti User diretti
+        utenti = sorted([u.id if hasattr(u, 'id') else u for u in utenti_data])
     annunci = []
     for item in catena_data.get('annunci_coinvolti', []):
         # Gestisce sia oggetti Annuncio che dizionari
@@ -912,8 +920,8 @@ def genera_hash_catena(catena_data):
         })
     annunci = sorted(annunci, key=lambda x: (x['annuncio_id'], x['utente']))
 
-    # Crea stringa per hash
-    hash_string = f"{'-'.join(utenti)}:{json.dumps(annunci, sort_keys=True)}"
+    # Crea stringa per hash - converte ID in stringhe
+    hash_string = f"{'-'.join(map(str, utenti))}:{json.dumps(annunci, sort_keys=True)}"
     return hashlib.md5(hash_string.encode()).hexdigest()
 
 def is_catena_preferita(user, catena_data):
