@@ -1081,7 +1081,7 @@ class CycleFinder:
                         'hash_ciclo': ciclo_hash
                     }
                     self.cicli_trovati.append(ciclo_completo)
-                return
+                # NON fare return qui - continua a cercare cicli più lunghi
 
         # Continua la ricerca
         if current_node in self.grafo:
