@@ -33,7 +33,12 @@ jobs:
             echo "📊 Response code: $http_code"
             echo "📄 Response body: $response_body"
 
-            return $http_code
+            # Return 0 for success (200), 1 for failure
+            if [ "$http_code" -eq 200 ]; then
+              return 0
+            else
+              return 1
+            fi
           }
 
           # Primo tentativo: wake-up veloce (60s)
