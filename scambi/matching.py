@@ -1325,3 +1325,75 @@ def filtra_catene_per_utente_ottimizzato(scambi_diretti, catene, utente):
     print(f"🎯 Filtrato per {utente.username}: {len(scambi_diretti_utente)} scambi diretti, {len(catene_lunghe_utente)} catene")
 
     return scambi_diretti_utente, catene_lunghe_utente
+
+
+def trova_catene_per_annuncio_ottimizzato(annuncio, max_lunghezza=6):
+    """
+    Versione ottimizzata che trova cicli pre-calcolati contenenti un annuncio specifico.
+    Sostituisce trova_catene_per_annuncio() per evitare brute-force.
+
+    Args:
+        annuncio: Istanza Annuncio per cui cercare catene
+        max_lunghezza: Lunghezza massima delle catene
+
+    Returns:
+        list: Cicli che coinvolgono l'annuncio specificato
+    """
+    import time
+    start_time = time.time()
+
+    print(f"🔍 Ricerca ottimizzata per annuncio: {annuncio.titolo} (ID: {annuncio.id})")
+
+    # Carica tutti i cicli pre-calcolati
+    risultato = get_cicli_precalcolati()
+    tutti_cicli = risultato['scambi_diretti'] + risultato['catene']
+
+    cicli_per_annuncio = []
+
+    for ciclo in tutti_cicli:
+        # Controlla se l'utente dell'annuncio è nel ciclo
+        if any(u['user'].id == annuncio.utente.id for u in ciclo['utenti']):
+            # Verifica se l'annuncio è tra quelli del ciclo analizzando i dettagli
+            if controlla_annuncio_in_ciclo(annuncio, ciclo):
+                if max_lunghezza is None or ciclo['lunghezza'] <= max_lunghezza:
+                    cicli_per_annuncio.append(ciclo)
+
+    elapsed = time.time() - start_time
+    print(f"✅ Trovati {len(cicli_per_annuncio)} cicli per annuncio in {elapsed:.3f}s")
+
+    return cicli_per_annuncio
+
+
+def controlla_annuncio_in_ciclo(annuncio, ciclo):
+    """
+    Controlla se un annuncio specifico è coinvolto in un ciclo pre-calcolato.
+
+    Args:
+        annuncio: Istanza Annuncio da cercare
+        ciclo: Ciclo convertito dal database
+
+    Returns:
+        bool: True se l'annuncio è coinvolto nel ciclo
+    """
+    try:
+        # Controlla nei dettagli del ciclo se c'è riferimento all'annuncio
+        dettagli = ciclo.get('dettagli', {})
+
+        # Cerca nelle informazioni degli annunci nel ciclo
+        if 'annunci' in dettagli:
+            for annuncio_info in dettagli['annunci']:
+                if annuncio_info.get('id') == annuncio.id:
+                    return True
+
+        # Fallback: se l'utente è nel ciclo e ha lo stesso tipo/categoria dell'annuncio
+        if any(u['user'].id == annuncio.utente.id for u in ciclo['utenti']):
+            # Controllo semplificato basato sulla presenza dell'utente
+            # In futuro si può migliorare analizzando meglio i dettagli
+            return True
+
+        return False
+
+    except Exception as e:
+        print(f"⚠️ Errore controllo annuncio in ciclo: {e}")
+        # In caso di errore, assume che l'annuncio sia coinvolto se l'utente è presente
+        return any(u['user'].id == annuncio.utente.id for u in ciclo['utenti'])
