@@ -338,15 +338,27 @@
                     <div class="col-md-6">
                         <h6>Partecipanti:</h6>
                         {% for utente in catena.utenti %}
-                            <span class="badge bg-success me-1">{{ utente }}</span>
+                            <span class="badge bg-success me-1">{{ utente.user.username }}</span>
                         {% endfor %}
-                        
-                        <h6 class="mt-3">Sequenza:</h6>
-                        <ol>
-                            {% for scambio in catena.scambi %}
-                            <li>{{ scambio }}</li>
+
+                        <h6 class="mt-3">Sequenza Scambi:</h6>
+                        <div class="d-flex flex-wrap align-items-center exchange-flow">
+                            {% for utente in catena.utenti %}
+                                {% if utente.offerta %}
+                                    <div class="exchange-step me-2 mb-2">
+                                        <div class="badge bg-success text-wrap p-2">
+                                            <strong>{{ utente.user.username }}</strong><br>
+                                            offre: <em>{{ utente.offerta.titolo }}</em>
+                                        </div>
+                                    </div>
+                                    {% if not forloop.last %}
+                                        <div class="exchange-arrow me-2 mb-2">
+                                            <i class="fas fa-arrow-right text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
                             {% endfor %}
-                        </ol>
+                        </div>
                     </div>
                     
                     <div class="col-md-6">
@@ -396,18 +408,24 @@
                             <span class="badge bg-info me-1">{{ utente.user.username }}</span>
                         {% endfor %}
 
-                        <h6 class="mt-3">Sequenza:</h6>
-                        <ol>
+                        <h6 class="mt-3">Sequenza Scambi:</h6>
+                        <div class="d-flex flex-wrap align-items-center exchange-flow">
                             {% for utente in catena.utenti %}
-                                {% if utente.offerta and utente.richiede %}
-                                <li>
-                                    <strong>{{ utente.offerta.titolo }}</strong>
-                                    ({{ utente.user.username }})
-                                    → <strong>{{ utente.richiede.titolo }}</strong>
-                                </li>
+                                {% if utente.offerta %}
+                                    <div class="exchange-step me-2 mb-2">
+                                        <div class="badge bg-primary text-wrap p-2">
+                                            <strong>{{ utente.user.username }}</strong><br>
+                                            offre: <em>{{ utente.offerta.titolo }}</em>
+                                        </div>
+                                    </div>
+                                    {% if not forloop.last %}
+                                        <div class="exchange-arrow me-2 mb-2">
+                                            <i class="fas fa-arrow-right text-muted"></i>
+                                        </div>
+                                    {% endif %}
                                 {% endif %}
                             {% endfor %}
-                        </ol>
+                        </div>
                     </div>
                     
                     <div class="col-md-6">
@@ -703,5 +721,47 @@ function getCookie(name) {
 
 /* Rimuoviamo l'effetto hover dalle card principali delle catene */
 /* .card-body:hover - rimosso per evitare hover indesiderato sulle catene */
+
+/* Stili per la sequenza di scambi orizzontale */
+.exchange-flow {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 10px 0;
+}
+
+.exchange-step .badge {
+    min-width: 120px;
+    text-align: center;
+    font-size: 0.85em;
+    line-height: 1.3;
+}
+
+.exchange-arrow {
+    font-size: 1.2em;
+    margin: 0 5px;
+}
+
+@media (max-width: 768px) {
+    .exchange-flow {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    .exchange-arrow {
+        transform: rotate(90deg);
+        margin: 5px 0;
+    }
+
+    .exchange-step {
+        width: 100%;
+        margin-bottom: 10px !important;
+    }
+
+    .exchange-step .badge {
+        width: 100%;
+        min-width: auto;
+    }
+}
 </style>
 {% endblock %}
