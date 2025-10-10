@@ -67,7 +67,19 @@ class Command(BaseCommand):
             # Step 3: Calcola nuovi cicli
             finder = CycleFinder()
             finder.costruisci_grafo()
-            cicli = finder.trova_tutti_cicli(max_length=max_length)
+
+            # Trova sia scambi diretti che catene lunghe
+            scambi_diretti = finder.trova_scambi_diretti()
+            catene_lunghe = finder.trova_tutti_cicli(max_length=max_length)
+
+            # Combina tutti i cicli
+            cicli = scambi_diretti + catene_lunghe
+
+            self.stdout.write(
+                self.style.HTTP_INFO(
+                    f"[{datetime.now()}] 📊 Trovati {len(scambi_diretti)} scambi diretti + {len(catene_lunghe)} catene lunghe = {len(cicli)} totali"
+                )
+            )
 
             if not cicli:
                 self.stdout.write(
