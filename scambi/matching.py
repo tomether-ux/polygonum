@@ -1018,6 +1018,44 @@ class CycleFinder:
         print(f"[{datetime.now()}] ✅ Trovati {len(self.cicli_trovati)} cicli unici")
         return self.cicli_trovati
 
+    def trova_scambi_diretti(self):
+        """
+        Trova tutti gli scambi diretti (lunghezza 2) usando il grafo
+        """
+        print(f"[{datetime.now()}] 🔍 Ricerca scambi diretti...")
+
+        scambi_diretti = []
+        scambi_hash_set = set()
+
+        if not self.grafo:
+            print(f"[{datetime.now()}] ⚠️ Grafo vuoto, nessuno scambio diretto possibile")
+            return []
+
+        # Per ogni coppia di utenti nel grafo
+        for user_a in self.grafo.keys():
+            for user_b in self.grafo.get(user_a, []):
+                # Verifica se è uno scambio bidirezionale (A->B e B->A)
+                if user_a in self.grafo.get(user_b, []):
+                    # Crea il ciclo di lunghezza 2
+                    ciclo = [user_a, user_b]
+                    ciclo_normalizzato = self._normalizza_ciclo(ciclo)
+                    ciclo_hash = self._hash_ciclo(ciclo_normalizzato)
+
+                    if ciclo_hash not in scambi_hash_set:
+                        scambi_hash_set.add(ciclo_hash)
+
+                        dettagli = self._get_dettagli_ciclo(ciclo_normalizzato)
+                        scambio_completo = {
+                            'users': ciclo_normalizzato,
+                            'lunghezza': 2,
+                            'dettagli': dettagli,
+                            'hash_ciclo': ciclo_hash
+                        }
+                        scambi_diretti.append(scambio_completo)
+
+        print(f"[{datetime.now()}] ✅ Trovati {len(scambi_diretti)} scambi diretti unici")
+        return scambi_diretti
+
     def _trova_cicli_da_nodo(self, current_node, path, max_length):
         """
         DFS ricorsivo per trovare cicli da un nodo specifico
@@ -1258,9 +1296,43 @@ def converti_ciclo_db_a_view_format(ciclo_db):
         # Calcola categoria qualità basata sui dettagli
         categoria_qualita = calcola_categoria_qualita_da_dettagli(dettagli)
 
-        # Costruisci il formato di output compatibile
+        # Costruisci il mapping utente -> offerte/richieste dai dettagli scambi
+        user_offers = {}
+        user_requests = {}
+
+        if 'scambi' in dettagli:
+            for scambio in dettagli['scambi']:
+                da_user = scambio.get('da_user')
+                a_user = scambio.get('a_user')
+                oggetti = scambio.get('oggetti', [])
+
+                for oggetto in oggetti:
+                    # L'utente da_user offre 'offerto' e l'utente a_user cerca 'richiesto'
+                    if 'offerto' in oggetto and da_user:
+                        try:
+                            offerta = Annuncio.objects.get(id=oggetto['offerto']['id'])
+                            user_offers[da_user] = offerta
+                        except Annuncio.DoesNotExist:
+                            pass
+
+                    if 'richiesto' in oggetto and a_user:
+                        try:
+                            richiesta = Annuncio.objects.get(id=oggetto['richiesto']['id'])
+                            user_requests[a_user] = richiesta
+                        except Annuncio.DoesNotExist:
+                            pass
+
+        # Costruisci il formato di output compatibile con offerte e richieste reali
+        utenti_con_annunci = []
+        for utente in utenti:
+            utenti_con_annunci.append({
+                'user': utente,
+                'offerta': user_offers.get(utente.id),
+                'richiede': user_requests.get(utente.id)
+            })
+
         ciclo_output = {
-            'utenti': [{'user': u, 'offerta': None, 'richiede': None} for u in utenti],
+            'utenti': utenti_con_annunci,
             'dettagli': dettagli,
             'categoria_qualita': categoria_qualita,
             'lunghezza': ciclo_db.lunghezza,
@@ -1268,16 +1340,6 @@ def converti_ciclo_db_a_view_format(ciclo_db):
             'calcolato_at': ciclo_db.calcolato_at,
             'da_database': True  # Flag per identificare cicli pre-calcolati
         }
-
-        # Aggiungi informazioni sugli annunci se disponibili nei dettagli
-        if 'annunci' in dettagli:
-            for i, annuncio_info in enumerate(dettagli['annunci']):
-                if i < len(ciclo_output['utenti']):
-                    try:
-                        annuncio = Annuncio.objects.get(id=annuncio_info['id'])
-                        ciclo_output['utenti'][i]['offerta'] = annuncio
-                    except Annuncio.DoesNotExist:
-                        pass
 
         return ciclo_output
 
