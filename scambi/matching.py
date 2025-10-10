@@ -1331,13 +1331,31 @@ def converti_ciclo_db_a_view_format(ciclo_db):
                 'richiede': user_requests.get(utente.id)
             })
 
+        # Costruisci annunci_coinvolti per compatibilità con template
+        annunci_coinvolti = []
+        for utente_obj in utenti_con_annunci:
+            if utente_obj['offerta']:
+                annunci_coinvolti.append({
+                    'annuncio': utente_obj['offerta'],
+                    'ruolo': 'offre',
+                    'utente': utente_obj['user'].username
+                })
+            if utente_obj['richiede']:
+                annunci_coinvolti.append({
+                    'annuncio': utente_obj['richiede'],
+                    'ruolo': 'richiede',
+                    'utente': utente_obj['user'].username
+                })
+
         ciclo_output = {
             'utenti': utenti_con_annunci,
             'dettagli': dettagli,
             'categoria_qualita': categoria_qualita,
+            'punteggio_qualita': dettagli.get('punteggio_qualita', 0),
             'lunghezza': ciclo_db.lunghezza,
             'id_ciclo': str(ciclo_db.id),
             'calcolato_at': ciclo_db.calcolato_at,
+            'annunci_coinvolti': annunci_coinvolti,
             'da_database': True  # Flag per identificare cicli pre-calcolati
         }
 
