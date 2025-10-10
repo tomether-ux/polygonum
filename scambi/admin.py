@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 from django.contrib import admin
-from .models import Categoria, Annuncio, UserProfile, Notifica, Preferiti, PropostaScambio
+from .models import Categoria, Annuncio, UserProfile, Notifica, Preferiti, PropostaScambio, CicloScambio
 
 @admin.register(Categoria)
 class CategoriaAdmin(admin.ModelAdmin):
@@ -56,3 +56,17 @@ class PropostaScambioAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('richiedente', 'destinatario', 'annuncio_offerto', 'annuncio_richiesto')
+
+
+@admin.register(CicloScambio)
+class CicloScambioAdmin(admin.ModelAdmin):
+    list_display = ['id', 'lunghezza', 'valido', 'calcolato_at', 'get_users_display']
+    list_filter = ['lunghezza', 'valido', 'calcolato_at']
+    search_fields = ['hash_ciclo']
+    readonly_fields = ['hash_ciclo', 'calcolato_at']
+    ordering = ['-calcolato_at']
+
+    def get_users_display(self, obj):
+        """Mostra gli ID degli utenti nel ciclo"""
+        return f"Utenti: {obj.users}"
+    get_users_display.short_description = 'Utenti nel ciclo'
