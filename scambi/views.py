@@ -238,10 +238,10 @@ def catene_scambio(request):
                             messages.error(request, 'Ricerca interrotta per timeout. Troppi dati da elaborare.')
                             tutte_catene = scambi_diretti
                         else:
-                            print("⏰ Inizio ricerca catene lunghe (limitata a 3 utenti)...")
+                            print("⏰ Inizio ricerca catene lunghe...")
                             try:
-                                # Limita la ricerca delle catene a max 3 utenti per velocizzare
-                                catene = trova_catene_scambio_ottimizzato(max_lunghezza=3)
+                                # Carica tutte le catene dal database ottimizzato (2-6 utenti)
+                                catene = trova_catene_scambio_ottimizzato()
 
                                 if time.time() - start_time > timeout_seconds:
                                     messages.warning(request, 'Ricerca parziale completata (timeout raggiunto). Mostrando solo scambi diretti.')
@@ -740,10 +740,10 @@ def le_mie_catene(request):
                 messages.error(request, 'Ricerca interrotta per timeout. Troppi dati da elaborare.')
                 tutte_catene = scambi_diretti
             else:
-                print("⏰ Inizio ricerca catene lunghe (limitata a 3 utenti)...")
+                print("⏰ Inizio ricerca catene lunghe...")
                 try:
-                    # Limita la ricerca delle catene a max 3 utenti per velocizzare
-                    catene = trova_catene_scambio_ottimizzato(max_lunghezza=3)
+                    # Ricerca tutte le catene disponibili nel database
+                    catene = trova_catene_scambio_ottimizzato()
 
                     if time.time() - start_time > timeout_seconds:
                         messages.warning(request, 'Ricerca parziale completata (timeout raggiunto). Mostrando solo scambi diretti.')
