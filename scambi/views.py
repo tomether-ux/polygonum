@@ -1846,13 +1846,13 @@ def webhook_calcola_cicli(request):
 
         start_time = time.time()
 
-        # Esegui il comando di calcolo cicli
+        # Esegui il comando di calcolo cicli con verbosità ridotta per webhook
         call_command(
             "calcola_cicli",
             max_length=6,
             commit_batch_size=50,
             cleanup_old=True,
-            verbosity=1
+            verbosity=0  # Ridotto a 0 per evitare output troppo verboso nel webhook
         )
 
         # Ripristina stdout
@@ -1866,6 +1866,12 @@ def webhook_calcola_cicli(request):
 
         execution_time = time.time() - start_time
 
+        # Estrai solo statistiche essenziali dall'output per evitare risposte troppo grandi
+        output_lines = command_output.split('\n')
+        summary_lines = [line for line in output_lines if any(keyword in line for keyword in [
+            'trovati', 'salvati', 'rimossi', 'completato', 'tempo', 'performance', '✅', '📊'
+        ])]
+
         return JsonResponse({
             "success": True,
             "message": "Calcolo cicli completato con successo",
@@ -1874,7 +1880,7 @@ def webhook_calcola_cicli(request):
                 "cicli_validi": cicli_validi,
                 "execution_time_seconds": round(execution_time, 2)
             },
-            "output": command_output,
+            "summary": summary_lines[-10:] if summary_lines else ["Calcolo completato"],  # Solo ultimi 10 righe rilevanti
             "timestamp": time.time()
         })
 
