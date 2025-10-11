@@ -1410,25 +1410,76 @@ def trova_scambi_diretti_ottimizzato():
     return risultato['scambi_diretti']
 
 
-def trova_catene_scambio_ottimizzato(max_lunghezza=6):
+def calcola_qualita_ciclo(ciclo):
+    """
+    Calcola la qualità di un ciclo pre-calcolato dal database.
+
+    Args:
+        ciclo: Ciclo in formato dict dalla funzione converti_ciclo_db_a_view_format
+
+    Returns:
+        int: Punteggio qualità del ciclo
+    """
+    if not ciclo.get('utenti'):
+        return 0
+
+    punteggio_totale = 0
+    num_scambi = 0
+
+    # Calcola la qualità per ogni scambio nel ciclo
+    for i, utente in enumerate(ciclo['utenti']):
+        if not utente.get('offerta') or not utente.get('richiede'):
+            continue
+
+        offerta = utente['offerta']
+        richiede = utente['richiede']
+
+        # Usa la funzione avanzata per calcolare qualità
+        try:
+            compatible, punteggio, _ = oggetti_compatibili_avanzato(offerta, richiede, distanza_km=50)
+            if compatible:
+                punteggio_totale += punteggio
+            num_scambi += 1
+        except:
+            # Se fallisce, usa compatibilità semplice
+            continue
+
+    # Media dei punteggi degli scambi nel ciclo
+    return punteggio_totale // max(1, num_scambi) if num_scambi > 0 else 0
+
+
+def trova_catene_scambio_ottimizzato(max_lunghezza=6, solo_alta_qualita=True, soglia_qualita=20):
     """
     Versione ottimizzata che sostituisce trova_catene_scambio().
-    Legge i cicli pre-calcolati dal database e filtra per lunghezza.
+    Legge i cicli pre-calcolati dal database e filtra per lunghezza e qualità.
 
     Args:
         max_lunghezza: Lunghezza massima delle catene da restituire
+        solo_alta_qualita: Se True, mostra solo catene con parole in comune (≥soglia_qualita)
+        soglia_qualita: Punteggio minimo per considerare una catena di alta qualità (default: 20)
     """
     risultato = get_cicli_precalcolati()
+    catene = risultato['catene']
 
     # Filtra per lunghezza se specificata
     if max_lunghezza:
-        catene_filtrate = [
-            catena for catena in risultato['catene']
+        catene = [
+            catena for catena in catene
             if catena['lunghezza'] <= max_lunghezza
         ]
-        return catene_filtrate
 
-    return risultato['catene']
+    # Filtra per qualità se richiesto
+    if solo_alta_qualita:
+        catene_alta_qualita = []
+        for catena in catene:
+            qualita = calcola_qualita_ciclo(catena)
+            if qualita >= soglia_qualita:
+                # Aggiorna il punteggio nel ciclo per uso successivo
+                catena['punteggio_qualita'] = qualita
+                catene_alta_qualita.append(catena)
+        return catene_alta_qualita
+
+    return catene
 
 
 def filtra_catene_per_utente_ottimizzato(scambi_diretti, catene, utente):
@@ -1453,7 +1504,7 @@ def filtra_catene_per_utente_ottimizzato(scambi_diretti, catene, utente):
     return scambi_diretti_utente, catene_lunghe_utente
 
 
-def trova_catene_per_annuncio_ottimizzato(annuncio, max_lunghezza=6):
+def trova_catene_per_annuncio_ottimizzato(annuncio, max_lunghezza=6, includi_generiche=True):
     """
     Versione ottimizzata che trova cicli pre-calcolati contenenti un annuncio specifico.
     Sostituisce trova_catene_per_annuncio() per evitare brute-force.
@@ -1461,6 +1512,7 @@ def trova_catene_per_annuncio_ottimizzato(annuncio, max_lunghezza=6):
     Args:
         annuncio: Istanza Annuncio per cui cercare catene
         max_lunghezza: Lunghezza massima delle catene
+        includi_generiche: Se True, include anche catene generiche (punteggio < 20)
 
     Returns:
         list: Cicli che coinvolgono l'annuncio specificato
@@ -1482,6 +1534,13 @@ def trova_catene_per_annuncio_ottimizzato(annuncio, max_lunghezza=6):
             # Verifica se l'annuncio è tra quelli del ciclo analizzando i dettagli
             if controlla_annuncio_in_ciclo(annuncio, ciclo):
                 if max_lunghezza is None or ciclo['lunghezza'] <= max_lunghezza:
+                    # Filtra per qualità se richiesto
+                    if not includi_generiche:
+                        qualita = calcola_qualita_ciclo(ciclo)
+                        if qualita < 20:
+                            continue  # Salta catene generiche
+                        ciclo['punteggio_qualita'] = qualita
+
                     cicli_per_annuncio.append(ciclo)
 
     elapsed = time.time() - start_time
