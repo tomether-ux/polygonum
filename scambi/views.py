@@ -250,33 +250,28 @@ def catene_scambio(request):
                                     messages.warning(request, 'Ricerca parziale completata (timeout raggiunto). Mostrando solo scambi diretti.')
                                     tutte_catene = scambi_diretti
                                 else:
-                                    # Separa catene per qualità E tipo di match
+                                    # Filtra SOLO catene con match sui titoli (specifico/parziale)
                                     catene_specifiche = []  # Match sui titoli (specifico/parziale)
-                                    catene_generiche = []   # Match solo categoria
 
                                     for c in catene:
                                         # Calcola qualità e determina se ha match sui titoli
                                         punteggio, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
                                         c['punteggio_qualita'] = punteggio
 
-                                        # Separa in base al tipo di match
+                                        # Includi SOLO se ha match sui titoli
                                         if ha_match_titoli:
                                             catene_specifiche.append(c)
-                                        else:
-                                            catene_generiche.append(c)
 
-                                    # Filtra tutto per l'utente attuale
+                                    # Filtra tutto per l'utente attuale (solo catene specifiche)
                                     scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente_ottimizzato(
-                                        scambi_diretti, catene_specifiche + catene_generiche, request.user
+                                        scambi_diretti, catene_specifiche, request.user
                                     )
 
                                     # Ricomponi le catene filtrate
                                     tutte_catene = scambi_diretti_utente + catene_lunghe_utente
 
                                     elapsed = time.time() - start_time
-                                    num_specifiche = len([c for c in tutte_catene if c in catene_specifiche])
-                                    num_generiche = len([c for c in tutte_catene if c in catene_generiche])
-                                    messages.success(request, f'Ricerca completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} opportunità di scambio! ({num_specifiche} specifiche, {num_generiche} generiche)')
+                                    messages.success(request, f'Ricerca completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} catene con parole in comune nei titoli!')
                             except Exception as e:
                                 print(f"Errore durante ricerca catene lunghe: {e}")
                                 tutte_catene = scambi_diretti
@@ -324,26 +319,18 @@ def catene_scambio(request):
     scambi_diretti = [c for c in catene_uniche if c.get('tipo') == 'scambio_diretto']
     catene_lunghe = [c for c in catene_uniche if c.get('tipo') != 'scambio_diretto']
 
-    # Separa per tipo di match (titoli vs categoria)
-    scambi_diretti_specifici = []  # Match sui titoli
-    scambi_diretti_generici = []   # Match solo categoria
-
+    # Filtra SOLO per match sui titoli (specifico/parziale)
+    scambi_diretti_specifici = []
     for c in scambi_diretti:
         _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
         if ha_match_titoli:
             scambi_diretti_specifici.append(c)
-        else:
-            scambi_diretti_generici.append(c)
 
-    catene_specifiche = []  # Match sui titoli
-    catene_generiche = []   # Match solo categoria
-
+    catene_specifiche = []
     for c in catene_lunghe:
         _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
         if ha_match_titoli:
             catene_specifiche.append(c)
-        else:
-            catene_generiche.append(c)
 
 
     # Filtra per annuncio specifico se richiesto
@@ -356,15 +343,7 @@ def catene_scambio(request):
                 item.get('annuncio', {}).id == int(annuncio_filtro_id) if hasattr(item.get('annuncio', {}), 'id')
                 else False for item in c.get('annunci_coinvolti', [])
             )]
-            scambi_diretti_generici = [c for c in scambi_diretti_generici if any(
-                item.get('annuncio', {}).id == int(annuncio_filtro_id) if hasattr(item.get('annuncio', {}), 'id')
-                else False for item in c.get('annunci_coinvolti', [])
-            )]
             catene_specifiche = [c for c in catene_specifiche if any(
-                item.get('annuncio', {}).id == int(annuncio_filtro_id) if hasattr(item.get('annuncio', {}), 'id')
-                else False for item in c.get('annunci_coinvolti', [])
-            )]
-            catene_generiche = [c for c in catene_generiche if any(
                 item.get('annuncio', {}).id == int(annuncio_filtro_id) if hasattr(item.get('annuncio', {}), 'id')
                 else False for item in c.get('annunci_coinvolti', [])
             )]
@@ -373,13 +352,11 @@ def catene_scambio(request):
 
     # Ordina per punteggio
     scambi_diretti_specifici.sort(key=lambda x: -x.get('punteggio_qualita', 0))
-    scambi_diretti_generici.sort(key=lambda x: -x.get('punteggio_qualita', 0))
     catene_specifiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
-    catene_generiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
 
     # Aggiungi flag per i preferiti e hash se l'utente è autenticato
     if request.user.is_authenticated:
-        for catena in scambi_diretti_specifici + scambi_diretti_generici + catene_specifiche + catene_generiche:
+        for catena in scambi_diretti_specifici + catene_specifiche:
             catena['is_favorita'] = is_catena_preferita(request.user, catena)
             catena['hash_catena'] = genera_hash_catena(catena)
             # Converti la catena in JSON string per il template
@@ -398,14 +375,10 @@ def catene_scambio(request):
 
     return render(request, 'scambi/catene_scambio.html', {
         'scambi_diretti_specifici': scambi_diretti_specifici,
-        'scambi_diretti_generici': scambi_diretti_generici,
         'catene_specifiche': catene_specifiche,
-        'catene_generiche': catene_generiche,
-        'totale_catene': len(catene_uniche),
-        'totale_scambi_diretti': len(scambi_diretti),
-        'totale_catene_lunghe': len(catene_lunghe),
-        'totale_specifiche': len(scambi_diretti_specifici) + len(catene_specifiche),
-        'totale_generiche': len(scambi_diretti_generici) + len(catene_generiche),
+        'totale_catene': len(scambi_diretti_specifici) + len(catene_specifiche),
+        'totale_scambi_diretti': len(scambi_diretti_specifici),
+        'totale_catene_lunghe': len(catene_specifiche),
         'ricerca_eseguita': cerca_nuove,
         'user_filtered': request.user.is_authenticated and cerca_nuove,
         'miei_annunci': miei_annunci,
