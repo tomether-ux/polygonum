@@ -320,65 +320,115 @@
     </div>
 
     {% if catene_alta_qualita %}
-        <h2 id="catene-alta" class="text-success mb-3">Catene ad Alta Corrispondenza ({{ catene_alta_qualita|length }})</h2>
-
+        <h2 id="catene-alta" class="modern-section-title mb-4">
+            <span class="title-icon">✨</span>
+            Catene ad Alta Corrispondenza
+            <span class="title-badge">{{ catene_alta_qualita|length }}</span>
+        </h2>
 
         {% for catena in catene_alta_qualita %}
-        <div class="card mb-4 border-success">
-            <div class="card-header bg-light">
+        <div class="modern-chain-card high-quality mb-4">
+            <div class="chain-card-header">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 text-success">
-                        Catena #{{ forloop.counter }} - {{ catena.utenti|length }} Persone
-                        <span class="badge bg-success">Punteggio: {{ catena.punteggio_qualita }}</span>
-                    </h5>
+                    <div class="chain-title">
+                        <span class="chain-icon">🔗</span>
+                        <span class="chain-number">#{{ forloop.counter }}</span>
+                        <span class="chain-people">{{ catena.utenti|length }} Persone</span>
+                    </div>
+                    <div class="chain-score">
+                        <i class="fas fa-star"></i>
+                        <span>{{ catena.punteggio_qualita }}</span>
+                    </div>
                 </div>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Partecipanti:</h6>
-                        {% for utente in catena.utenti %}
-                            <span class="badge bg-success me-1">{{ utente.user.username }}</span>
-                        {% endfor %}
 
-                        <h6 class="mt-3">Sequenza Scambi:</h6>
-                        <div class="d-flex flex-wrap align-items-center exchange-flow">
-                            {% for utente in catena.utenti %}
-                                {% if utente.offerta %}
-                                    <div class="exchange-step me-2 mb-2">
-                                        <div class="badge bg-success text-wrap p-2">
-                                            <strong>{{ utente.user.username }}</strong><br>
-                                            offre: <em>{{ utente.offerta.titolo }}</em>
+            <div class="chain-card-body">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="participants-section">
+                            <h6 class="section-label">
+                                <i class="fas fa-users me-2"></i>Partecipanti
+                            </h6>
+                            <div class="participants-list">
+                                {% for utente in catena.utenti %}
+                                    <span class="participant-badge">
+                                        <i class="fas fa-user-circle"></i>
+                                        {{ utente.user.username }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="exchange-section mt-4">
+                            <h6 class="section-label">
+                                <i class="fas fa-exchange-alt me-2"></i>Sequenza Scambi
+                            </h6>
+                            <div class="modern-exchange-flow">
+                                {% for utente in catena.utenti %}
+                                    <div class="modern-exchange-step">
+                                        <div class="user-avatar">
+                                            {{ utente.user.username|slice:":1"|upper }}
+                                        </div>
+                                        <div class="user-exchange-info">
+                                            <div class="user-name">{{ utente.user.username }}</div>
+                                            {% if utente.offerta %}
+                                                <div class="exchange-detail offer">
+                                                    <i class="fas fa-hand-holding"></i>
+                                                    <span>{{ utente.offerta.titolo }}</span>
+                                                </div>
+                                            {% endif %}
+                                            {% if utente.richiede %}
+                                                <div class="exchange-detail request">
+                                                    <i class="fas fa-search"></i>
+                                                    <span>{{ utente.richiede.titolo }}</span>
+                                                </div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                     {% if not forloop.last %}
-                                        <div class="exchange-arrow me-2 mb-2">
-                                            <i class="fas fa-arrow-right text-muted"></i>
+                                        <div class="modern-exchange-arrow">
+                                            <i class="fas fa-arrow-down"></i>
                                         </div>
                                     {% endif %}
-                                {% endif %}
-                            {% endfor %}
+                                {% endfor %}
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="col-md-6">
-                        <h6>Annunci:</h6>
-                        {% for item in catena.annunci_coinvolti %}
-                        <a href="{% url 'dettaglio_annuncio' item.annuncio.id %}" class="text-decoration-none">
-                            <div class="card mb-2 border-success clickable-ad-card">
-                                <div class="card-body p-2">
-                                    <strong class="text-dark">{{ item.annuncio.titolo }}</strong>
-                                    <br><small><a href="{% url 'profilo_utente' item.utente %}" class="text-muted text-decoration-underline" onclick="event.stopPropagation();">{{ item.utente }}</a> - {{ item.annuncio.categoria.nome }}</small>
-                                    <br>
-                                    {% if item.ruolo == 'offre' %}
-                                        <span class="badge bg-success">Offre</span>
-                                    {% else %}
-                                        <span class="badge bg-info">Cerca</span>
-                                    {% endif %}
-                                </div>
+
+                    <div class="col-lg-6">
+                        <div class="announcements-section">
+                            <h6 class="section-label">
+                                <i class="fas fa-bullhorn me-2"></i>Annunci Coinvolti
+                            </h6>
+                            <div class="announcements-list">
+                                {% for item in catena.annunci_coinvolti %}
+                                <a href="{% url 'dettaglio_annuncio' item.annuncio.id %}" class="modern-announcement-card">
+                                    <div class="announcement-icon {% if item.ruolo == 'offre' %}offer-icon{% else %}request-icon{% endif %}">
+                                        {% if item.ruolo == 'offre' %}
+                                            <i class="fas fa-gift"></i>
+                                        {% else %}
+                                            <i class="fas fa-search"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="announcement-content">
+                                        <div class="announcement-title">{{ item.annuncio.titolo }}</div>
+                                        <div class="announcement-meta">
+                                            <span class="announcement-user">
+                                                <i class="fas fa-user"></i>
+                                                {{ item.utente }}
+                                            </span>
+                                            <span class="announcement-category">
+                                                {{ item.annuncio.categoria.nome }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="announcement-role-badge {% if item.ruolo == 'offre' %}offer-badge{% else %}request-badge{% endif %}">
+                                        {% if item.ruolo == 'offre' %}Offre{% else %}Cerca{% endif %}
+                                    </div>
+                                </a>
+                                {% endfor %}
                             </div>
-                        </a>
-                        {% endfor %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -388,64 +438,115 @@
 
     <!-- CATENE -->
     {% if catene_generiche %}
-        <h2 id="catene-generiche" class="text-info mb-3 mt-4">Catene</h2>
-        
+        <h2 id="catene-generiche" class="modern-section-title generic mb-4 mt-5">
+            <span class="title-icon">🔗</span>
+            Catene
+            <span class="title-badge">{{ catene_generiche|length }}</span>
+        </h2>
+
         {% for catena in catene_generiche %}
-        <div class="card mb-4 border-info">
-            <div class="card-header bg-light">
+        <div class="modern-chain-card generic mb-4">
+            <div class="chain-card-header">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 text-info">
-                        Catena #{{ forloop.counter }} - {{ catena.utenti|length }} Persone
-                        <span class="badge bg-info">Punteggio: {{ catena.punteggio_qualita }}</span>
-                    </h5>
+                    <div class="chain-title">
+                        <span class="chain-icon">🔗</span>
+                        <span class="chain-number">#{{ forloop.counter }}</span>
+                        <span class="chain-people">{{ catena.utenti|length }} Persone</span>
+                    </div>
+                    <div class="chain-score">
+                        <i class="fas fa-star"></i>
+                        <span>{{ catena.punteggio_qualita }}</span>
+                    </div>
                 </div>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Partecipanti:</h6>
-                        {% for utente in catena.utenti %}
-                            <span class="badge bg-info me-1">{{ utente.user.username }}</span>
-                        {% endfor %}
 
-                        <h6 class="mt-3">Sequenza Scambi:</h6>
-                        <div class="d-flex flex-wrap align-items-center exchange-flow">
-                            {% for utente in catena.utenti %}
-                                {% if utente.offerta %}
-                                    <div class="exchange-step me-2 mb-2">
-                                        <div class="badge bg-primary text-wrap p-2">
-                                            <strong>{{ utente.user.username }}</strong><br>
-                                            offre: <em>{{ utente.offerta.titolo }}</em>
+            <div class="chain-card-body">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="participants-section">
+                            <h6 class="section-label">
+                                <i class="fas fa-users me-2"></i>Partecipanti
+                            </h6>
+                            <div class="participants-list">
+                                {% for utente in catena.utenti %}
+                                    <span class="participant-badge">
+                                        <i class="fas fa-user-circle"></i>
+                                        {{ utente.user.username }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="exchange-section mt-4">
+                            <h6 class="section-label">
+                                <i class="fas fa-exchange-alt me-2"></i>Sequenza Scambi
+                            </h6>
+                            <div class="modern-exchange-flow">
+                                {% for utente in catena.utenti %}
+                                    <div class="modern-exchange-step">
+                                        <div class="user-avatar">
+                                            {{ utente.user.username|slice:":1"|upper }}
+                                        </div>
+                                        <div class="user-exchange-info">
+                                            <div class="user-name">{{ utente.user.username }}</div>
+                                            {% if utente.offerta %}
+                                                <div class="exchange-detail offer">
+                                                    <i class="fas fa-hand-holding"></i>
+                                                    <span>{{ utente.offerta.titolo }}</span>
+                                                </div>
+                                            {% endif %}
+                                            {% if utente.richiede %}
+                                                <div class="exchange-detail request">
+                                                    <i class="fas fa-search"></i>
+                                                    <span>{{ utente.richiede.titolo }}</span>
+                                                </div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                     {% if not forloop.last %}
-                                        <div class="exchange-arrow me-2 mb-2">
-                                            <i class="fas fa-arrow-right text-muted"></i>
+                                        <div class="modern-exchange-arrow">
+                                            <i class="fas fa-arrow-down"></i>
                                         </div>
                                     {% endif %}
-                                {% endif %}
-                            {% endfor %}
+                                {% endfor %}
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="col-md-6">
-                        <h6>Annunci:</h6>
-                        {% for item in catena.annunci_coinvolti %}
-                        <a href="{% url 'dettaglio_annuncio' item.annuncio.id %}" class="text-decoration-none">
-                            <div class="card mb-2 border-info clickable-ad-card">
-                                <div class="card-body p-2">
-                                    <strong class="text-dark">{{ item.annuncio.titolo }}</strong>
-                                    <br><small><a href="{% url 'profilo_utente' item.utente %}" class="text-muted text-decoration-underline" onclick="event.stopPropagation();">{{ item.utente }}</a> - {{ item.annuncio.categoria.nome }}</small>
-                                    <br>
-                                    {% if item.ruolo == 'offre' %}
-                                        <span class="badge bg-warning">Offre</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">Cerca</span>
-                                    {% endif %}
-                                </div>
+
+                    <div class="col-lg-6">
+                        <div class="announcements-section">
+                            <h6 class="section-label">
+                                <i class="fas fa-bullhorn me-2"></i>Annunci Coinvolti
+                            </h6>
+                            <div class="announcements-list">
+                                {% for item in catena.annunci_coinvolti %}
+                                <a href="{% url 'dettaglio_annuncio' item.annuncio.id %}" class="modern-announcement-card">
+                                    <div class="announcement-icon {% if item.ruolo == 'offre' %}offer-icon{% else %}request-icon{% endif %}">
+                                        {% if item.ruolo == 'offre' %}
+                                            <i class="fas fa-gift"></i>
+                                        {% else %}
+                                            <i class="fas fa-search"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="announcement-content">
+                                        <div class="announcement-title">{{ item.annuncio.titolo }}</div>
+                                        <div class="announcement-meta">
+                                            <span class="announcement-user">
+                                                <i class="fas fa-user"></i>
+                                                {{ item.utente }}
+                                            </span>
+                                            <span class="announcement-category">
+                                                {{ item.annuncio.categoria.nome }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="announcement-role-badge {% if item.ruolo == 'offre' %}offer-badge{% else %}request-badge{% endif %}">
+                                        {% if item.ruolo == 'offre' %}Offre{% else %}Cerca{% endif %}
+                                    </div>
+                                </a>
+                                {% endfor %}
                             </div>
-                        </a>
-                        {% endfor %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -761,6 +862,478 @@ function getCookie(name) {
     .exchange-step .badge {
         width: 100%;
         min-width: auto;
+    }
+}
+
+/* ========== MODERN CHAIN CARDS DESIGN ========== */
+
+/* Modern Section Title */
+.modern-section-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #2c3e50;
+    margin-top: 2rem;
+}
+
+.modern-section-title .title-icon {
+    font-size: 2rem;
+}
+
+.modern-section-title .title-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.modern-section-title.generic .title-badge {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+}
+
+/* Modern Chain Card - Glassmorphism */
+.modern-chain-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+}
+
+.modern-chain-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s ease;
+}
+
+.modern-chain-card.generic::before {
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.modern-chain-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+}
+
+.modern-chain-card:hover::before {
+    transform: scaleX(1);
+}
+
+/* Chain Card Header */
+.chain-card-header {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    padding: 20px 25px;
+    border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.modern-chain-card.generic .chain-card-header {
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
+    border-bottom: 1px solid rgba(79, 172, 254, 0.2);
+}
+
+.chain-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.chain-icon {
+    font-size: 1.5rem;
+}
+
+.chain-number {
+    color: #667eea;
+    font-weight: 700;
+}
+
+.modern-chain-card.generic .chain-number {
+    color: #4facfe;
+}
+
+.chain-people {
+    color: #7f8c8d;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.chain-score {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    padding: 8px 18px;
+    border-radius: 25px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.chain-score i {
+    animation: rotate 3s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Chain Card Body */
+.chain-card-body {
+    padding: 30px 25px;
+}
+
+/* Section Labels */
+.section-label {
+    color: #667eea;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.modern-chain-card.generic .section-label {
+    color: #4facfe;
+}
+
+/* Participants */
+.participants-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.participant-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+}
+
+.modern-chain-card.generic .participant-badge {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
+}
+
+.participant-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(102, 126, 234, 0.4);
+}
+
+.participant-badge i {
+    font-size: 1.1rem;
+}
+
+/* Modern Exchange Flow */
+.modern-exchange-flow {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+    border-radius: 15px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.modern-chain-card.generic .modern-exchange-flow {
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.05) 0%, rgba(0, 242, 254, 0.05) 100%);
+}
+
+.modern-exchange-step {
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+    animation: fadeInUp 0.6s ease forwards;
+    opacity: 0;
+}
+
+.modern-exchange-step:nth-child(1) { animation-delay: 0.1s; }
+.modern-exchange-step:nth-child(3) { animation-delay: 0.2s; }
+.modern-exchange-step:nth-child(5) { animation-delay: 0.3s; }
+.modern-exchange-step:nth-child(7) { animation-delay: 0.4s; }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.user-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    flex-shrink: 0;
+}
+
+.modern-chain-card.generic .user-avatar {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+}
+
+.user-exchange-info {
+    flex: 1;
+    background: white;
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.user-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 8px;
+    font-size: 1rem;
+}
+
+.exchange-detail {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0;
+    font-size: 0.9rem;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.exchange-detail.offer {
+    background: linear-gradient(135deg, rgba(46, 213, 115, 0.1) 0%, rgba(72, 219, 251, 0.1) 100%);
+    color: #27ae60;
+    border-left: 3px solid #27ae60;
+}
+
+.exchange-detail.request {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.1) 0%, rgba(155, 89, 182, 0.1) 100%);
+    color: #3498db;
+    border-left: 3px solid #3498db;
+}
+
+.exchange-detail i {
+    font-size: 1.1rem;
+}
+
+.modern-exchange-arrow {
+    text-align: center;
+    color: #667eea;
+    font-size: 1.5rem;
+    margin: 5px 0;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+/* Announcements */
+.announcements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.modern-announcement-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.modern-announcement-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    transform: scaleY(0);
+    transition: transform 0.3s ease;
+}
+
+.modern-announcement-card:hover::before {
+    transform: scaleY(1);
+}
+
+.modern-announcement-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+.announcement-icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.announcement-icon.offer-icon {
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+}
+
+.announcement-icon.request-icon {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.announcement-content {
+    flex: 1;
+}
+
+.announcement-title {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 1rem;
+    margin-bottom: 6px;
+    line-height: 1.3;
+}
+
+.announcement-meta {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.announcement-user,
+.announcement-category {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.announcement-user i {
+    color: #667eea;
+}
+
+.announcement-role-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.announcement-role-badge.offer-badge {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.15) 0%, rgba(39, 174, 96, 0.15) 100%);
+    color: #27ae60;
+    border: 1px solid rgba(39, 174, 96, 0.3);
+}
+
+.announcement-role-badge.request-badge {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.15) 0%, rgba(41, 128, 185, 0.15) 100%);
+    color: #2980b9;
+    border: 1px solid rgba(41, 128, 185, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .modern-section-title {
+        font-size: 1.5rem;
+    }
+
+    .chain-card-header {
+        padding: 15px;
+    }
+
+    .chain-card-body {
+        padding: 20px 15px;
+    }
+
+    .modern-exchange-step {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .modern-announcement-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .announcement-meta {
+        justify-content: center;
     }
 }
 </style>
