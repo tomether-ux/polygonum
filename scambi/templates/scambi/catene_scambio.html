@@ -184,19 +184,19 @@
 
 {% elif totale_catene > 0 %}
     <div class="alert alert-success">
-        <strong>Risultati:</strong> Trovati {{ totale_scambi_diretti }} scambi diretti + {{ totale_catene_lunghe }} catene lunghe = {{ totale_catene }} totali
-        <br><small class="text-muted">• {{ totale_specifiche }} catene specifiche (match sui titoli) • {{ totale_generiche }} catene generiche (solo categoria)</small>
+        <strong>Risultati:</strong> Trovate {{ totale_catene }} catene con parole in comune nei titoli
+        <br><small class="text-muted">{{ totale_scambi_diretti }} scambi diretti + {{ totale_catene_lunghe }} catene lunghe</small>
     </div>
 
     <!-- SCAMBI DIRETTI (MASSIMA PRIORITÀ) -->
-    {% if scambi_diretti_specifici or scambi_diretti_generici %}
+    {% if scambi_diretti_specifici %}
         <div id="scambi-diretti" class="alert alert-warning">
             <h4><i class="fas fa-star me-2"></i>Scambi Diretti Disponibili (2 Persone)</h4>
             <p>Questi sono i più semplici da realizzare - solo 2 persone si scambiano direttamente!</p>
         </div>
 
         {% if scambi_diretti_specifici %}
-            <h2 class="text-warning mb-3">💫 Scambi Diretti - Corrispondenza Specifica (Titoli)</h2>
+            <h2 class="text-warning mb-3">💫 Scambi Diretti</h2>
 
             {% for scambio in scambi_diretti_specifici %}
             <div class="card mb-4 border-warning">
@@ -248,82 +248,25 @@
             </div>
             {% endfor %}
         {% endif %}
-
-        {% if scambi_diretti_generici %}
-            <h2 class="text-warning mb-3">💫 Scambi Diretti - Corrispondenza Generica (Solo Categoria)</h2>
-
-            {% for scambio in scambi_diretti_generici %}
-            <div class="card mb-4 border-warning">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0 text-warning">
-                        🔄 Scambio Diretto: {{ scambio.utenti.0 }} ↔ {{ scambio.utenti.1 }}
-                        <span class="badge bg-warning text-dark">Punteggio: {{ scambio.punteggio_qualita|floatformat:1 }}</span>
-                        {% if scambio.distanza_km <= 30 %}
-                            <span class="badge bg-success">📍 {{ scambio.distanza_km|floatformat:0 }}km</span>
-                        {% elif scambio.distanza_km <= 100 %}
-                            <span class="badge bg-warning">📍 {{ scambio.distanza_km|floatformat:0 }}km</span>
-                        {% else %}
-                            <span class="badge bg-secondary">📍 {{ scambio.distanza_km|floatformat:0 }}km</span>
-                        {% endif %}
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Lo Scambio:</h6>
-                            <div class="alert alert-info">
-                                {% for scambio_desc in scambio.scambi %}
-                                    <div><i class="fas fa-arrow-right me-2"></i>{{ scambio_desc }}</div>
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <h6>Annunci Coinvolti:</h6>
-                            {% for item in scambio.annunci_coinvolti %}
-                            <a href="{% url 'dettaglio_annuncio' item.annuncio.id %}" class="text-decoration-none">
-                                <div class="card mb-2 border-warning clickable-ad-card">
-                                    <div class="card-body p-2">
-                                        <strong class="text-dark">{{ item.annuncio.titolo }}</strong>
-                                        <br><small><a href="{% url 'profilo_utente' item.utente %}" class="text-muted text-decoration-underline" onclick="event.stopPropagation();">{{ item.utente }}</a> - {{ item.annuncio.categoria.nome }}</small>
-                                        <br>
-                                        {% if item.ruolo == 'offre' %}
-                                            <span class="badge bg-success">Offre</span>
-                                        {% else %}
-                                            <span class="badge bg-primary">Cerca</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </a>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        {% endif %}
     {% endif %}
 
 
-    <!-- CATENE SPECIFICHE E GENERICHE -->
+    <!-- CATENE LUNGHE -->
     <!-- Navigazione rapida -->
     <div class="alert alert-light">
         <strong>📋 Navigazione rapida:</strong>
-        {% if scambi_diretti_specifici or scambi_diretti_generici %}
+        {% if scambi_diretti_specifici %}
             <a href="#scambi-diretti" class="btn btn-warning btn-sm me-2">Scambi Diretti ({{ totale_scambi_diretti }})</a>
         {% endif %}
         {% if catene_specifiche %}
-            <a href="#catene-specifiche" class="btn btn-success btn-sm me-2">Catene Specifiche ({{ catene_specifiche|length }})</a>
-        {% endif %}
-        {% if catene_generiche %}
-            <a href="#catene-generiche" class="btn btn-info btn-sm">Catene Generiche ({{ catene_generiche|length }})</a>
+            <a href="#catene-lunghe" class="btn btn-success btn-sm">Catene Lunghe ({{ catene_specifiche|length }})</a>
         {% endif %}
     </div>
 
     {% if catene_specifiche %}
-        <h2 id="catene-specifiche" class="modern-section-title mb-4">
+        <h2 id="catene-lunghe" class="modern-section-title mb-4">
             <span class="title-icon">✨</span>
-            Catene Specifiche (Match sui Titoli)
+            Catene Lunghe
             <span class="title-badge">{{ catene_specifiche|length }}</span>
         </h2>
 
@@ -437,123 +380,6 @@
         {% endfor %}
     {% endif %}
 
-    <!-- CATENE GENERICHE -->
-    {% if catene_generiche %}
-        <h2 id="catene-generiche" class="modern-section-title generic mb-4 mt-5">
-            <span class="title-icon">🔗</span>
-            Catene Generiche (Solo Categoria)
-            <span class="title-badge">{{ catene_generiche|length }}</span>
-        </h2>
-
-        {% for catena in catene_generiche %}
-        <div class="modern-chain-card generic mb-4">
-            <div class="chain-card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="chain-title">
-                        <span class="chain-icon">🔗</span>
-                        <span class="chain-number">#{{ forloop.counter }}</span>
-                        <span class="chain-people">{{ catena.utenti|length }} Persone</span>
-                    </div>
-                    <div class="chain-score">
-                        <i class="fas fa-star"></i>
-                        <span>{{ catena.punteggio_qualita }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="chain-card-body">
-                <div class="participants-section mb-3">
-                    <h6 class="section-label">
-                        <i class="fas fa-users me-2"></i>Partecipanti
-                    </h6>
-                    <div class="participants-list">
-                        {% for utente in catena.utenti %}
-                            <span class="participant-badge">
-                                <i class="fas fa-user-circle"></i>
-                                {{ utente.user.username }}
-                            </span>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <div class="exchange-section">
-                    <h6 class="section-label mb-3">
-                        <i class="fas fa-exchange-alt me-2"></i>Sequenza Scambi
-                    </h6>
-
-                    {% for utente in catena.utenti %}
-                    <div class="aligned-exchange-row">
-                        <div class="user-column">
-                            <div class="modern-exchange-step">
-                                <div class="user-avatar">
-                                    {{ utente.user.username|slice:":1"|upper }}
-                                </div>
-                                <div class="user-exchange-info">
-                                    <div class="user-name">{{ utente.user.username }}</div>
-                                    {% if utente.offerta %}
-                                        <div class="exchange-detail offer">
-                                            <i class="fas fa-hand-holding"></i>
-                                            <span>Offre: {{ utente.offerta.titolo|truncatechars:30 }}</span>
-                                        </div>
-                                    {% endif %}
-                                    {% if utente.richiede %}
-                                        <div class="exchange-detail request">
-                                            <i class="fas fa-search"></i>
-                                            <span>Cerca: {{ utente.richiede.titolo|truncatechars:30 }}</span>
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="announcements-column">
-                            {% if utente.offerta %}
-                            <a href="{% url 'dettaglio_annuncio' utente.offerta.id %}" class="modern-announcement-card compact">
-                                <div class="announcement-icon offer-icon">
-                                    <i class="fas fa-gift"></i>
-                                </div>
-                                <div class="announcement-content">
-                                    <div class="announcement-title">{{ utente.offerta.titolo }}</div>
-                                    <div class="announcement-meta">
-                                        <span class="announcement-category">
-                                            {{ utente.offerta.categoria.nome }}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="announcement-role-badge offer-badge">Offre</div>
-                            </a>
-                            {% endif %}
-
-                            {% if utente.richiede %}
-                            <a href="{% url 'dettaglio_annuncio' utente.richiede.id %}" class="modern-announcement-card compact">
-                                <div class="announcement-icon request-icon">
-                                    <i class="fas fa-search"></i>
-                                </div>
-                                <div class="announcement-content">
-                                    <div class="announcement-title">{{ utente.richiede.titolo }}</div>
-                                    <div class="announcement-meta">
-                                        <span class="announcement-category">
-                                            {{ utente.richiede.categoria.nome }}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="announcement-role-badge request-badge">Cerca</div>
-                            </a>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    {% if not forloop.last %}
-                        <div class="modern-exchange-arrow">
-                            <i class="fas fa-arrow-down"></i>
-                        </div>
-                    {% endif %}
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    {% endif %}
 
 {% else %}
     {% if ricerca_eseguita %}
