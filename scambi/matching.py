@@ -1331,20 +1331,29 @@ def converti_ciclo_db_a_view_format(ciclo_db):
                 'richiede': user_requests.get(utente.id)
             })
 
-        # Costruisci annunci_coinvolti per compatibilità con template
+        # Costruisci annunci_coinvolti nell'ordine della sequenza di scambio
+        # Ordine: A offre X, B cerca X, B offre Y, C cerca Y, C offre Z, A cerca Z
         annunci_coinvolti = []
-        for utente_obj in utenti_con_annunci:
-            if utente_obj['offerta']:
+        num_utenti = len(utenti_con_annunci)
+
+        for i in range(num_utenti):
+            utente_corrente = utenti_con_annunci[i]
+            utente_successivo = utenti_con_annunci[(i + 1) % num_utenti]
+
+            # 1. Utente corrente OFFRE qualcosa
+            if utente_corrente['offerta']:
                 annunci_coinvolti.append({
-                    'annuncio': utente_obj['offerta'],
+                    'annuncio': utente_corrente['offerta'],
                     'ruolo': 'offre',
-                    'utente': utente_obj['user'].username
+                    'utente': utente_corrente['user'].username
                 })
-            if utente_obj['richiede']:
+
+            # 2. Utente successivo CERCA quella cosa
+            if utente_successivo['richiede']:
                 annunci_coinvolti.append({
-                    'annuncio': utente_obj['richiede'],
+                    'annuncio': utente_successivo['richiede'],
                     'ruolo': 'richiede',
-                    'utente': utente_obj['user'].username
+                    'utente': utente_successivo['user'].username
                 })
 
         ciclo_output = {
