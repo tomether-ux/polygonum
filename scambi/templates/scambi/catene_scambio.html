@@ -185,19 +185,20 @@
 {% elif totale_catene > 0 %}
     <div class="alert alert-success">
         <strong>Risultati:</strong> Trovati {{ totale_scambi_diretti }} scambi diretti + {{ totale_catene_lunghe }} catene lunghe = {{ totale_catene }} totali
+        <br><small class="text-muted">• {{ totale_specifiche }} catene specifiche (match sui titoli) • {{ totale_generiche }} catene generiche (solo categoria)</small>
     </div>
 
     <!-- SCAMBI DIRETTI (MASSIMA PRIORITÀ) -->
-    {% if scambi_diretti_alta or scambi_diretti_generici %}
+    {% if scambi_diretti_specifici or scambi_diretti_generici %}
         <div id="scambi-diretti" class="alert alert-warning">
             <h4><i class="fas fa-star me-2"></i>Scambi Diretti Disponibili (2 Persone)</h4>
             <p>Questi sono i più semplici da realizzare - solo 2 persone si scambiano direttamente!</p>
         </div>
 
-        {% if scambi_diretti_alta %}
-            <h2 class="text-warning mb-3">💫 Scambi Diretti - Perfetta Corrispondenza</h2>
+        {% if scambi_diretti_specifici %}
+            <h2 class="text-warning mb-3">💫 Scambi Diretti - Corrispondenza Specifica (Titoli)</h2>
 
-            {% for scambio in scambi_diretti_alta %}
+            {% for scambio in scambi_diretti_specifici %}
             <div class="card mb-4 border-warning">
                 <div class="card-header bg-warning text-dark">
                     <h5 class="mb-0">
@@ -249,7 +250,7 @@
         {% endif %}
 
         {% if scambi_diretti_generici %}
-            <h2 class="text-warning mb-3">💫 Scambi Diretti - Corrispondenza Generica</h2>
+            <h2 class="text-warning mb-3">💫 Scambi Diretti - Corrispondenza Generica (Solo Categoria)</h2>
 
             {% for scambio in scambi_diretti_generici %}
             <div class="card mb-4 border-warning">
@@ -304,29 +305,29 @@
     {% endif %}
 
 
-    <!-- CATENE AD ALTA QUALITÀ -->
+    <!-- CATENE SPECIFICHE E GENERICHE -->
     <!-- Navigazione rapida -->
     <div class="alert alert-light">
         <strong>📋 Navigazione rapida:</strong>
-        {% if scambi_diretti_alta or scambi_diretti_generici %}
+        {% if scambi_diretti_specifici or scambi_diretti_generici %}
             <a href="#scambi-diretti" class="btn btn-warning btn-sm me-2">Scambi Diretti ({{ totale_scambi_diretti }})</a>
         {% endif %}
-        {% if catene_alta_qualita %}
-            <a href="#catene-alta" class="btn btn-success btn-sm me-2">Catene Alta Qualità ({{ catene_alta_qualita|length }})</a>
+        {% if catene_specifiche %}
+            <a href="#catene-specifiche" class="btn btn-success btn-sm me-2">Catene Specifiche ({{ catene_specifiche|length }})</a>
         {% endif %}
         {% if catene_generiche %}
-            <a href="#catene-generiche" class="btn btn-info btn-sm">Catene ({{ catene_generiche|length }})</a>
+            <a href="#catene-generiche" class="btn btn-info btn-sm">Catene Generiche ({{ catene_generiche|length }})</a>
         {% endif %}
     </div>
 
-    {% if catene_alta_qualita %}
-        <h2 id="catene-alta" class="modern-section-title mb-4">
+    {% if catene_specifiche %}
+        <h2 id="catene-specifiche" class="modern-section-title mb-4">
             <span class="title-icon">✨</span>
-            Catene ad Alta Corrispondenza
-            <span class="title-badge">{{ catene_alta_qualita|length }}</span>
+            Catene Specifiche (Match sui Titoli)
+            <span class="title-badge">{{ catene_specifiche|length }}</span>
         </h2>
 
-        {% for catena in catene_alta_qualita %}
+        {% for catena in catene_specifiche %}
         <div class="modern-chain-card high-quality mb-4">
             <div class="chain-card-header">
                 <div class="d-flex justify-content-between align-items-center">
@@ -436,11 +437,11 @@
         {% endfor %}
     {% endif %}
 
-    <!-- CATENE -->
+    <!-- CATENE GENERICHE -->
     {% if catene_generiche %}
         <h2 id="catene-generiche" class="modern-section-title generic mb-4 mt-5">
             <span class="title-icon">🔗</span>
-            Catene
+            Catene Generiche (Solo Categoria)
             <span class="title-badge">{{ catene_generiche|length }}</span>
         </h2>
 
@@ -592,9 +593,9 @@
 
 <div class="card bg-light mt-4">
     <div class="card-body text-center">
-        <strong>{{ totale_catene }}</strong> catene totali - 
-        <strong class="text-success">{{ catene_alta_qualita|length }}</strong> alta qualità - 
-        <strong class="text-info">{{ catene_generiche|length }}</strong> generiche
+        <strong>{{ totale_catene }}</strong> catene totali -
+        <strong class="text-success">{{ totale_specifiche }}</strong> specifiche (match sui titoli) -
+        <strong class="text-info">{{ totale_generiche }}</strong> generiche (solo categoria)
     </div>
         </div>
     </div>
