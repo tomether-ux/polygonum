@@ -84,6 +84,13 @@
                                 {% endif %}
                             </div>
 
+                            <!-- Forgot Password Link -->
+                            <div class="text-end mb-3">
+                                <a href="{% url 'password_reset' %}" class="text-polygonum-primary text-decoration-none small">
+                                    <i class="fas fa-key me-1"></i>Password dimenticata?
+                                </a>
+                            </div>
+
                             <!-- Submit Button -->
                             <div class="d-grid mb-4">
                                 <button type="submit" class="btn btn-primary btn-lg py-3">
