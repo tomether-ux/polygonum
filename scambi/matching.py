@@ -1419,21 +1419,23 @@ def trova_scambi_diretti_ottimizzato():
     return risultato['scambi_diretti']
 
 
-def calcola_qualita_ciclo(ciclo):
+def calcola_qualita_ciclo(ciclo, return_tipo_match=False):
     """
     Calcola la qualità di un ciclo pre-calcolato dal database.
 
     Args:
         ciclo: Ciclo in formato dict dalla funzione converti_ciclo_db_a_view_format
+        return_tipo_match: Se True, restituisce anche se ha match solo per categoria
 
     Returns:
-        int: Punteggio qualità del ciclo
+        int o tuple: Punteggio qualità del ciclo, oppure (punteggio, ha_solo_categoria)
     """
     if not ciclo.get('utenti'):
-        return 0
+        return (0, True) if return_tipo_match else 0
 
     punteggio_totale = 0
     num_scambi = 0
+    ha_match_titoli = False  # Traccia se c'è almeno un match sui titoli (specifico/parziale)
 
     utenti = ciclo['utenti']
     num_utenti = len(utenti)
@@ -1456,13 +1458,23 @@ def calcola_qualita_ciclo(ciclo):
             compatible, punteggio, _ = oggetti_compatibili_avanzato(offerta, richiesta, distanza_km=50)
             if compatible:
                 punteggio_totale += punteggio
+
+            # Verifica il tipo di match
+            _, tipo_match = oggetti_compatibili_con_tipo(offerta, richiesta)
+            if tipo_match in ['specifico', 'parziale']:
+                ha_match_titoli = True
+
             num_scambi += 1
         except:
             # Se fallisce, salta questo scambio
             continue
 
     # Media dei punteggi degli scambi nel ciclo
-    return punteggio_totale // max(1, num_scambi) if num_scambi > 0 else 0
+    punteggio = punteggio_totale // max(1, num_scambi) if num_scambi > 0 else 0
+
+    if return_tipo_match:
+        return punteggio, ha_match_titoli
+    return punteggio
 
 
 def trova_catene_scambio_ottimizzato(max_lunghezza=6, solo_alta_qualita=True, soglia_qualita=20):
