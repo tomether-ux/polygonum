@@ -1426,22 +1426,30 @@ def calcola_qualita_ciclo(ciclo):
     punteggio_totale = 0
     num_scambi = 0
 
+    utenti = ciclo['utenti']
+    num_utenti = len(utenti)
+
     # Calcola la qualità per ogni scambio nel ciclo
-    for i, utente in enumerate(ciclo['utenti']):
-        if not utente.get('offerta') or not utente.get('richiede'):
+    # L'utente i offre qualcosa all'utente (i+1) % num_utenti
+    for i in range(num_utenti):
+        utente_corrente = utenti[i]
+        utente_successivo = utenti[(i + 1) % num_utenti]
+
+        # L'offerta dell'utente corrente deve matchare con la richiesta dell'utente successivo
+        if not utente_corrente.get('offerta') or not utente_successivo.get('richiede'):
             continue
 
-        offerta = utente['offerta']
-        richiede = utente['richiede']
+        offerta = utente_corrente['offerta']
+        richiesta = utente_successivo['richiede']
 
         # Usa la funzione avanzata per calcolare qualità
         try:
-            compatible, punteggio, _ = oggetti_compatibili_avanzato(offerta, richiede, distanza_km=50)
+            compatible, punteggio, _ = oggetti_compatibili_avanzato(offerta, richiesta, distanza_km=50)
             if compatible:
                 punteggio_totale += punteggio
             num_scambi += 1
         except:
-            # Se fallisce, usa compatibilità semplice
+            # Se fallisce, salta questo scambio
             continue
 
     # Media dei punteggi degli scambi nel ciclo
