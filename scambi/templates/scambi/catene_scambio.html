@@ -343,93 +343,93 @@
             </div>
 
             <div class="chain-card-body">
-                <div class="row g-4">
-                    <div class="col-lg-6">
-                        <div class="participants-section">
-                            <h6 class="section-label">
-                                <i class="fas fa-users me-2"></i>Partecipanti
-                            </h6>
-                            <div class="participants-list">
-                                {% for utente in catena.utenti %}
-                                    <span class="participant-badge">
-                                        <i class="fas fa-user-circle"></i>
-                                        {{ utente.user.username }}
-                                    </span>
-                                {% endfor %}
-                            </div>
-                        </div>
+                <div class="participants-section mb-3">
+                    <h6 class="section-label">
+                        <i class="fas fa-users me-2"></i>Partecipanti
+                    </h6>
+                    <div class="participants-list">
+                        {% for utente in catena.utenti %}
+                            <span class="participant-badge">
+                                <i class="fas fa-user-circle"></i>
+                                {{ utente.user.username }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                </div>
 
-                        <div class="exchange-section mt-4">
-                            <h6 class="section-label">
-                                <i class="fas fa-exchange-alt me-2"></i>Sequenza Scambi
-                            </h6>
-                            <div class="modern-exchange-flow">
-                                {% for utente in catena.utenti %}
-                                    <div class="modern-exchange-step">
-                                        <div class="user-avatar">
-                                            {{ utente.user.username|slice:":1"|upper }}
-                                        </div>
-                                        <div class="user-exchange-info">
-                                            <div class="user-name">{{ utente.user.username }}</div>
-                                            {% if utente.offerta %}
-                                                <div class="exchange-detail offer">
-                                                    <i class="fas fa-hand-holding"></i>
-                                                    <span>{{ utente.offerta.titolo }}</span>
-                                                </div>
-                                            {% endif %}
-                                            {% if utente.richiede %}
-                                                <div class="exchange-detail request">
-                                                    <i class="fas fa-search"></i>
-                                                    <span>{{ utente.richiede.titolo }}</span>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    {% if not forloop.last %}
-                                        <div class="modern-exchange-arrow">
-                                            <i class="fas fa-arrow-down"></i>
+                <div class="exchange-section">
+                    <h6 class="section-label mb-3">
+                        <i class="fas fa-exchange-alt me-2"></i>Sequenza Scambi
+                    </h6>
+
+                    {% for utente in catena.utenti %}
+                    <div class="aligned-exchange-row">
+                        <div class="user-column">
+                            <div class="modern-exchange-step">
+                                <div class="user-avatar">
+                                    {{ utente.user.username|slice:":1"|upper }}
+                                </div>
+                                <div class="user-exchange-info">
+                                    <div class="user-name">{{ utente.user.username }}</div>
+                                    {% if utente.offerta %}
+                                        <div class="exchange-detail offer">
+                                            <i class="fas fa-hand-holding"></i>
+                                            <span>Offre: {{ utente.offerta.titolo|truncatechars:30 }}</span>
                                         </div>
                                     {% endif %}
-                                {% endfor %}
+                                    {% if utente.richiede %}
+                                        <div class="exchange-detail request">
+                                            <i class="fas fa-search"></i>
+                                            <span>Cerca: {{ utente.richiede.titolo|truncatechars:30 }}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
                             </div>
+                        </div>
+
+                        <div class="announcements-column">
+                            {% if utente.offerta %}
+                            <a href="{% url 'dettaglio_annuncio' utente.offerta.id %}" class="modern-announcement-card compact">
+                                <div class="announcement-icon offer-icon">
+                                    <i class="fas fa-gift"></i>
+                                </div>
+                                <div class="announcement-content">
+                                    <div class="announcement-title">{{ utente.offerta.titolo }}</div>
+                                    <div class="announcement-meta">
+                                        <span class="announcement-category">
+                                            {{ utente.offerta.categoria.nome }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="announcement-role-badge offer-badge">Offre</div>
+                            </a>
+                            {% endif %}
+
+                            {% if utente.richiede %}
+                            <a href="{% url 'dettaglio_annuncio' utente.richiede.id %}" class="modern-announcement-card compact">
+                                <div class="announcement-icon request-icon">
+                                    <i class="fas fa-search"></i>
+                                </div>
+                                <div class="announcement-content">
+                                    <div class="announcement-title">{{ utente.richiede.titolo }}</div>
+                                    <div class="announcement-meta">
+                                        <span class="announcement-category">
+                                            {{ utente.richiede.categoria.nome }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="announcement-role-badge request-badge">Cerca</div>
+                            </a>
+                            {% endif %}
                         </div>
                     </div>
 
-                    <div class="col-lg-6">
-                        <div class="announcements-section">
-                            <h6 class="section-label">
-                                <i class="fas fa-bullhorn me-2"></i>Annunci Coinvolti
-                            </h6>
-                            <div class="announcements-list">
-                                {% for item in catena.annunci_coinvolti %}
-                                <a href="{% url 'dettaglio_annuncio' item.annuncio.id %}" class="modern-announcement-card">
-                                    <div class="announcement-icon {% if item.ruolo == 'offre' %}offer-icon{% else %}request-icon{% endif %}">
-                                        {% if item.ruolo == 'offre' %}
-                                            <i class="fas fa-gift"></i>
-                                        {% else %}
-                                            <i class="fas fa-search"></i>
-                                        {% endif %}
-                                    </div>
-                                    <div class="announcement-content">
-                                        <div class="announcement-title">{{ item.annuncio.titolo }}</div>
-                                        <div class="announcement-meta">
-                                            <span class="announcement-user">
-                                                <i class="fas fa-user"></i>
-                                                {{ item.utente }}
-                                            </span>
-                                            <span class="announcement-category">
-                                                {{ item.annuncio.categoria.nome }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="announcement-role-badge {% if item.ruolo == 'offre' %}offer-badge{% else %}request-badge{% endif %}">
-                                        {% if item.ruolo == 'offre' %}Offre{% else %}Cerca{% endif %}
-                                    </div>
-                                </a>
-                                {% endfor %}
-                            </div>
+                    {% if not forloop.last %}
+                        <div class="modern-exchange-arrow">
+                            <i class="fas fa-arrow-down"></i>
                         </div>
-                    </div>
+                    {% endif %}
+                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -461,93 +461,93 @@
             </div>
 
             <div class="chain-card-body">
-                <div class="row g-4">
-                    <div class="col-lg-6">
-                        <div class="participants-section">
-                            <h6 class="section-label">
-                                <i class="fas fa-users me-2"></i>Partecipanti
-                            </h6>
-                            <div class="participants-list">
-                                {% for utente in catena.utenti %}
-                                    <span class="participant-badge">
-                                        <i class="fas fa-user-circle"></i>
-                                        {{ utente.user.username }}
-                                    </span>
-                                {% endfor %}
-                            </div>
-                        </div>
+                <div class="participants-section mb-3">
+                    <h6 class="section-label">
+                        <i class="fas fa-users me-2"></i>Partecipanti
+                    </h6>
+                    <div class="participants-list">
+                        {% for utente in catena.utenti %}
+                            <span class="participant-badge">
+                                <i class="fas fa-user-circle"></i>
+                                {{ utente.user.username }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                </div>
 
-                        <div class="exchange-section mt-4">
-                            <h6 class="section-label">
-                                <i class="fas fa-exchange-alt me-2"></i>Sequenza Scambi
-                            </h6>
-                            <div class="modern-exchange-flow">
-                                {% for utente in catena.utenti %}
-                                    <div class="modern-exchange-step">
-                                        <div class="user-avatar">
-                                            {{ utente.user.username|slice:":1"|upper }}
-                                        </div>
-                                        <div class="user-exchange-info">
-                                            <div class="user-name">{{ utente.user.username }}</div>
-                                            {% if utente.offerta %}
-                                                <div class="exchange-detail offer">
-                                                    <i class="fas fa-hand-holding"></i>
-                                                    <span>{{ utente.offerta.titolo }}</span>
-                                                </div>
-                                            {% endif %}
-                                            {% if utente.richiede %}
-                                                <div class="exchange-detail request">
-                                                    <i class="fas fa-search"></i>
-                                                    <span>{{ utente.richiede.titolo }}</span>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    {% if not forloop.last %}
-                                        <div class="modern-exchange-arrow">
-                                            <i class="fas fa-arrow-down"></i>
+                <div class="exchange-section">
+                    <h6 class="section-label mb-3">
+                        <i class="fas fa-exchange-alt me-2"></i>Sequenza Scambi
+                    </h6>
+
+                    {% for utente in catena.utenti %}
+                    <div class="aligned-exchange-row">
+                        <div class="user-column">
+                            <div class="modern-exchange-step">
+                                <div class="user-avatar">
+                                    {{ utente.user.username|slice:":1"|upper }}
+                                </div>
+                                <div class="user-exchange-info">
+                                    <div class="user-name">{{ utente.user.username }}</div>
+                                    {% if utente.offerta %}
+                                        <div class="exchange-detail offer">
+                                            <i class="fas fa-hand-holding"></i>
+                                            <span>Offre: {{ utente.offerta.titolo|truncatechars:30 }}</span>
                                         </div>
                                     {% endif %}
-                                {% endfor %}
+                                    {% if utente.richiede %}
+                                        <div class="exchange-detail request">
+                                            <i class="fas fa-search"></i>
+                                            <span>Cerca: {{ utente.richiede.titolo|truncatechars:30 }}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
                             </div>
+                        </div>
+
+                        <div class="announcements-column">
+                            {% if utente.offerta %}
+                            <a href="{% url 'dettaglio_annuncio' utente.offerta.id %}" class="modern-announcement-card compact">
+                                <div class="announcement-icon offer-icon">
+                                    <i class="fas fa-gift"></i>
+                                </div>
+                                <div class="announcement-content">
+                                    <div class="announcement-title">{{ utente.offerta.titolo }}</div>
+                                    <div class="announcement-meta">
+                                        <span class="announcement-category">
+                                            {{ utente.offerta.categoria.nome }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="announcement-role-badge offer-badge">Offre</div>
+                            </a>
+                            {% endif %}
+
+                            {% if utente.richiede %}
+                            <a href="{% url 'dettaglio_annuncio' utente.richiede.id %}" class="modern-announcement-card compact">
+                                <div class="announcement-icon request-icon">
+                                    <i class="fas fa-search"></i>
+                                </div>
+                                <div class="announcement-content">
+                                    <div class="announcement-title">{{ utente.richiede.titolo }}</div>
+                                    <div class="announcement-meta">
+                                        <span class="announcement-category">
+                                            {{ utente.richiede.categoria.nome }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="announcement-role-badge request-badge">Cerca</div>
+                            </a>
+                            {% endif %}
                         </div>
                     </div>
 
-                    <div class="col-lg-6">
-                        <div class="announcements-section">
-                            <h6 class="section-label">
-                                <i class="fas fa-bullhorn me-2"></i>Annunci Coinvolti
-                            </h6>
-                            <div class="announcements-list">
-                                {% for item in catena.annunci_coinvolti %}
-                                <a href="{% url 'dettaglio_annuncio' item.annuncio.id %}" class="modern-announcement-card">
-                                    <div class="announcement-icon {% if item.ruolo == 'offre' %}offer-icon{% else %}request-icon{% endif %}">
-                                        {% if item.ruolo == 'offre' %}
-                                            <i class="fas fa-gift"></i>
-                                        {% else %}
-                                            <i class="fas fa-search"></i>
-                                        {% endif %}
-                                    </div>
-                                    <div class="announcement-content">
-                                        <div class="announcement-title">{{ item.annuncio.titolo }}</div>
-                                        <div class="announcement-meta">
-                                            <span class="announcement-user">
-                                                <i class="fas fa-user"></i>
-                                                {{ item.utente }}
-                                            </span>
-                                            <span class="announcement-category">
-                                                {{ item.annuncio.categoria.nome }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="announcement-role-badge {% if item.ruolo == 'offre' %}offer-badge{% else %}request-badge{% endif %}">
-                                        {% if item.ruolo == 'offre' %}Offre{% else %}Cerca{% endif %}
-                                    </div>
-                                </a>
-                                {% endfor %}
-                            </div>
+                    {% if not forloop.last %}
+                        <div class="modern-exchange-arrow">
+                            <i class="fas fa-arrow-down"></i>
                         </div>
-                    </div>
+                    {% endif %}
+                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -1070,32 +1070,39 @@ function getCookie(name) {
     font-size: 1.1rem;
 }
 
-/* Modern Exchange Flow */
-.modern-exchange-flow {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
-    border-radius: 15px;
-    padding: 20px;
+/* Aligned Exchange Row Layout */
+.aligned-exchange-row {
     display: flex;
-    flex-direction: column;
-    gap: 15px;
+    gap: 20px;
+    margin-bottom: 15px;
+    animation: fadeInUp 0.6s ease forwards;
+    opacity: 0;
 }
 
-.modern-chain-card.generic .modern-exchange-flow {
-    background: linear-gradient(135deg, rgba(79, 172, 254, 0.05) 0%, rgba(0, 242, 254, 0.05) 100%);
+.aligned-exchange-row:nth-child(2) { animation-delay: 0.1s; }
+.aligned-exchange-row:nth-child(4) { animation-delay: 0.2s; }
+.aligned-exchange-row:nth-child(6) { animation-delay: 0.3s; }
+.aligned-exchange-row:nth-child(8) { animation-delay: 0.4s; }
+
+.user-column {
+    flex: 0 0 40%;
+    min-width: 0;
+}
+
+.announcements-column {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .modern-exchange-step {
     display: flex;
     gap: 15px;
     align-items: flex-start;
-    animation: fadeInUp 0.6s ease forwards;
-    opacity: 0;
+    height: 100%;
 }
-
-.modern-exchange-step:nth-child(1) { animation-delay: 0.1s; }
-.modern-exchange-step:nth-child(3) { animation-delay: 0.2s; }
-.modern-exchange-step:nth-child(5) { animation-delay: 0.3s; }
-.modern-exchange-step:nth-child(7) { animation-delay: 0.4s; }
 
 @keyframes fadeInUp {
     from {
@@ -1210,6 +1217,10 @@ function getCookie(name) {
     overflow: hidden;
 }
 
+.modern-announcement-card.compact {
+    padding: 10px 12px;
+}
+
 .modern-announcement-card::before {
     content: '';
     position: absolute;
@@ -1321,19 +1332,30 @@ function getCookie(name) {
         padding: 20px 15px;
     }
 
-    .modern-exchange-step {
+    .aligned-exchange-row {
         flex-direction: column;
-        align-items: center;
-        text-align: center;
+    }
+
+    .user-column {
+        flex: 1;
+        width: 100%;
+    }
+
+    .announcements-column {
+        flex: 1;
+        width: 100%;
+    }
+
+    .modern-exchange-step {
+        flex-direction: row;
     }
 
     .modern-announcement-card {
-        flex-direction: column;
-        text-align: center;
+        flex-direction: row;
     }
 
     .announcement-meta {
-        justify-content: center;
+        justify-content: flex-start;
     }
 }
 </style>
