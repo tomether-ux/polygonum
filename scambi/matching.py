@@ -1435,7 +1435,7 @@ def calcola_qualita_ciclo(ciclo, return_tipo_match=False):
 
     punteggio_totale = 0
     num_scambi = 0
-    ha_match_titoli = False  # Traccia se c'è almeno un match sui titoli (specifico/parziale)
+    ha_match_titoli = True  # Assume True inizialmente, diventa False se trova match generici
 
     utenti = ciclo['utenti']
     num_utenti = len(utenti)
@@ -1461,8 +1461,9 @@ def calcola_qualita_ciclo(ciclo, return_tipo_match=False):
 
             # Verifica il tipo di match
             _, tipo_match = oggetti_compatibili_con_tipo(offerta, richiesta)
-            if tipo_match in ['specifico', 'parziale']:
-                ha_match_titoli = True
+            # Se anche solo UNO scambio è 'categoria' o 'generico', l'intera catena è generica
+            if tipo_match in ['categoria', 'generico']:
+                ha_match_titoli = False
 
             num_scambi += 1
         except:
