@@ -217,8 +217,8 @@ def catene_scambio(request):
                             annuncio_specifico = Annuncio.objects.get(id=annuncio_filtro_id, utente=request.user, attivo=True)
                             print(f"🎯 RICERCA OTTIMIZZATA per annuncio: {annuncio_specifico.titolo}")
 
-                            # Usa la funzione ottimizzata che cerca solo catene per questo annuncio
-                            tutte_catene = trova_catene_per_annuncio_ottimizzato(annuncio_specifico, max_lunghezza=6)
+                            # Usa la funzione ottimizzata che cerca solo catene per questo annuncio (solo specifiche)
+                            tutte_catene = trova_catene_per_annuncio_ottimizzato(annuncio_specifico, max_lunghezza=6, includi_generiche=False)
 
                             elapsed = time.time() - start_time
                             messages.success(request, f'🎯 Ricerca ottimizzata completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} catene per "{annuncio_specifico.titolo}"!')
