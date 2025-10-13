@@ -918,15 +918,21 @@ def riordina_catena_per_utente(catena, utente):
     if user_index is None or user_index == 0:
         return  # User not in chain or already first
 
-    # Ruota la lista per far iniziare dall'utente
+    # Ruota la lista utenti per far iniziare dall'utente
     catena['utenti'] = utenti[user_index:] + utenti[:user_index]
 
-    # Riordina anche annunci_coinvolti per mantenere la corrispondenza
-    # Ogni utente ha 2 annunci (offre + cerca), quindi ruota di user_index * 2
+    # Riordina annunci_coinvolti: ogni utente ha una coppia (offre, cerca)
+    # quindi dobbiamo ruotare le COPPIE, non i singoli elementi
     annunci = catena.get('annunci_coinvolti', [])
-    if annunci and user_index > 0:
-        rotate_by = user_index * 2
-        catena['annunci_coinvolti'] = annunci[rotate_by:] + annunci[:rotate_by]
+    if annunci and user_index > 0 and len(annunci) % 2 == 0:
+        # Raggruppa annunci in coppie
+        coppie = [(annunci[i], annunci[i+1]) for i in range(0, len(annunci), 2)]
+
+        # Ruota le coppie
+        coppie_ruotate = coppie[user_index:] + coppie[:user_index]
+
+        # Riappiattisci in lista singola
+        catena['annunci_coinvolti'] = [item for coppia in coppie_ruotate for item in coppia]
 
 def genera_hash_catena(catena_data):
     """Genera un hash univoco per una catena basato sui partecipanti e annunci"""
