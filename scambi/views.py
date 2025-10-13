@@ -357,6 +357,9 @@ def catene_scambio(request):
     # Aggiungi flag per i preferiti e hash se l'utente è autenticato
     if request.user.is_authenticated:
         for catena in scambi_diretti_specifici + catene_specifiche:
+            # Riordina la catena in modo che l'utente loggato sia sempre il primo
+            riordina_catena_per_utente(catena, request.user)
+
             catena['is_favorita'] = is_catena_preferita(request.user, catena)
             catena['hash_catena'] = genera_hash_catena(catena)
             # Converti la catena in JSON string per il template
@@ -895,6 +898,35 @@ def processa_catene_preferite(catene_preferite):
             except Exception as delete_error:
                 print(f"❌ Errore nella rimozione della catena preferita ID {catena_preferita.id}: {delete_error}")
     return catene_preferite_valide
+
+def riordina_catena_per_utente(catena, utente):
+    """
+    Riordina la catena in modo che inizi dall'utente specificato.
+    Mantiene l'ordine circolare dello scambio, ruotando solo il punto di partenza.
+    """
+    utenti = catena.get('utenti', [])
+    if not utenti:
+        return
+
+    # Trova l'indice dell'utente nella lista
+    user_index = None
+    for i, u in enumerate(utenti):
+        if u['user'].id == utente.id:
+            user_index = i
+            break
+
+    if user_index is None or user_index == 0:
+        return  # User not in chain or already first
+
+    # Ruota la lista per far iniziare dall'utente
+    catena['utenti'] = utenti[user_index:] + utenti[:user_index]
+
+    # Riordina anche annunci_coinvolti per mantenere la corrispondenza
+    # Ogni utente ha 2 annunci (offre + cerca), quindi ruota di user_index * 2
+    annunci = catena.get('annunci_coinvolti', [])
+    if annunci and user_index > 0:
+        rotate_by = user_index * 2
+        catena['annunci_coinvolti'] = annunci[rotate_by:] + annunci[:rotate_by]
 
 def genera_hash_catena(catena_data):
     """Genera un hash univoco per una catena basato sui partecipanti e annunci"""
