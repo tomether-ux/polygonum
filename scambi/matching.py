@@ -850,35 +850,22 @@ def oggetti_compatibili_avanzato(annuncio_offerto, annuncio_cercato, distanza_km
     return True, punteggio, dettagli
 
 def calcola_distanza_geografica(utente_a, utente_b):
-    """Calcola distanza geografica tra due utenti basata sulla città"""
+    """Calcola distanza geografica tra due utenti usando il database città"""
     try:
         profile_a = UserProfile.objects.get(user=utente_a)
         profile_b = UserProfile.objects.get(user=utente_b)
 
-        # Se entrambi hanno la stessa città, distanza = 0
-        if profile_a.citta and profile_b.citta:
-            if profile_a.citta.lower() == profile_b.citta.lower():
-                return 0, "stessa_citta"
+        # Usa il nuovo metodo del profilo
+        distanza_km = profile_a.get_distanza_km(profile_b)
 
-            # Se hanno la stessa provincia, distanza bassa
-            if profile_a.provincia and profile_b.provincia:
-                if profile_a.provincia.lower() == profile_b.provincia.lower():
-                    return 25, "stessa_provincia"  # Assume ~25km tra città della stessa provincia
-
-            # Se hanno coordinate, calcola distanza esatta
-            if (profile_a.latitudine and profile_a.longitudine and
-                profile_b.latitudine and profile_b.longitudine):
-                distanza_km = calcola_distanza_haversine(
-                    profile_a.latitudine, profile_a.longitudine,
-                    profile_b.latitudine, profile_b.longitudine
-                )
-                return distanza_km, "coordinate"
-
-            # Altrimenti, assume distanza alta tra città diverse
-            return 100, "citta_diverse"  # Assume ~100km tra città diverse
-
-        # Se uno dei due non ha città impostata
-        return 999, "posizione_sconosciuta"
+        if distanza_km == 0:
+            return 0, "stessa_citta"
+        elif distanza_km == 999:
+            return 999, "posizione_sconosciuta"
+        elif distanza_km <= 50:
+            return distanza_km, "province_vicine"
+        else:
+            return distanza_km, "province_lontane"
 
     except UserProfile.DoesNotExist:
         return 999, "profilo_mancante"
