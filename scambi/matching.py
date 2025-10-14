@@ -964,37 +964,18 @@ class CycleFinder:
 
     def _c_e_match_tra_utenti(self, utente_a, utente_b):
         """
-        Verifica se due utenti possono scambiare direttamente usando logica avanzata
+        Verifica se due utenti possono scambiare direttamente.
+        Usa solo matching titoli (senza considerare prezzo/distanza) per costruire il grafo.
         """
         offerte_a = Annuncio.objects.filter(utente=utente_a, tipo='offro', attivo=True)
         richieste_b = Annuncio.objects.filter(utente=utente_b, tipo='cerco', attivo=True)
 
-        # Calcola distanza tra gli utenti (o usa valore predefinito)
-        try:
-            profile_a = utente_a.userprofile
-            profile_b = utente_b.userprofile
-
-            if profile_a.latitudine and profile_a.longitudine and profile_b.latitudine and profile_b.longitudine:
-                from math import radians, sin, cos, sqrt, atan2
-
-                lat1, lon1 = radians(profile_a.latitudine), radians(profile_a.longitudine)
-                lat2, lon2 = radians(profile_b.latitudine), radians(profile_b.longitudine)
-
-                dlat = lat2 - lat1
-                dlon = lon2 - lon1
-                a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-                c = 2 * atan2(sqrt(a), sqrt(1-a))
-                distanza_km = 6371 * c  # Raggio della Terra in km
-            else:
-                distanza_km = 50  # Default per utenti senza coordinate
-        except:
-            distanza_km = 50  # Default per errori
-
         for offerta in offerte_a:
             for richiesta in richieste_b:
-                # Usa logica avanzata invece di quella semplice
-                compatible, punteggio, _ = oggetti_compatibili_avanzato(offerta, richiesta, distanza_km)
-                if compatible and punteggio >= 20:  # Soglia minima di qualità (ridotta)
+                # Usa solo compatibilità titoli (non algoritmo avanzato)
+                compatible, tipo_match = oggetti_compatibili_con_tipo(offerta, richiesta)
+                # Accetta match specifico o parziale (non categoria o generico)
+                if compatible and tipo_match in ['specifico', 'parziale']:
                     return True
         return False
 
