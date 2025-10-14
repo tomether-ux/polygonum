@@ -831,10 +831,8 @@ def oggetti_compatibili_avanzato(annuncio_offerto, annuncio_cercato, distanza_km
     if not compatible_base:
         return False, 0, ["contenuto_incompatibile"]
 
-    # 2. Verifica prezzo
-    prezzo_ok, _ = verifica_compatibilita_prezzo(annuncio_offerto, annuncio_cercato)
-    if not prezzo_ok:
-        return False, 0, ["prezzo_incompatibile"]
+    # 2. Prezzo: SEMPRE compatibile (rimosso il controllo)
+    # Gli utenti possono accordarsi sul valore dello scambio
 
     # 3. Verifica metodo scambio
     metodo_ok, _ = verifica_compatibilita_metodo_scambio(annuncio_offerto, annuncio_cercato)
