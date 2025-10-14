@@ -125,19 +125,10 @@ class AnnuncioForm(forms.ModelForm):
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = UserProfile
-        fields = ['citta', 'provincia', 'regione', 'cap']
+        fields = ['citta_obj', 'cap']
         widgets = {
-            'citta': forms.TextInput(attrs={
+            'citta_obj': forms.Select(attrs={
                 'class': 'form-control',
-                'placeholder': 'Es: Roma, Milano, Torino...'
-            }),
-            'provincia': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Es: RM, MI, TO...'
-            }),
-            'regione': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Es: Lazio, Lombardia, Piemonte...'
             }),
             'cap': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -145,10 +136,11 @@ class UserProfileForm(forms.ModelForm):
             }),
         }
         labels = {
-            'citta': 'Città *',
-            'provincia': 'Provincia',
-            'regione': 'Regione',
-            'cap': 'CAP'
+            'citta_obj': 'Città *',
+            'cap': 'CAP (opzionale)'
+        }
+        help_texts = {
+            'citta_obj': 'Seleziona la tua città. La provincia e regione verranno impostate automaticamente.'
         }
 
 

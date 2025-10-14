@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
@@ -70,14 +71,78 @@ class Annuncio(models.Model):
         verbose_name_plural = "Annunci"
         ordering = ['-data_creazione']
 
+
+class Citta(models.Model):
+    """Modello per le città italiane principali"""
+    nome = models.CharField(max_length=100, unique=True)
+    provincia = models.CharField(max_length=50)
+    regione = models.CharField(max_length=50)
+
+    # Coordinate per calcoli futuri se necessario
+    latitudine = models.FloatField(null=True, blank=True)
+    longitudine = models.FloatField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Città"
+        verbose_name_plural = "Città"
+        ordering = ['nome']
+
+    def __str__(self):
+        return f"{self.nome} ({self.provincia})"
+
+
+class DistanzaCitta(models.Model):
+    """Modello per memorizzare le distanze tra città"""
+    citta_a = models.ForeignKey(Citta, on_delete=models.CASCADE, related_name='distanze_da')
+    citta_b = models.ForeignKey(Citta, on_delete=models.CASCADE, related_name='distanze_a')
+    distanza_km = models.IntegerField(help_text="Distanza in km tra le due città")
+
+    class Meta:
+        verbose_name = "Distanza tra Città"
+        verbose_name_plural = "Distanze tra Città"
+        unique_together = ('citta_a', 'citta_b')
+
+    def __str__(self):
+        return f"{self.citta_a.nome} - {self.citta_b.nome}: {self.distanza_km} km"
+
+    @classmethod
+    def get_distanza(cls, citta_a, citta_b):
+        """Ottiene la distanza tra due città (in entrambe le direzioni)"""
+        if citta_a == citta_b:
+            return 0
+
+        try:
+            # Cerca in entrambe le direzioni
+            dist = cls.objects.filter(
+                models.Q(citta_a=citta_a, citta_b=citta_b) |
+                models.Q(citta_a=citta_b, citta_b=citta_a)
+            ).first()
+
+            return dist.distanza_km if dist else None
+        except:
+            return None
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    citta = models.CharField(max_length=100, blank=False, verbose_name="Città")
+
+    # Nuovo campo: ForeignKey a Citta
+    citta_obj = models.ForeignKey(
+        Citta,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Città",
+        help_text="Seleziona la tua città dal menu"
+    )
+
+    # Vecchi campi: manteniamo per retrocompatibilità durante la migrazione
+    citta_old = models.CharField(max_length=100, blank=True, null=True, verbose_name="Città (vecchio)")
     provincia = models.CharField(max_length=50, blank=True, verbose_name="Provincia")
     regione = models.CharField(max_length=50, blank=True, verbose_name="Regione")
     cap = models.CharField(max_length=10, blank=True, verbose_name="CAP")
 
-    # Coordinate geografiche (per calcoli di distanza più precisi)
+    # Coordinate geografiche (deprecate ma mantenute per compatibilità)
     latitudine = models.FloatField(null=True, blank=True)
     longitudine = models.FloatField(null=True, blank=True)
 
@@ -85,19 +150,38 @@ class UserProfile(models.Model):
     email_verified = models.BooleanField(default=False, verbose_name="Email Verificata")
     email_verification_token = models.CharField(max_length=100, blank=True, null=True)
 
+    @property
+    def citta(self):
+        """Property per retrocompatibilità: restituisce nome città"""
+        if self.citta_obj:
+            return self.citta_obj.nome
+        return self.citta_old or ""
+
     def __str__(self):
-        if self.citta:
-            return f"{self.user.username} - {self.citta}"
+        citta_str = self.citta
+        if citta_str:
+            return f"{self.user.username} - {citta_str}"
         return f"{self.user.username} - No città"
 
     def get_location_string(self):
         """Restituisce una stringa rappresentativa della posizione"""
+        if self.citta_obj:
+            return f"{self.citta_obj.nome}, {self.citta_obj.provincia}"
+
+        # Fallback per profili vecchi
         parts = []
-        if self.citta:
-            parts.append(self.citta)
+        if self.citta_old:
+            parts.append(self.citta_old)
         if self.provincia:
             parts.append(self.provincia)
         return ", ".join(parts) if parts else "Posizione non specificata"
+
+    def get_distanza_km(self, altro_profilo):
+        """Calcola la distanza da un altro profilo usando il database città"""
+        if not self.citta_obj or not altro_profilo.citta_obj:
+            return 999  # Distanza default se manca la città
+
+        return DistanzaCitta.get_distanza(self.citta_obj, altro_profilo.citta_obj) or 999
 
     class Meta:
         verbose_name = "Profilo Utente"
