@@ -108,11 +108,21 @@
 
                             <!-- Filtro spedizione -->
                             <hr>
+                            <h6 class="text-polygonum-primary">
+                                <i class="fas fa-truck me-2"></i>Modalità Scambio
+                            </h6>
                             <div class="mb-3">
-                                <label for="{{ form.spedizione.id_for_label }}" class="form-label fw-bold">
-                                    <i class="fas fa-truck me-1"></i>{{ form.spedizione.label }}
-                                </label>
+                                <label for="{{ form.spedizione.id_for_label }}" class="form-label">{{ form.spedizione.label }}</label>
                                 {{ form.spedizione }}
+                            </div>
+
+                            <!-- Filtro distanza -->
+                            <div class="mb-3">
+                                <label for="{{ form.distanza_max.id_for_label }}" class="form-label">{{ form.distanza_max.label }}</label>
+                                {{ form.distanza_max }}
+                                {% if form.distanza_max.help_text %}
+                                    <small class="text-muted d-block">{{ form.distanza_max.help_text }}</small>
+                                {% endif %}
                             </div>
 
                             <!-- Ordinamento -->
