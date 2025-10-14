@@ -1418,6 +1418,29 @@ def ricerca_annunci(request):
             # Solo scambio a mano
             annunci = annunci.filter(metodo_scambio='mano')
 
+        # Filtro per distanza massima
+        distanza_max = form.cleaned_data.get('distanza_max')
+        if distanza_max and request.user.is_authenticated:
+            ricerca_effettuata = True
+            try:
+                user_profile = UserProfile.objects.get(user=request.user)
+                if user_profile.citta_obj:
+                    # Filtra annunci entro la distanza specificata
+                    from .models import DistanzaCitta
+                    annunci_filtrati = []
+                    for annuncio in annunci:
+                        try:
+                            annuncio_profile = annuncio.utente.userprofile
+                            if annuncio_profile.citta_obj:
+                                distanza = DistanzaCitta.get_distanza(user_profile.citta_obj, annuncio_profile.citta_obj)
+                                if distanza is not None and distanza <= distanza_max:
+                                    annunci_filtrati.append(annuncio.id)
+                        except UserProfile.DoesNotExist:
+                            pass
+                    annunci = annunci.filter(id__in=annunci_filtrati)
+            except UserProfile.DoesNotExist:
+                pass
+
         # Ordinamento
         ordinamento = form.cleaned_data.get('ordinamento', '-data_creazione')
         if ordinamento:

@@ -238,6 +238,19 @@ class RicercaAvanzataForm(forms.Form):
         label='Spedizione'
     )
 
+    # Filtro per distanza massima (km)
+    distanza_max = forms.IntegerField(
+        required=False,
+        min_value=0,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Es: 50',
+            'step': '10'
+        }),
+        label='Distanza max (km)',
+        help_text='Mostra solo annunci entro questa distanza dalla tua città'
+    )
+
     # Ordinamento
     ORDINAMENTO_CHOICES = [
         ('-data_creazione', 'Più recenti'),

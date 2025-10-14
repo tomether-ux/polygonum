@@ -55,27 +55,13 @@
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    {{ form.citta.label_tag }}
-                                    {{ form.citta }}
-                                    {% if form.citta.errors %}
-                                        <div class="text-danger small">{{ form.citta.errors.0 }}</div>
+                                    {{ form.citta_obj.label_tag }}
+                                    {{ form.citta_obj }}
+                                    {% if form.citta_obj.help_text %}
+                                        <small class="text-muted d-block mt-1">{{ form.citta_obj.help_text }}</small>
                                     {% endif %}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    {{ form.provincia.label_tag }}
-                                    {{ form.provincia }}
-                                    {% if form.provincia.errors %}
-                                        <div class="text-danger small">{{ form.provincia.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    {{ form.regione.label_tag }}
-                                    {{ form.regione }}
-                                    {% if form.regione.errors %}
-                                        <div class="text-danger small">{{ form.regione.errors.0 }}</div>
+                                    {% if form.citta_obj.errors %}
+                                        <div class="text-danger small">{{ form.citta_obj.errors.0 }}</div>
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6 mb-3">
@@ -86,6 +72,13 @@
                                     {% endif %}
                                 </div>
                             </div>
+
+                            {% if profilo.citta_obj %}
+                            <div class="alert alert-info">
+                                <strong>Provincia:</strong> {{ profilo.citta_obj.provincia }}<br>
+                                <strong>Regione:</strong> {{ profilo.citta_obj.regione }}
+                            </div>
+                            {% endif %}
                         </div>
 
                         <!-- Posizione Attuale -->
@@ -117,9 +110,9 @@
                 </div>
                 <div class="card-body">
                     <ul class="mb-0">
-                        <li><strong>Città precisa:</strong> Aiuta a trovare scambi nella tua zona</li>
-                        <li><strong>Provincia:</strong> Utile per scambi regionali</li>
+                        <li><strong>Città:</strong> Seleziona la tua città dal menu a tendina. La provincia e regione verranno impostate automaticamente</li>
                         <li><strong>CAP:</strong> Per calcoli di distanza più precisi (opzionale)</li>
+                        <li><strong>Distanze:</strong> Le distanze tra città sono già calcolate nel sistema per trovare scambi nella tua zona</li>
                     </ul>
                 </div>
             </div>
