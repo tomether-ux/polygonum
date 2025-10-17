@@ -143,6 +143,13 @@ class UserProfileForm(forms.ModelForm):
             'citta_obj': 'Seleziona la tua città. La provincia e regione verranno impostate automaticamente.'
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .models import Citta
+        # Popola il queryset con tutte le città ordinate per nome
+        self.fields['citta_obj'].queryset = Citta.objects.all().order_by('nome')
+        self.fields['citta_obj'].empty_label = "Seleziona una città..."
+
 
 class RicercaAvanzataForm(forms.Form):
     """Form per la ricerca avanzata degli annunci"""
