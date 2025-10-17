@@ -2140,9 +2140,78 @@ def stato_proposta_catena(request, ciclo_id):
             'giorni_scadenza': proposta.giorni_alla_scadenza() if proposta.data_scadenza else None,
             'data_scadenza': proposta.data_scadenza.isoformat() if proposta.data_scadenza else None
         })
-        
+
     except Exception as e:
         return JsonResponse({
             'success': False,
             'error': str(e)
         })
+
+
+@login_required
+def mie_proposte_catene(request):
+    """
+    Mostra tutte le catene a cui l'utente ha mostrato interesse
+    con lo stato di avanzamento dei partecipanti
+    """
+    # Trova tutte le risposte dell'utente dove ha mostrato interesse
+    mie_risposte = RispostaProposta.objects.filter(
+        utente=request.user,
+        risposta__in=['interessato', 'in_attesa']
+    ).select_related('proposta', 'proposta__ciclo', 'proposta__iniziatore')
+
+    # Raggruppa per proposta/ciclo
+    catene_info = []
+    for risposta in mie_risposte:
+        proposta = risposta.proposta
+        ciclo = proposta.ciclo
+
+        # Salta proposte annullate o rifiutate
+        if proposta.stato in ['annullata', 'rifiutata']:
+            continue
+
+        # Calcola stato avanzamento
+        count_interessati = proposta.get_count_interessati()
+        count_totale = proposta.get_count_totale()
+        percentuale = int((count_interessati / count_totale) * 100) if count_totale > 0 else 0
+
+        # Determina lo stato testuale
+        if proposta.stato == 'confermata':
+            stato_display = 'Confermata'
+            stato_class = 'success'
+        elif proposta.stato == 'in_attesa':
+            if count_interessati == count_totale:
+                stato_display = 'Tutti interessati!'
+                stato_class = 'success'
+            else:
+                stato_display = f'In attesa ({count_interessati}/{count_totale})'
+                stato_class = 'warning'
+        else:
+            stato_display = proposta.stato.title()
+            stato_class = 'secondary'
+
+        # Ottieni gli annunci del ciclo
+        exchanges = ciclo.exchanges if ciclo else []
+
+        catene_info.append({
+            'proposta': proposta,
+            'ciclo': ciclo,
+            'exchanges': exchanges,
+            'mia_risposta': risposta.risposta,
+            'count_interessati': count_interessati,
+            'count_totale': count_totale,
+            'percentuale': percentuale,
+            'stato_display': stato_display,
+            'stato_class': stato_class,
+            'giorni_scadenza': proposta.giorni_alla_scadenza() if proposta.data_scadenza else None,
+        })
+
+    # Ordina per data creazione (più recenti prima)
+    catene_info.sort(key=lambda x: x['proposta'].data_creazione, reverse=True)
+
+    context = {
+        'catene_info': catene_info,
+        'total_catene': len(catene_info),
+    }
+
+    return render(request, 'scambi/mie_proposte_catene.html', context)
