@@ -193,13 +193,16 @@ def notifica_proposta_catena(utente, proposta, iniziatore):
     titolo = f"🔗 {iniziatore.username} è interessato a una catena!"
     messaggio = f"{iniziatore.username} ha mostrato interesse per una catena di scambio che ti coinvolge. Rispondi per confermare il tuo interesse!"
 
+    # URL con anchor per scrollare alla catena specifica
+    url = f"{reverse('catene_scambio')}#ciclo-{proposta.ciclo.id}"
+
     return crea_notifica(
         utente=utente,
         tipo='proposta_catena',
         titolo=titolo,
         messaggio=messaggio,
         utente_collegato=iniziatore,
-        url_azione=reverse('catene_scambio')
+        url_azione=url
     )
 
 
@@ -222,13 +225,16 @@ def notifica_risposta_proposta(utente, proposta, rispondente, interessato=True):
         messaggio = f"{rispondente.username} ha rifiutato la tua proposta di catena. La proposta è stata annullata."
         tipo = 'proposta_rifiutata'
 
+    # URL con anchor per scrollare alla catena specifica
+    url = f"{reverse('catene_scambio')}#ciclo-{proposta.ciclo.id}"
+
     return crea_notifica(
         utente=utente,
         tipo=tipo,
         titolo=titolo,
         messaggio=messaggio,
         utente_collegato=rispondente,
-        url_azione=reverse('catene_scambio')
+        url_azione=url
     )
 
 
@@ -243,10 +249,13 @@ def notifica_tutti_interessati(utente, proposta):
     titolo = f"🎉 Tutti interessati alla catena!"
     messaggio = f"Tutti gli utenti hanno mostrato interesse per la catena di scambio! Verrà creata una chat di gruppo per coordinare gli scambi."
 
+    # URL con anchor per scrollare alla catena specifica
+    url = f"{reverse('catene_scambio')}#ciclo-{proposta.ciclo.id}"
+
     return crea_notifica(
         utente=utente,
         tipo='tutti_interessati',
         titolo=titolo,
         messaggio=messaggio,
-        url_azione=reverse('catene_scambio')
+        url_azione=url
     )
