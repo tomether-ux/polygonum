@@ -210,12 +210,16 @@ class Notifica(models.Model):
         ('nuova_catena', 'Nuova catena di scambio disponibile'),
         ('preferito_aggiunto', 'Il tuo annuncio è stato aggiunto ai preferiti'),
         ('proposta_scambio', 'Nuova proposta di scambio'),
+        ('proposta_catena', 'Qualcuno è interessato a una catena'),
+        ('risposta_proposta_catena', 'Qualcuno ha risposto alla tua proposta'),
+        ('tutti_interessati', 'Tutti sono interessati alla catena'),
+        ('proposta_rifiutata', 'Qualcuno ha rifiutato la proposta'),
         ('benvenuto', 'Messaggio di benvenuto'),
         ('sistema', 'Notifica di sistema'),
     ]
 
     utente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifiche')
-    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    tipo = models.CharField(max_length=30, choices=TIPO_CHOICES)
     titolo = models.CharField(max_length=200)
     messaggio = models.TextField()
     letta = models.BooleanField(default=False)
@@ -607,3 +611,112 @@ class CicloScambio(models.Model):
             valido=False,
             calcolato_at__lt=cutoff
         ).delete()
+
+
+# === SISTEMA PROPOSTE CATENE MVP ===
+
+class PropostaCatena(models.Model):
+    """
+    Modello per gestire le proposte di catene di scambio
+    MVP: tracking di chi è interessato a una catena
+    """
+    STATO_CHOICES = [
+        ('in_attesa', 'In attesa'),
+        ('tutti_interessati', 'Tutti interessati'),
+        ('rifiutata', 'Rifiutata'),
+        ('annullata', 'Annullata'),
+    ]
+
+    # Il ciclo di scambio proposto
+    ciclo = models.ForeignKey(CicloScambio, on_delete=models.CASCADE, related_name='proposte')
+
+    # Chi ha iniziato la proposta
+    iniziatore = models.ForeignKey(User, on_delete=models.CASCADE, related_name='proposte_catena_iniziate')
+
+    # Stato della proposta
+    stato = models.CharField(max_length=20, choices=STATO_CHOICES, default='in_attesa')
+
+    # Timestamps
+    data_creazione = models.DateTimeField(auto_now_add=True)
+    data_ultimo_aggiornamento = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Proposta Catena"
+        verbose_name_plural = "Proposte Catene"
+        ordering = ['-data_creazione']
+        # Una catena può avere una sola proposta attiva
+        unique_together = ('ciclo', 'iniziatore')
+
+    def __str__(self):
+        return f"Proposta di {self.iniziatore.username} per ciclo {self.ciclo.id} ({self.get_stato_display()})"
+
+    def get_utenti_coinvolti(self):
+        """Restituisce tutti gli utenti coinvolti nel ciclo"""
+        from django.contrib.auth.models import User
+        return User.objects.filter(id__in=self.ciclo.users)
+
+    def get_count_interessati(self):
+        """Conta quanti utenti sono interessati"""
+        return self.risposte.filter(risposta='interessato').count()
+
+    def get_count_totale(self):
+        """Conta quanti utenti totali sono coinvolti"""
+        return len(self.ciclo.users)
+
+    def check_tutti_interessati(self):
+        """Verifica se tutti sono interessati e aggiorna lo stato"""
+        if self.get_count_interessati() == self.get_count_totale():
+            self.stato = 'tutti_interessati'
+            self.save()
+            return True
+        return False
+
+    def annulla(self):
+        """Annulla la proposta"""
+        self.stato = 'annullata'
+        self.save()
+
+
+class RispostaProposta(models.Model):
+    """
+    Modello per le risposte degli utenti a una proposta di catena
+    """
+    RISPOSTA_CHOICES = [
+        ('in_attesa', 'In attesa'),
+        ('interessato', 'Interessato'),
+        ('non_interessato', 'Non interessato'),
+    ]
+
+    proposta = models.ForeignKey(PropostaCatena, on_delete=models.CASCADE, related_name='risposte')
+    utente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='risposte_proposte_catena')
+    risposta = models.CharField(max_length=20, choices=RISPOSTA_CHOICES, default='in_attesa')
+
+    data_risposta = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Risposta Proposta"
+        verbose_name_plural = "Risposte Proposte"
+        unique_together = ('proposta', 'utente')
+        ordering = ['data_risposta']
+
+    def __str__(self):
+        return f"{self.utente.username}: {self.get_risposta_display()} per proposta {self.proposta.id}"
+
+    def segna_interessato(self):
+        """Segna l'utente come interessato"""
+        self.risposta = 'interessato'
+        self.data_risposta = timezone.now()
+        self.save()
+
+        # Controlla se tutti sono interessati
+        self.proposta.check_tutti_interessati()
+
+    def segna_non_interessato(self):
+        """Segna l'utente come non interessato"""
+        self.risposta = 'non_interessato'
+        self.data_risposta = timezone.now()
+        self.save()
+
+        # Annulla la proposta se qualcuno non è interessato
+        self.proposta.stato = 'rifiutata'
+        self.proposta.save()

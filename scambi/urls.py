@@ -79,6 +79,11 @@ urlpatterns = [
     # Le mie catene personali
     path('le-mie-catene/', views.le_mie_catene, name='le_mie_catene'),
 
+    # Sistema proposte catene (MVP)
+    path('catene/proponi/<int:ciclo_id>/', views.proponi_catena, name='proponi_catena'),
+    path('catene/rispondi/<int:proposta_id>/', views.rispondi_proposta_catena, name='rispondi_proposta_catena'),
+    path('catene/stato/<int:ciclo_id>/', views.stato_proposta_catena, name='stato_proposta_catena'),
+
     # API Sistema calcolo cicli separato
     path('api/cicli/<int:user_id>/', views.api_cicli_utente, name='api_cicli_utente'),
     path('api/cicli/stats/', views.api_cicli_stats, name='api_cicli_stats'),
