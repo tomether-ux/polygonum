@@ -271,7 +271,7 @@
         </h2>
 
         {% for catena in catene_specifiche %}
-        <div class="modern-chain-card high-quality mb-4" data-ciclo-id="{{ catena.id_ciclo }}">
+        <div class="modern-chain-card high-quality mb-4" id="ciclo-{{ catena.id_ciclo }}" data-ciclo-id="{{ catena.id_ciclo }}">
             <div class="chain-card-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="chain-title">
@@ -691,6 +691,23 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => console.error('Errore nel caricare stato proposta:', error));
     });
+
+    // Scroll smooth alla catena se c'è un anchor nell'URL
+    if (window.location.hash) {
+        const targetId = window.location.hash.substring(1);
+        const targetElement = document.getElementById(targetId);
+
+        if (targetElement) {
+            setTimeout(() => {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Evidenzia temporaneamente la catena
+                targetElement.classList.add('highlighted-chain');
+                setTimeout(() => {
+                    targetElement.classList.remove('highlighted-chain');
+                }, 3000);
+            }, 500);
+        }
+    }
 });
 </script>
 
@@ -1281,6 +1298,21 @@ document.addEventListener('DOMContentLoaded', function() {
     display: inline-flex;
     align-items: center;
     gap: 5px;
+}
+
+/* Evidenziazione catena quando si arriva da notifica */
+.highlighted-chain {
+    animation: highlight-pulse 1.5s ease-in-out;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.4) !important;
+}
+
+@keyframes highlight-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(102, 126, 234, 0.6);
+    }
 }
 
 /* Responsive */
