@@ -1256,6 +1256,9 @@ def converti_ciclo_db_a_view_format(ciclo_db):
             print(f"⚠️ Alcuni utenti del ciclo {ciclo_db.id} non esistono più")
             return None
 
+        # Crea un dizionario per accesso veloce agli utenti per ID
+        utenti_dict = {u.id: u for u in utenti}
+
         # Usa i dettagli già processati dal database
         dettagli = ciclo_db.dettagli
 
@@ -1288,23 +1291,57 @@ def converti_ciclo_db_a_view_format(ciclo_db):
                         except Annuncio.DoesNotExist:
                             pass
 
-        # Costruisci il formato di output compatibile con offerte e richieste reali
-        utenti_con_annunci = []
-        for utente in utenti:
-            utenti_con_annunci.append({
-                'user': utente,
-                'offerta': user_offers.get(utente.id),
-                'richiede': user_requests.get(utente.id)
-            })
+        # NUOVO: Riordina gli utenti secondo la sequenza di scambio
+        # La sequenza corretta è: A offre a B, B offre a C, C offre a A
+        # Quindi dobbiamo seguire i link da_user -> a_user
+        utenti_ordinati = []
+        if 'scambi' in dettagli and dettagli['scambi']:
+            # Crea una mappa da_user -> a_user per seguire la catena
+            scambi_map = {}
+            for scambio in dettagli['scambi']:
+                da_user = scambio.get('da_user')
+                a_user = scambio.get('a_user')
+                if da_user and a_user:
+                    scambi_map[da_user] = a_user
+
+            # Parti dal primo utente e segui la catena
+            if scambi_map:
+                utente_corrente = list(scambi_map.keys())[0]
+                visitati = set()
+
+                while utente_corrente not in visitati and utente_corrente in utenti_dict:
+                    visitati.add(utente_corrente)
+                    utenti_ordinati.append({
+                        'user': utenti_dict[utente_corrente],
+                        'offerta': user_offers.get(utente_corrente),
+                        'richiede': user_requests.get(utente_corrente)
+                    })
+
+                    # Vai all'utente successivo
+                    if utente_corrente in scambi_map:
+                        utente_corrente = scambi_map[utente_corrente]
+                    else:
+                        break
+
+        # Fallback: se non riusciamo a ordinare, usa l'ordine originale
+        if not utenti_ordinati:
+            utenti_ordinati = []
+            for user_id in user_ids:
+                if user_id in utenti_dict:
+                    utenti_ordinati.append({
+                        'user': utenti_dict[user_id],
+                        'offerta': user_offers.get(user_id),
+                        'richiede': user_requests.get(user_id)
+                    })
 
         # Costruisci annunci_coinvolti nell'ordine della sequenza di scambio
         # Ordine: A offre X, B cerca X, B offre Y, C cerca Y, C offre Z, A cerca Z
         annunci_coinvolti = []
-        num_utenti = len(utenti_con_annunci)
+        num_utenti = len(utenti_ordinati)
 
         for i in range(num_utenti):
-            utente_corrente = utenti_con_annunci[i]
-            utente_successivo = utenti_con_annunci[(i + 1) % num_utenti]
+            utente_corrente = utenti_ordinati[i]
+            utente_successivo = utenti_ordinati[(i + 1) % num_utenti]
 
             # 1. Utente corrente OFFRE qualcosa
             if utente_corrente['offerta']:
@@ -1323,7 +1360,7 @@ def converti_ciclo_db_a_view_format(ciclo_db):
                 })
 
         ciclo_output = {
-            'utenti': utenti_con_annunci,
+            'utenti': utenti_ordinati,
             'dettagli': dettagli,
             'categoria_qualita': categoria_qualita,
             'punteggio_qualita': dettagli.get('punteggio_qualita', 0),
