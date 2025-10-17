@@ -179,3 +179,74 @@ def ottieni_notifiche_recenti(utente, limite=10):
     Ottiene le notifiche più recenti dell'utente
     """
     return Notifica.objects.filter(utente=utente).order_by('-data_creazione')[:limite]
+
+
+def notifica_proposta_catena(utente, proposta, iniziatore):
+    """
+    Crea notifica quando qualcuno propone una catena di scambio
+
+    Args:
+        utente: Destinatario della notifica
+        proposta: PropostaCatena object
+        iniziatore: User che ha proposto la catena
+    """
+    titolo = f"🔗 {iniziatore.username} è interessato a una catena!"
+    messaggio = f"{iniziatore.username} ha mostrato interesse per una catena di scambio che ti coinvolge. Rispondi per confermare il tuo interesse!"
+
+    return crea_notifica(
+        utente=utente,
+        tipo='proposta_catena',
+        titolo=titolo,
+        messaggio=messaggio,
+        utente_collegato=iniziatore,
+        url_azione=reverse('catene_scambio')
+    )
+
+
+def notifica_risposta_proposta(utente, proposta, rispondente, interessato=True):
+    """
+    Crea notifica quando qualcuno risponde a una proposta di catena
+
+    Args:
+        utente: Destinatario della notifica (iniziatore)
+        proposta: PropostaCatena object
+        rispondente: User che ha risposto
+        interessato: Boolean se l'utente è interessato o meno
+    """
+    if interessato:
+        titolo = f"✅ {rispondente.username} è interessato!"
+        messaggio = f"{rispondente.username} ha mostrato interesse per la tua proposta di catena. {proposta.get_count_interessati()}/{proposta.get_count_totale()} utenti interessati."
+        tipo = 'risposta_proposta_catena'
+    else:
+        titolo = f"❌ {rispondente.username} non è interessato"
+        messaggio = f"{rispondente.username} ha rifiutato la tua proposta di catena. La proposta è stata annullata."
+        tipo = 'proposta_rifiutata'
+
+    return crea_notifica(
+        utente=utente,
+        tipo=tipo,
+        titolo=titolo,
+        messaggio=messaggio,
+        utente_collegato=rispondente,
+        url_azione=reverse('catene_scambio')
+    )
+
+
+def notifica_tutti_interessati(utente, proposta):
+    """
+    Crea notifica quando tutti gli utenti sono interessati a una catena
+
+    Args:
+        utente: Destinatario della notifica
+        proposta: PropostaCatena object
+    """
+    titolo = f"🎉 Tutti interessati alla catena!"
+    messaggio = f"Tutti gli utenti hanno mostrato interesse per la catena di scambio! Verrà creata una chat di gruppo per coordinare gli scambi."
+
+    return crea_notifica(
+        utente=utente,
+        tipo='tutti_interessati',
+        titolo=titolo,
+        messaggio=messaggio,
+        url_azione=reverse('catene_scambio')
+    )

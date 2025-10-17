@@ -1972,3 +1972,173 @@ def webhook_calcola_cicli(request):
             "timestamp": time.time()
         }, status=500)
 
+
+# === SISTEMA PROPOSTE CATENE MVP ===
+
+@login_required
+@require_POST
+def proponi_catena(request, ciclo_id):
+    """Vista AJAX per proporre una catena di scambio (MVP)"""
+    try:
+        ciclo = get_object_or_404(CicloScambio, id=ciclo_id, valido=True)
+        
+        # Verifica che l'utente sia coinvolto nella catena
+        if request.user.id not in ciclo.users:
+            return JsonResponse({
+                'success': False,
+                'error': 'Non fai parte di questa catena'
+            })
+        
+        # Crea o recupera la proposta
+        proposta, created = PropostaCatena.objects.get_or_create(
+            ciclo=ciclo,
+            iniziatore=request.user
+        )
+        
+        if not created:
+            return JsonResponse({
+                'success': False,
+                'error': 'Hai già proposto questa catena'
+            })
+        
+        # Crea le risposte per tutti gli utenti coinvolti
+        from django.contrib.auth.models import User
+        utenti_coinvolti = User.objects.filter(id__in=ciclo.users)
+        
+        for utente in utenti_coinvolti:
+            RispostaProposta.objects.create(
+                proposta=proposta,
+                utente=utente,
+                risposta='interessato' if utente == request.user else 'in_attesa'
+            )
+        
+        # Invia notifiche agli altri utenti
+        from .notifications import notifica_proposta_catena
+        altri_utenti = utenti_coinvolti.exclude(id=request.user.id)
+        for utente in altri_utenti:
+            notifica_proposta_catena(utente, proposta, request.user)
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Proposta inviata a {altri_utenti.count()} utenti!',
+            'proposta_id': proposta.id,
+            'count_interessati': 1,
+            'count_totale': len(ciclo.users)
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+
+
+@login_required
+@require_POST  
+def rispondi_proposta_catena(request, proposta_id):
+    """Vista AJAX per rispondere a una proposta di catena (MVP)"""
+    try:
+        proposta = get_object_or_404(PropostaCatena, id=proposta_id)
+        
+        # Verifica che l'utente sia coinvolto
+        risposta_obj = get_object_or_404(
+            RispostaProposta,
+            proposta=proposta,
+            utente=request.user
+        )
+        
+        azione = request.POST.get('azione')  # 'interessato' o 'non_interessato'
+        
+        if azione == 'interessato':
+            risposta_obj.segna_interessato()
+            message = 'Hai confermato il tuo interesse!'
+            
+            # Controlla se tutti sono interessati
+            if proposta.stato == 'tutti_interessati':
+                # Notifica a tutti che la catena è pronta
+                from .notifications import notifica_tutti_interessati
+                utenti = proposta.get_utenti_coinvolti()
+                for utente in utenti:
+                    notifica_tutti_interessati(utente, proposta)
+                    
+                message = '🎉 Tutti sono interessati! Contattatevi per organizzare lo scambio.'
+            else:
+                # Notifica agli altri che qualcuno ha risposto
+                from .notifications import notifica_risposta_proposta
+                utenti = proposta.get_utenti_coinvolti().exclude(id=request.user.id)
+                for utente in utenti:
+                    notifica_risposta_proposta(utente, proposta, request.user, True)
+                    
+        elif azione == 'non_interessato':
+            risposta_obj.segna_non_interessato()
+            message = 'Proposta rifiutata'
+            
+            # Notifica a tutti che la proposta è stata rifiutata
+            from .notifications import notifica_risposta_proposta
+            utenti = proposta.get_utenti_coinvolti().exclude(id=request.user.id)
+            for utente in utenti:
+                notifica_risposta_proposta(utente, proposta, request.user, False)
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Azione non valida'
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'message': message,
+            'stato': proposta.stato,
+            'count_interessati': proposta.get_count_interessati(),
+            'count_totale': proposta.get_count_totale()
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+
+
+@login_required
+def stato_proposta_catena(request, ciclo_id):
+    """Vista per ottenere lo stato di una proposta per una catena (MVP)"""
+    try:
+        ciclo = get_object_or_404(CicloScambio, id=ciclo_id, valido=True)
+        
+        # Cerca proposta attiva per questa catena
+        proposta = PropostaCatena.objects.filter(
+            ciclo=ciclo,
+            stato__in=['in_attesa', 'tutti_interessati']
+        ).first()
+        
+        if not proposta:
+            return JsonResponse({
+                'has_proposta': False
+            })
+        
+        # Ottieni la risposta dell'utente corrente
+        mia_risposta = None
+        try:
+            risposta_obj = RispostaProposta.objects.get(
+                proposta=proposta,
+                utente=request.user
+            )
+            mia_risposta = risposta_obj.risposta
+        except RispostaProposta.DoesNotExist:
+            pass
+        
+        return JsonResponse({
+            'has_proposta': True,
+            'proposta_id': proposta.id,
+            'iniziatore': proposta.iniziatore.username,
+            'stato': proposta.stato,
+            'count_interessati': proposta.get_count_interessati(),
+            'count_totale': proposta.get_count_totale(),
+            'mia_risposta': mia_risposta
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })

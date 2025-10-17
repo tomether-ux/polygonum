@@ -271,7 +271,7 @@
         </h2>
 
         {% for catena in catene_specifiche %}
-        <div class="modern-chain-card high-quality mb-4">
+        <div class="modern-chain-card high-quality mb-4" data-ciclo-id="{{ catena.id_ciclo }}">
             <div class="chain-card-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="chain-title">
@@ -279,9 +279,20 @@
                         <span class="chain-number">#{{ forloop.counter }}</span>
                         <span class="chain-people">{{ catena.utenti|length }} Persone</span>
                     </div>
-                    <div class="chain-score">
-                        <i class="fas fa-star"></i>
-                        <span>{{ catena.punteggio_qualita }}</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="chain-score">
+                            <i class="fas fa-star"></i>
+                            <span>{{ catena.punteggio_qualita }}</span>
+                        </div>
+                        {% if user.is_authenticated and catena.id_ciclo %}
+                            <span class="badge-interessati" style="display: none;">
+                                <i class="fas fa-users me-1"></i>
+                                <span class="count-text">0/{{ catena.utenti|length }}</span>
+                            </span>
+                            <button class="btn-mi-interessa" onclick="proponiCatena({{ catena.id_ciclo }})">
+                                <i class="fas fa-heart me-1"></i>Mi interessa
+                            </button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -600,6 +611,87 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
+// Funzione per proporre una catena
+function proponiCatena(cicloId) {
+    const button = event.target.closest('.btn-mi-interessa');
+    const card = document.querySelector(`[data-ciclo-id="${cicloId}"]`);
+
+    if (!button || !card) return;
+
+    // Disabilita il pulsante
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Invio...';
+
+    fetch(`/catene/proponi/${cicloId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Mostra il badge interessati
+            const badge = card.querySelector('.badge-interessati');
+            const countText = badge.querySelector('.count-text');
+            countText.textContent = `${data.count_interessati}/${data.count_totale}`;
+            badge.style.display = 'inline-flex';
+
+            // Aggiorna il pulsante
+            button.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
+            button.classList.add('interested');
+
+            // Mostra messaggio di successo
+            if (data.tutti_interessati) {
+                alert('🎉 Tutti sono interessati! Verrà creata una chat di gruppo.');
+            } else {
+                alert(`✅ Interesse registrato! ${data.count_interessati}/${data.count_totale} utenti interessati.`);
+            }
+        } else {
+            alert('Errore: ' + data.error);
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
+        }
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        alert('Errore nel registrare l\'interesse');
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
+    });
+}
+
+// Carica lo stato delle proposte al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    // Carica stato proposte esistenti
+    document.querySelectorAll('[data-ciclo-id]').forEach(card => {
+        const cicloId = card.dataset.cicloId;
+
+        fetch(`/catene/stato/${cicloId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.has_proposta) {
+                const badge = card.querySelector('.badge-interessati');
+                const countText = badge.querySelector('.count-text');
+                const button = card.querySelector('.btn-mi-interessa');
+
+                if (badge && countText && button) {
+                    countText.textContent = `${data.count_interessati}/${data.count_totale}`;
+                    badge.style.display = 'inline-flex';
+
+                    if (data.mia_risposta === 'interessato') {
+                        button.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
+                        button.classList.add('interested');
+                        button.disabled = true;
+                    }
+                }
+            }
+        })
+        .catch(error => console.error('Errore nel caricare stato proposta:', error));
+    });
+});
 </script>
 
 <style>
@@ -1145,6 +1237,52 @@ function getCookie(name) {
     border: 1px solid rgba(41, 128, 185, 0.3);
 }
 
+/* Pulsante Mi Interessa */
+.btn-mi-interessa {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    border: none;
+    color: white;
+    padding: 8px 18px;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-mi-interessa:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
+}
+
+.btn-mi-interessa:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.btn-mi-interessa.interested {
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+}
+
+/* Badge Interessati */
+.badge-interessati {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .modern-section-title {
@@ -1183,6 +1321,16 @@ function getCookie(name) {
 
     .announcement-meta {
         justify-content: flex-start;
+    }
+
+    .btn-mi-interessa {
+        font-size: 0.8rem;
+        padding: 6px 14px;
+    }
+
+    .badge-interessati {
+        font-size: 0.75rem;
+        padding: 4px 10px;
     }
 }
 </style>
