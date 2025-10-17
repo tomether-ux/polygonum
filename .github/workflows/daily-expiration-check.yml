@@ -30,17 +30,6 @@ jobs:
       env:
         SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY || 'github-actions-temp-key-do-not-use-in-production' }}
         DEBUG: 'False'
+        RENDER: 'True'
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
         SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
-
-    - name: Notify on failure
-      if: failure()
-      uses: actions/github-script@v7
-      with:
-        script: |
-          github.rest.issues.create({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            title: '⚠️ Daily Expiration Check Failed',
-            body: `The daily expiration check workflow failed. Check the [workflow run](${context.payload.repository.html_url}/actions/runs/${context.runId}) for details.`
-          })
