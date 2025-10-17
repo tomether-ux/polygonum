@@ -315,39 +315,40 @@
                                 </div>
                                 <div class="user-exchange-info">
                                     <div class="user-name">{{ utente.user.username }}</div>
+                                    {% if utente.richiede %}
+                                        <div class="exchange-detail request">
+                                            <i class="fas fa-search"></i>
+                                            <span>Cerca: {{ utente.richiede.titolo|truncatechars:30 }}</span>
+                                        </div>
+                                    {% endif %}
                                     {% if utente.offerta %}
                                         <div class="exchange-detail offer">
                                             <i class="fas fa-hand-holding"></i>
                                             <span>Offre: {{ utente.offerta.titolo|truncatechars:30 }}</span>
                                         </div>
                                     {% endif %}
-                                    {% with next_index=forloop.counter0|add:"1" %}
-                                    {% if next_index < catena.utenti|length %}
-                                        {% with prossimo=catena.utenti|slice:next_index|first %}
-                                        {% if prossimo.richiede %}
-                                            <div class="exchange-detail request">
-                                                <i class="fas fa-arrow-right"></i>
-                                                <span>→ {{ prossimo.user.username }} riceve</span>
-                                            </div>
-                                        {% endif %}
-                                        {% endwith %}
-                                    {% else %}
-                                        {# Ultimo utente, torna al primo #}
-                                        {% with primo=catena.utenti|first %}
-                                        {% if primo.richiede %}
-                                            <div class="exchange-detail request">
-                                                <i class="fas fa-arrow-right"></i>
-                                                <span>→ {{ primo.user.username }} riceve</span>
-                                            </div>
-                                        {% endif %}
-                                        {% endwith %}
-                                    {% endif %}
-                                    {% endwith %}
                                 </div>
                             </div>
                         </div>
 
                         <div class="announcements-column">
+                            {% if utente.richiede %}
+                            <a href="{% url 'dettaglio_annuncio' utente.richiede.id %}" class="modern-announcement-card compact">
+                                <div class="announcement-icon request-icon">
+                                    <i class="fas fa-search"></i>
+                                </div>
+                                <div class="announcement-content">
+                                    <div class="announcement-title">{{ utente.richiede.titolo }}</div>
+                                    <div class="announcement-meta">
+                                        <span class="announcement-category">
+                                            {{ utente.richiede.categoria.nome }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="announcement-role-badge request-badge">Cerca</div>
+                            </a>
+                            {% endif %}
+
                             {% if utente.offerta %}
                             <a href="{% url 'dettaglio_annuncio' utente.offerta.id %}" class="modern-announcement-card compact">
                                 <div class="announcement-icon offer-icon">
