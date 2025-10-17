@@ -28,7 +28,7 @@ jobs:
       run: |
         python manage.py gestisci_scadenze_proposte
       env:
-        SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY || 'github-actions-temp-key-do-not-use-in-production' }}
+        SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
         DEBUG: 'False'
         RENDER: 'True'
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
