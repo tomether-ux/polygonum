@@ -640,6 +640,19 @@ class PropostaCatena(models.Model):
     data_creazione = models.DateTimeField(auto_now_add=True)
     data_ultimo_aggiornamento = models.DateTimeField(auto_now=True)
 
+    # Scadenza proposta (7 giorni dalla creazione)
+    data_scadenza = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Data di scadenza della proposta (auto-calcolata: creazione + 7 giorni)"
+    )
+
+    # Flag per reminder
+    reminder_inviato = models.BooleanField(
+        default=False,
+        help_text="Indica se il reminder di scadenza è stato inviato"
+    )
+
     class Meta:
         verbose_name = "Proposta Catena"
         verbose_name_plural = "Proposte Catene"
@@ -675,6 +688,31 @@ class PropostaCatena(models.Model):
         """Annulla la proposta"""
         self.stato = 'annullata'
         self.save()
+
+    def save(self, *args, **kwargs):
+        """Override save per calcolare la data_scadenza automaticamente"""
+        if not self.data_scadenza:
+            from datetime import timedelta
+            self.data_scadenza = timezone.now() + timedelta(days=7)
+        super().save(*args, **kwargs)
+
+    def is_scaduta(self):
+        """Verifica se la proposta è scaduta"""
+        return timezone.now() > self.data_scadenza
+
+    def giorni_alla_scadenza(self):
+        """Calcola quanti giorni mancano alla scadenza"""
+        if self.is_scaduta():
+            return 0
+        delta = self.data_scadenza - timezone.now()
+        return delta.days
+
+    def necessita_reminder(self):
+        """Verifica se è il momento di inviare il reminder (1 giorno prima della scadenza)"""
+        if self.reminder_inviato or self.is_scaduta():
+            return False
+        giorni_rimasti = self.giorni_alla_scadenza()
+        return giorni_rimasti <= 1
 
 
 class RispostaProposta(models.Model):

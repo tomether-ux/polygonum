@@ -285,6 +285,10 @@
                             <span>{{ catena.punteggio_qualita }}</span>
                         </div>
                         {% if user.is_authenticated and catena.id_ciclo %}
+                            <span class="badge-scadenza" style="display: none;">
+                                <i class="fas fa-clock me-1"></i>
+                                <span class="scadenza-text"></span>
+                            </span>
                             <span class="badge-interessati" style="display: none;">
                                 <i class="fas fa-users me-1"></i>
                                 <span class="count-text">0/{{ catena.utenti|length }}</span>
@@ -685,6 +689,29 @@ document.addEventListener('DOMContentLoaded', function() {
                         button.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
                         button.classList.add('interested');
                         button.disabled = true;
+                    }
+
+                    // Mostra scadenza se presente
+                    if (data.giorni_scadenza !== null && data.giorni_scadenza !== undefined) {
+                        const badgeScadenza = card.querySelector('.badge-scadenza');
+                        const scadenzaText = badgeScadenza.querySelector('.scadenza-text');
+
+                        let testoScadenza = '';
+                        if (data.giorni_scadenza === 0) {
+                            testoScadenza = 'Scade oggi!';
+                            badgeScadenza.classList.add('scadenza-urgente');
+                        } else if (data.giorni_scadenza === 1) {
+                            testoScadenza = 'Scade domani';
+                            badgeScadenza.classList.add('scadenza-urgente');
+                        } else if (data.giorni_scadenza <= 3) {
+                            testoScadenza = `${data.giorni_scadenza} giorni`;
+                            badgeScadenza.classList.add('scadenza-warning');
+                        } else {
+                            testoScadenza = `${data.giorni_scadenza} giorni`;
+                        }
+
+                        scadenzaText.textContent = testoScadenza;
+                        badgeScadenza.style.display = 'inline-flex';
                     }
                 }
             }
@@ -1298,6 +1325,42 @@ document.addEventListener('DOMContentLoaded', function() {
     display: inline-flex;
     align-items: center;
     gap: 5px;
+}
+
+/* Badge Scadenza */
+.badge-scadenza {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.badge-scadenza.scadenza-warning {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
+}
+
+.badge-scadenza.scadenza-urgente {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+    animation: pulse-scadenza 2s infinite;
+}
+
+@keyframes pulse-scadenza {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 6px 16px rgba(231, 76, 60, 0.5);
+    }
 }
 
 /* Evidenziazione catena quando si arriva da notifica */
