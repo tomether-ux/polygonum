@@ -1399,13 +1399,15 @@ def ricerca_annunci(request):
         prezzo_min = form.cleaned_data.get('prezzo_min')
         if prezzo_min:
             ricerca_effettuata = True
-            annunci = annunci.filter(prezzo_stimato__gte=prezzo_min)
+            # Include anche annunci senza prezzo (NULL)
+            annunci = annunci.filter(Q(prezzo_stimato__gte=prezzo_min) | Q(prezzo_stimato__isnull=True))
 
         # Filtro per prezzo massimo
         prezzo_max = form.cleaned_data.get('prezzo_max')
         if prezzo_max:
             ricerca_effettuata = True
-            annunci = annunci.filter(prezzo_stimato__lte=prezzo_max)
+            # Include anche annunci senza prezzo (NULL)
+            annunci = annunci.filter(Q(prezzo_stimato__lte=prezzo_max) | Q(prezzo_stimato__isnull=True))
 
         # Filtro per spedizione
         spedizione = form.cleaned_data.get('spedizione')
