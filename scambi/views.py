@@ -2134,7 +2134,9 @@ def stato_proposta_catena(request, ciclo_id):
             'stato': proposta.stato,
             'count_interessati': proposta.get_count_interessati(),
             'count_totale': proposta.get_count_totale(),
-            'mia_risposta': mia_risposta
+            'mia_risposta': mia_risposta,
+            'giorni_scadenza': proposta.giorni_alla_scadenza() if proposta.data_scadenza else None,
+            'data_scadenza': proposta.data_scadenza.isoformat() if proposta.data_scadenza else None
         })
         
     except Exception as e:

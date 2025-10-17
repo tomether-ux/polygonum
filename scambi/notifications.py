@@ -259,3 +259,57 @@ def notifica_tutti_interessati(utente, proposta):
         messaggio=messaggio,
         url_azione=url
     )
+
+
+def notifica_reminder_scadenza(utente, proposta):
+    """
+    Crea notifica reminder per proposta in scadenza
+
+    Args:
+        utente: Destinatario della notifica
+        proposta: PropostaCatena object
+    """
+    giorni = proposta.giorni_alla_scadenza()
+    if giorni == 0:
+        tempo = "oggi"
+    elif giorni == 1:
+        tempo = "domani"
+    else:
+        tempo = f"tra {giorni} giorni"
+
+    titolo = f"⏰ Proposta catena in scadenza!"
+    messaggio = f"La proposta per la catena di scambio scade {tempo}. Rispondi ora per non perdere l'opportunità!"
+
+    # URL con anchor per scrollare alla catena specifica
+    url = f"{reverse('catene_scambio')}#ciclo-{proposta.ciclo.id}"
+
+    return crea_notifica(
+        utente=utente,
+        tipo='sistema',
+        titolo=titolo,
+        messaggio=messaggio,
+        url_azione=url
+    )
+
+
+def notifica_proposta_scaduta(utente, proposta):
+    """
+    Crea notifica quando una proposta è scaduta
+
+    Args:
+        utente: Destinatario della notifica
+        proposta: PropostaCatena object
+    """
+    titolo = f"⌛ Proposta catena scaduta"
+    messaggio = f"La proposta per la catena di scambio è scaduta. Non tutti hanno risposto in tempo e la proposta è stata annullata."
+
+    # URL con anchor per scrollare alla catena specifica
+    url = f"{reverse('catene_scambio')}#ciclo-{proposta.ciclo.id}"
+
+    return crea_notifica(
+        utente=utente,
+        tipo='sistema',
+        titolo=titolo,
+        messaggio=messaggio,
+        url_azione=url
+    )
