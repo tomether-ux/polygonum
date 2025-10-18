@@ -2241,8 +2241,42 @@ def mie_proposte_catene(request):
             stato_display = proposta.stato.title()
             stato_class = 'secondary'
 
-        # Ottieni gli annunci del ciclo
-        exchanges = ciclo.exchanges if ciclo else []
+        # Ottieni gli scambi dal campo dettagli del ciclo e costruisci il formato atteso dal template
+        exchanges = []
+        if ciclo and ciclo.dettagli and 'scambi' in ciclo.dettagli:
+            from django.contrib.auth.models import User
+
+            for scambio in ciclo.dettagli['scambi']:
+                da_user_id = scambio.get('da_user')
+                a_user_id = scambio.get('a_user')
+
+                # Ottieni gli utenti
+                try:
+                    giver = User.objects.get(id=da_user_id)
+                    receiver = User.objects.get(id=a_user_id)
+                except User.DoesNotExist:
+                    continue
+
+                # Processa ogni oggetto scambiato
+                for oggetto in scambio.get('oggetti', []):
+                    offerto_data = oggetto.get('offerto', {})
+                    richiesto_data = oggetto.get('richiesto', {})
+
+                    # Ottieni gli annunci
+                    try:
+                        giving_ad = Annuncio.objects.get(id=offerto_data.get('id'))
+                        receiving_ad = Annuncio.objects.get(id=richiesto_data.get('id'))
+
+                        # Crea l'oggetto exchange nel formato atteso dal template
+                        exchange = type('Exchange', (), {
+                            'giver': giver,
+                            'receiver': receiver,
+                            'giving_ad': giving_ad,
+                            'receiving_ad': receiving_ad,
+                        })()
+                        exchanges.append(exchange)
+                    except Annuncio.DoesNotExist:
+                        continue
 
         catene_info.append({
             'proposta': proposta,
