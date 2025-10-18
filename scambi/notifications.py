@@ -193,8 +193,8 @@ def notifica_proposta_catena(utente, proposta, iniziatore):
     titolo = f"🔗 {iniziatore.username} è interessato a una catena!"
     messaggio = f"{iniziatore.username} ha mostrato interesse per una catena di scambio che ti coinvolge. Rispondi per confermare il tuo interesse!"
 
-    # URL con anchor per scrollare alla catena specifica
-    url = f"{reverse('catene_scambio')}#ciclo-{proposta.ciclo.id}"
+    # URL con cerca=true e anchor per scrollare alla catena specifica
+    url = f"{reverse('catene_scambio')}?cerca=true#ciclo-{proposta.ciclo.id}"
 
     return crea_notifica(
         utente=utente,
@@ -225,8 +225,8 @@ def notifica_risposta_proposta(utente, proposta, rispondente, interessato=True):
         messaggio = f"{rispondente.username} ha rifiutato la tua proposta di catena. La proposta è stata annullata."
         tipo = 'proposta_rifiutata'
 
-    # URL con anchor per scrollare alla catena specifica
-    url = f"{reverse('catene_scambio')}#ciclo-{proposta.ciclo.id}"
+    # URL con cerca=true e anchor per scrollare alla catena specifica
+    url = f"{reverse('catene_scambio')}?cerca=true#ciclo-{proposta.ciclo.id}"
 
     return crea_notifica(
         utente=utente,
@@ -249,8 +249,8 @@ def notifica_tutti_interessati(utente, proposta):
     titolo = f"🎉 Tutti interessati alla catena!"
     messaggio = f"Tutti gli utenti hanno mostrato interesse per la catena di scambio! Verrà creata una chat di gruppo per coordinare gli scambi."
 
-    # URL con anchor per scrollare alla catena specifica
-    url = f"{reverse('catene_scambio')}#ciclo-{proposta.ciclo.id}"
+    # URL con cerca=true e anchor per scrollare alla catena specifica
+    url = f"{reverse('catene_scambio')}?cerca=true#ciclo-{proposta.ciclo.id}"
 
     return crea_notifica(
         utente=utente,
@@ -280,8 +280,8 @@ def notifica_reminder_scadenza(utente, proposta):
     titolo = f"⏰ Proposta catena in scadenza!"
     messaggio = f"La proposta per la catena di scambio scade {tempo}. Rispondi ora per non perdere l'opportunità!"
 
-    # URL con anchor per scrollare alla catena specifica
-    url = f"{reverse('catene_scambio')}#ciclo-{proposta.ciclo.id}"
+    # URL con cerca=true e anchor per scrollare alla catena specifica
+    url = f"{reverse('catene_scambio')}?cerca=true#ciclo-{proposta.ciclo.id}"
 
     return crea_notifica(
         utente=utente,
@@ -303,8 +303,8 @@ def notifica_proposta_scaduta(utente, proposta):
     titolo = f"⌛ Proposta catena scaduta"
     messaggio = f"La proposta per la catena di scambio è scaduta. Non tutti hanno risposto in tempo e la proposta è stata annullata."
 
-    # URL con anchor per scrollare alla catena specifica
-    url = f"{reverse('catene_scambio')}#ciclo-{proposta.ciclo.id}"
+    # URL con cerca=true e anchor per scrollare alla catena specifica
+    url = f"{reverse('catene_scambio')}?cerca=true#ciclo-{proposta.ciclo.id}"
 
     return crea_notifica(
         utente=utente,
