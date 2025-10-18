@@ -1980,54 +1980,105 @@ def webhook_calcola_cicli(request):
 @login_required
 @require_POST
 def proponi_catena(request, ciclo_id):
-    """Vista AJAX per proporre una catena di scambio (MVP)"""
+    """Vista AJAX per proporre/annullare interesse a una catena di scambio (toggle)"""
     try:
         ciclo = get_object_or_404(CicloScambio, id=ciclo_id, valido=True)
-        
+
         # Verifica che l'utente sia coinvolto nella catena
         if request.user.id not in ciclo.users:
             return JsonResponse({
                 'success': False,
                 'error': 'Non fai parte di questa catena'
             })
-        
-        # Crea o recupera la proposta
-        proposta, created = PropostaCatena.objects.get_or_create(
-            ciclo=ciclo,
-            iniziatore=request.user
-        )
-        
-        if not created:
-            return JsonResponse({
-                'success': False,
-                'error': 'Hai già proposto questa catena'
-            })
-        
-        # Crea le risposte per tutti gli utenti coinvolti
-        from django.contrib.auth.models import User
-        utenti_coinvolti = User.objects.filter(id__in=ciclo.users)
-        
-        for utente in utenti_coinvolti:
-            RispostaProposta.objects.create(
-                proposta=proposta,
-                utente=utente,
-                risposta='interessato' if utente == request.user else 'in_attesa'
+
+        # Cerca se esiste già una proposta per questo ciclo
+        proposta_esistente = PropostaCatena.objects.filter(ciclo=ciclo).first()
+
+        if proposta_esistente:
+            # Esiste già una proposta, gestisci il toggle dell'interesse dell'utente
+            try:
+                risposta_obj = RispostaProposta.objects.get(
+                    proposta=proposta_esistente,
+                    utente=request.user
+                )
+
+                # Toggle: se interessato → rimuovi interesse, se non interessato/in_attesa → aggiungi interesse
+                if risposta_obj.risposta == 'interessato':
+                    # Annulla interesse
+                    risposta_obj.risposta = 'non_interessato'
+                    risposta_obj.save()
+
+                    # Se l'utente è l'iniziatore, annulla tutta la proposta
+                    if proposta_esistente.iniziatore == request.user:
+                        proposta_esistente.stato = 'annullata'
+                        proposta_esistente.save()
+
+                    return JsonResponse({
+                        'success': True,
+                        'action': 'removed',
+                        'message': 'Interesse rimosso',
+                        'count_interessati': proposta_esistente.get_count_interessati(),
+                        'count_totale': proposta_esistente.get_count_totale()
+                    })
+                else:
+                    # Aggiungi interesse
+                    risposta_obj.risposta = 'interessato'
+                    risposta_obj.save()
+
+                    return JsonResponse({
+                        'success': True,
+                        'action': 'added',
+                        'message': 'Interesse confermato!',
+                        'count_interessati': proposta_esistente.get_count_interessati(),
+                        'count_totale': proposta_esistente.get_count_totale()
+                    })
+            except RispostaProposta.DoesNotExist:
+                # L'utente non ha ancora una risposta, creala
+                RispostaProposta.objects.create(
+                    proposta=proposta_esistente,
+                    utente=request.user,
+                    risposta='interessato'
+                )
+                return JsonResponse({
+                    'success': True,
+                    'action': 'added',
+                    'message': 'Interesse confermato!',
+                    'count_interessati': proposta_esistente.get_count_interessati(),
+                    'count_totale': proposta_esistente.get_count_totale()
+                })
+        else:
+            # Nessuna proposta esistente, crea nuova proposta
+            proposta = PropostaCatena.objects.create(
+                ciclo=ciclo,
+                iniziatore=request.user
             )
-        
-        # Invia notifiche agli altri utenti
-        from .notifications import notifica_proposta_catena
-        altri_utenti = utenti_coinvolti.exclude(id=request.user.id)
-        for utente in altri_utenti:
-            notifica_proposta_catena(utente, proposta, request.user)
-        
-        return JsonResponse({
-            'success': True,
-            'message': f'Proposta inviata a {altri_utenti.count()} utenti!',
-            'proposta_id': proposta.id,
-            'count_interessati': 1,
-            'count_totale': len(ciclo.users)
-        })
-        
+
+            # Crea le risposte per tutti gli utenti coinvolti
+            from django.contrib.auth.models import User
+            utenti_coinvolti = User.objects.filter(id__in=ciclo.users)
+
+            for utente in utenti_coinvolti:
+                RispostaProposta.objects.create(
+                    proposta=proposta,
+                    utente=utente,
+                    risposta='interessato' if utente == request.user else 'in_attesa'
+                )
+
+            # Invia notifiche agli altri utenti
+            from .notifications import notifica_proposta_catena
+            altri_utenti = utenti_coinvolti.exclude(id=request.user.id)
+            for utente in altri_utenti:
+                notifica_proposta_catena(utente, proposta, request.user)
+
+            return JsonResponse({
+                'success': True,
+                'action': 'added',
+                'message': f'Proposta inviata a {altri_utenti.count()} utenti!',
+                'proposta_id': proposta.id,
+                'count_interessati': 1,
+                'count_totale': len(ciclo.users)
+            })
+
     except Exception as e:
         return JsonResponse({
             'success': False,

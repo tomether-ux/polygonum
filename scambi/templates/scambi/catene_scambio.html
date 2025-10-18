@@ -616,14 +616,15 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// Funzione per proporre una catena
+// Funzione per proporre una catena (toggle)
 function proponiCatena(cicloId) {
     const button = event.target.closest('.btn-mi-interessa');
     const card = document.querySelector(`[data-ciclo-id="${cicloId}"]`);
 
     if (!button || !card) return;
 
-    // Disabilita il pulsante
+    // Disabilita temporaneamente il pulsante durante l'operazione
+    const wasInterested = button.classList.contains('interested');
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Invio...';
 
@@ -637,33 +638,50 @@ function proponiCatena(cicloId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Mostra il badge interessati
+            // Aggiorna il badge interessati
             const badge = card.querySelector('.badge-interessati');
             const countText = badge.querySelector('.count-text');
             countText.textContent = `${data.count_interessati}/${data.count_totale}`;
             badge.style.display = 'inline-flex';
 
-            // Aggiorna il pulsante
-            button.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
-            button.classList.add('interested');
+            // Aggiorna il pulsante in base all'azione (added/removed)
+            button.disabled = false; // Riabilita per permettere toggle
 
-            // Mostra messaggio di successo
-            if (data.tutti_interessati) {
-                alert('🎉 Tutti sono interessati! Verrà creata una chat di gruppo.');
-            } else {
-                alert(`✅ Interesse registrato! ${data.count_interessati}/${data.count_totale} utenti interessati.`);
+            if (data.action === 'added') {
+                button.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
+                button.classList.add('interested');
+
+                if (data.tutti_interessati) {
+                    alert('🎉 Tutti sono interessati! Verrà creata una chat di gruppo.');
+                } else {
+                    alert(`✅ Interesse registrato! ${data.count_interessati}/${data.count_totale} utenti interessati.`);
+                }
+            } else if (data.action === 'removed') {
+                button.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
+                button.classList.remove('interested');
+                alert(`❌ Interesse rimosso. ${data.count_interessati}/${data.count_totale} utenti interessati.`);
             }
         } else {
             alert('Errore: ' + data.error);
             button.disabled = false;
-            button.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
+            // Ripristina stato precedente in caso di errore
+            if (wasInterested) {
+                button.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
+            } else {
+                button.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
+            }
         }
     })
     .catch(error => {
         console.error('Errore:', error);
         alert('Errore nel registrare l\'interesse');
         button.disabled = false;
-        button.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
+        // Ripristina stato precedente in caso di errore
+        if (wasInterested) {
+            button.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
+        } else {
+            button.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
+        }
     });
 }
 
@@ -688,7 +706,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.mia_risposta === 'interessato') {
                         button.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
                         button.classList.add('interested');
-                        button.disabled = true;
+                        // Button rimane cliccabile per permettere toggle
                     }
 
                     // Mostra scadenza se presente
