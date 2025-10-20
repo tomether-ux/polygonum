@@ -145,17 +145,65 @@
                     </li>
                     {% endif %}
                     {% if user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link position-relative" href="{% url 'lista_messaggi' %}">
-                            <span class="d-lg-none">Messaggi{% if conversazioni_non_lette > 0 %} <span class="badge bg-danger">{{ conversazioni_non_lette }}</span>{% endif %}</span>
-                            <i class="fas fa-comments d-none d-lg-inline" title="Messaggi"></i>
+                    <!-- Mobile: Link diretto (solo mobile) -->
+                    <li class="nav-item d-lg-none">
+                        <a class="nav-link" href="{% url 'lista_messaggi' %}">
+                            Messaggi{% if conversazioni_non_lette > 0 %} <span class="badge bg-danger">{{ conversazioni_non_lette }}</span>{% endif %}
+                        </a>
+                    </li>
+
+                    <!-- Desktop: Dropdown chat (solo desktop) -->
+                    <li class="nav-item dropdown d-none d-lg-block">
+                        <a class="nav-link position-relative" href="#" id="chatDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
+                            <i class="fas fa-comments" title="Messaggi"></i>
                             {% if conversazioni_non_lette > 0 %}
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none d-lg-inline">
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
                                     {{ conversazioni_non_lette }}
                                     <span class="visually-hidden">chat non lette</span>
                                 </span>
                             {% endif %}
                         </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="chatDropdown" style="min-width: 320px; max-height: 400px; overflow-y: auto;">
+                            <li><h6 class="dropdown-header">Conversazioni Recenti</h6></li>
+                            {% if conversazioni_recenti %}
+                                {% for conv in conversazioni_recenti %}
+                                    <li>
+                                        <a class="dropdown-item {% if conv.ha_non_letti %}fw-bold bg-light{% endif %}"
+                                           href="{% url 'chat_conversazione' conv.id %}"
+                                           style="white-space: normal; padding: 12px 16px;">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="me-auto" style="flex: 1;">
+                                                    <div class="d-flex align-items-center mb-1">
+                                                        {% if conv.is_gruppo %}
+                                                            <i class="fas fa-users text-muted me-2" style="font-size: 0.85rem;"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-user text-muted me-2" style="font-size: 0.85rem;"></i>
+                                                        {% endif %}
+                                                        <strong style="font-size: 0.95rem;">{{ conv.nome|truncatechars:25 }}</strong>
+                                                    </div>
+                                                    <div class="text-muted small">
+                                                        {% if conv.mittente %}
+                                                            <span class="fw-semibold">{{ conv.mittente }}:</span>
+                                                        {% endif %}
+                                                        {{ conv.ultimo_messaggio }}
+                                                    </div>
+                                                    <div class="text-muted" style="font-size: 0.75rem; margin-top: 4px;">
+                                                        {{ conv.data|timesince }} fa
+                                                    </div>
+                                                </div>
+                                                {% if conv.ha_non_letti %}
+                                                    <span class="badge bg-primary rounded-circle ms-2" style="width: 10px; height: 10px; padding: 0;"></span>
+                                                {% endif %}
+                                            </div>
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-center text-primary fw-semibold" href="{% url 'lista_messaggi' %}">Mostra tutte</a></li>
+                            {% else %}
+                                <li><span class="dropdown-item text-muted">Nessuna conversazione</span></li>
+                            {% endif %}
+                        </ul>
                     </li>
                     {% endif %}
 

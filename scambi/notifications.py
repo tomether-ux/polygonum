@@ -345,3 +345,71 @@ def conta_conversazioni_non_lette(utente):
     )
 
     return conversazioni_con_non_letti.count()
+
+
+def ottieni_preview_conversazioni(utente, limite=5):
+    """
+    Ottiene una preview delle conversazioni recenti per l'utente
+    Include informazioni su ultimo messaggio e stato lettura
+
+    Args:
+        utente: User object
+        limite: Numero massimo di conversazioni da restituire
+
+    Returns:
+        List di dict con informazioni conversazione
+    """
+    from .models import Conversazione, Messaggio
+    from django.db.models import Prefetch, Exists, OuterRef
+
+    # Prefetch solo l'ultimo messaggio per ogni conversazione
+    ultimo_messaggio_prefetch = Prefetch(
+        'messaggi',
+        queryset=Messaggio.objects.select_related('mittente').order_by('-data_invio')[:1],
+        to_attr='ultimo_messaggio_list'
+    )
+
+    conversazioni = Conversazione.objects.filter(
+        utenti=utente,
+        attiva=True
+    ).prefetch_related(
+        'utenti',
+        ultimo_messaggio_prefetch
+    ).order_by('-ultimo_messaggio')[:limite]
+
+    preview_list = []
+    for conv in conversazioni:
+        # Ottieni ultimo messaggio
+        ultimo_msg = conv.ultimo_messaggio_list[0] if conv.ultimo_messaggio_list else None
+
+        # Verifica se ci sono messaggi non letti
+        ha_non_letti = Messaggio.objects.filter(
+            conversazione=conv
+        ).exclude(
+            letto_da=utente
+        ).exclude(
+            mittente=utente
+        ).exists()
+
+        # Prepara preview
+        if ultimo_msg:
+            preview_testo = ultimo_msg.contenuto[:50]
+            if len(ultimo_msg.contenuto) > 50:
+                preview_testo += "..."
+            mittente_nome = ultimo_msg.mittente.username
+        else:
+            preview_testo = "Nessun messaggio"
+            mittente_nome = ""
+
+        preview_list.append({
+            'id': conv.id,
+            'nome': conv.get_nome_display(utente),
+            'tipo': conv.tipo,
+            'ultimo_messaggio': preview_testo,
+            'mittente': mittente_nome,
+            'data': conv.ultimo_messaggio,
+            'ha_non_letti': ha_non_letti,
+            'is_gruppo': conv.tipo == 'gruppo'
+        })
+
+    return preview_list
