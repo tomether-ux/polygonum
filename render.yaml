@@ -2,7 +2,7 @@ databases:
   - name: polygonum-database
     databaseName: polygonum
     user: polygonum_user
-    plan: free
+    plan: starter  # Piano a pagamento per persistenza garantita
 
 services:
   # Servizio web principale Django
@@ -13,12 +13,7 @@ services:
     buildCommand: |
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
-      echo "📋 Checking current migration status..."
-      python manage.py showmigrations scambi
-      echo "🔄 Applying all migrations (will skip already applied)..."
-      python manage.py migrate scambi --run-syncdb
-      echo "✅ Final migration status:"
-      python manage.py showmigrations scambi
+      python manage.py migrate
     startCommand: |
       gunicorn --bind 0.0.0.0:$PORT scambio_sito.wsgi:application
     envVars:
