@@ -1201,11 +1201,12 @@ def notifica_click_redirect(request, notifica_id):
 def context_processor_notifiche(request):
     """Context processor per aggiungere dati notifiche e chat a tutti i template"""
     if request.user.is_authenticated:
-        from .notifications import conta_conversazioni_non_lette
+        from .notifications import conta_conversazioni_non_lette, ottieni_preview_conversazioni
         return {
             'notifiche_non_lette': conta_notifiche_non_lette(request.user),
             'notifiche_recenti': ottieni_notifiche_recenti(request.user, 5),
-            'conversazioni_non_lette': conta_conversazioni_non_lette(request.user)
+            'conversazioni_non_lette': conta_conversazioni_non_lette(request.user),
+            'conversazioni_recenti': ottieni_preview_conversazioni(request.user, 5)
         }
     return {}
 
