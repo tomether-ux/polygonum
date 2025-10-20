@@ -313,3 +313,35 @@ def notifica_proposta_scaduta(utente, proposta):
         messaggio=messaggio,
         url_azione=url
     )
+
+
+def conta_conversazioni_non_lette(utente):
+    """
+    Conta il numero di conversazioni con messaggi non letti per l'utente
+
+    Args:
+        utente: User object
+
+    Returns:
+        int: Numero di conversazioni con messaggi non letti
+    """
+    from .models import Conversazione, Messaggio
+    from django.db.models import Exists, OuterRef
+
+    # Trova conversazioni con almeno un messaggio non letto dall'utente
+    conversazioni_con_non_letti = Conversazione.objects.filter(
+        utenti=utente,
+        attiva=True
+    ).filter(
+        Exists(
+            Messaggio.objects.filter(
+                conversazione=OuterRef('pk')
+            ).exclude(
+                letto_da=utente
+            ).exclude(
+                mittente=utente  # Escludi i messaggi inviati dall'utente stesso
+            )
+        )
+    )
+
+    return conversazioni_con_non_letti.count()

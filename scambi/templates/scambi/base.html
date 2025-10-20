@@ -146,9 +146,15 @@
                     {% endif %}
                     {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'lista_messaggi' %}">
-                            <span class="d-lg-none">Messaggi</span>
+                        <a class="nav-link position-relative" href="{% url 'lista_messaggi' %}">
+                            <span class="d-lg-none">Messaggi{% if conversazioni_non_lette > 0 %} <span class="badge bg-danger">{{ conversazioni_non_lette }}</span>{% endif %}</span>
                             <i class="fas fa-comments d-none d-lg-inline" title="Messaggi"></i>
+                            {% if conversazioni_non_lette > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none d-lg-inline">
+                                    {{ conversazioni_non_lette }}
+                                    <span class="visually-hidden">chat non lette</span>
+                                </span>
+                            {% endif %}
                         </a>
                     </li>
                     {% endif %}
