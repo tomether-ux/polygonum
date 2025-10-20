@@ -60,7 +60,26 @@ class Annuncio(models.Model):
     
     def __str__(self):
         return f"{self.utente.username} - {self.tipo}: {self.titolo}"
-    
+
+    def save(self, *args, **kwargs):
+        """Override save per ottimizzare automaticamente le immagini"""
+        # Se c'è un'immagine caricata, ottimizzala
+        if self.immagine:
+            from .image_utils import optimize_image
+            try:
+                # Ottimizza l'immagine (max 1200x1200, qualità 85%)
+                self.immagine = optimize_image(
+                    self.immagine,
+                    max_width=1200,
+                    max_height=1200,
+                    quality=85
+                )
+            except Exception as e:
+                # Se l'ottimizzazione fallisce, log l'errore ma continua
+                print(f"Errore nell'ottimizzazione immagine: {e}")
+
+        super().save(*args, **kwargs)
+
     def get_image_url(self):
         """Restituisce l'URL dell'immagine o un'immagine placeholder"""
         if self.immagine and hasattr(self.immagine, 'url'):
