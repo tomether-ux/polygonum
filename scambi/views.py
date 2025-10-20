@@ -2023,28 +2023,107 @@ def proponi_catena(request, ciclo_id):
                 else:
                     # Aggiungi interesse
                     risposta_obj.risposta = 'interessato'
+                    risposta_obj.data_risposta = timezone.now()
                     risposta_obj.save()
+
+                    # Verifica se tutti sono interessati
+                    count_interessati = proposta_esistente.get_count_interessati()
+                    count_totale = proposta_esistente.get_count_totale()
+                    tutti_interessati = count_interessati == count_totale
+
+                    if tutti_interessati:
+                        # Aggiorna stato proposta
+                        proposta_esistente.stato = 'tutti_interessati'
+                        proposta_esistente.save()
+
+                        # Crea chat di gruppo
+                        from .models import Conversazione, Messaggio
+                        from django.contrib.auth.models import User
+
+                        utenti_coinvolti = User.objects.filter(id__in=ciclo.users)
+
+                        # Crea conversazione di gruppo
+                        conversazione = Conversazione.objects.create(
+                            tipo='gruppo',
+                            nome=f"Catena di scambio #{ciclo.id}",
+                            catena_scambio_id=str(ciclo.id)
+                        )
+                        conversazione.utenti.set(utenti_coinvolti)
+
+                        # Messaggio di sistema
+                        Messaggio.objects.create(
+                            conversazione=conversazione,
+                            mittente=request.user,
+                            contenuto=f"🎉 Tutti sono interessati! Catena attivata. Coordinate gli scambi qui.",
+                            is_sistema=True
+                        )
+
+                        # Invia notifiche a tutti
+                        from .notifications import notifica_tutti_interessati
+                        for utente in utenti_coinvolti:
+                            notifica_tutti_interessati(utente, proposta_esistente)
 
                     return JsonResponse({
                         'success': True,
                         'action': 'added',
                         'message': 'Interesse confermato!',
-                        'count_interessati': proposta_esistente.get_count_interessati(),
-                        'count_totale': proposta_esistente.get_count_totale()
+                        'count_interessati': count_interessati,
+                        'count_totale': count_totale,
+                        'tutti_interessati': tutti_interessati
                     })
             except RispostaProposta.DoesNotExist:
                 # L'utente non ha ancora una risposta, creala
                 RispostaProposta.objects.create(
                     proposta=proposta_esistente,
                     utente=request.user,
-                    risposta='interessato'
+                    risposta='interessato',
+                    data_risposta=timezone.now()
                 )
+
+                # Verifica se tutti sono interessati
+                count_interessati = proposta_esistente.get_count_interessati()
+                count_totale = proposta_esistente.get_count_totale()
+                tutti_interessati = count_interessati == count_totale
+
+                if tutti_interessati:
+                    # Aggiorna stato proposta
+                    proposta_esistente.stato = 'tutti_interessati'
+                    proposta_esistente.save()
+
+                    # Crea chat di gruppo
+                    from .models import Conversazione, Messaggio
+                    from django.contrib.auth.models import User
+
+                    utenti_coinvolti = User.objects.filter(id__in=ciclo.users)
+
+                    # Crea conversazione di gruppo
+                    conversazione = Conversazione.objects.create(
+                        tipo='gruppo',
+                        nome=f"Catena di scambio #{ciclo.id}",
+                        catena_scambio_id=str(ciclo.id)
+                    )
+                    conversazione.utenti.set(utenti_coinvolti)
+
+                    # Messaggio di sistema
+                    Messaggio.objects.create(
+                        conversazione=conversazione,
+                        mittente=request.user,
+                        contenuto=f"🎉 Tutti sono interessati! Catena attivata. Coordinate gli scambi qui.",
+                        is_sistema=True
+                    )
+
+                    # Invia notifiche a tutti
+                    from .notifications import notifica_tutti_interessati
+                    for utente in utenti_coinvolti:
+                        notifica_tutti_interessati(utente, proposta_esistente)
+
                 return JsonResponse({
                     'success': True,
                     'action': 'added',
                     'message': 'Interesse confermato!',
-                    'count_interessati': proposta_esistente.get_count_interessati(),
-                    'count_totale': proposta_esistente.get_count_totale()
+                    'count_interessati': count_interessati,
+                    'count_totale': count_totale,
+                    'tutti_interessati': tutti_interessati
                 })
         else:
             # Nessuna proposta esistente, crea nuova proposta
