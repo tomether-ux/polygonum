@@ -13,13 +13,7 @@ services:
     buildCommand: |
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
-      echo "🔍 FORCE: Checking current migration status..."
-      python manage.py showmigrations scambi
-      echo "🚀 FORCE: Running migrate with fake reset for scambi.0010..."
-      python manage.py migrate scambi 0009 --fake
-      python manage.py migrate scambi 0010
-      echo "✅ FORCE: Migration status after running migrate:"
-      python manage.py showmigrations scambi
+      python manage.py migrate
     startCommand: |
       gunicorn --bind 0.0.0.0:$PORT scambio_sito.wsgi:application
     envVars:
