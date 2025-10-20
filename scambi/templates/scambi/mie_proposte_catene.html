@@ -19,101 +19,116 @@
     </p>
 
     {% for catena in catene_info %}
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">
-                <i class="fas fa-sync-alt me-2"></i>
-                Catena {{ forloop.counter }}
-            </h5>
-            <span class="badge bg-{{ catena.stato_class }}">{{ catena.stato_display }}</span>
-        </div>
-        <div class="card-body">
-            <!-- Progress Bar -->
-            <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="fw-bold">Progresso Partecipanti</span>
-                    <span class="text-muted">{{ catena.count_interessati }}/{{ catena.count_totale }}</span>
-                </div>
-                <div class="progress" style="height: 25px;">
-                    <div class="progress-bar progress-bar-striped {% if catena.percentuale == 100 %}bg-success{% elif catena.percentuale >= 50 %}bg-warning{% else %}bg-info{% endif %}"
-                         role="progressbar"
-                         style="width: {{ catena.percentuale }}%;"
-                         aria-valuenow="{{ catena.percentuale }}"
-                         aria-valuemin="0"
-                         aria-valuemax="100">
-                        {{ catena.percentuale }}%
+    <div class="card mb-3 shadow-sm catena-card">
+        <!-- Header minimale cliccabile -->
+        <div class="card-header catena-header" data-bs-toggle="collapse" data-bs-target="#catena-{{ forloop.counter }}"
+             style="cursor: pointer; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center flex-grow-1">
+                    <i class="fas fa-chevron-right me-3 collapse-icon" style="transition: transform 0.3s;"></i>
+                    <div>
+                        <h6 class="mb-0">
+                            <i class="fas fa-sync-alt me-2"></i>
+                            Catena con {{ catena.count_totale }} partecipanti
+                        </h6>
+                        <small class="opacity-75">
+                            Iniziata da <strong>{{ catena.proposta.iniziatore.username }}</strong>
+                            • {{ catena.proposta.data_creazione|timesince }} fa
+                        </small>
                     </div>
                 </div>
-            </div>
-
-            <!-- Scadenza -->
-            {% if catena.giorni_scadenza is not None %}
-            <div class="alert {% if catena.giorni_scadenza <= 1 %}alert-danger{% elif catena.giorni_scadenza <= 3 %}alert-warning{% else %}alert-info{% endif %} py-2 mb-3">
-                <i class="fas fa-clock me-2"></i>
-                {% if catena.giorni_scadenza == 0 %}
-                    <strong>Scade oggi!</strong>
-                {% elif catena.giorni_scadenza == 1 %}
-                    <strong>Scade domani</strong>
-                {% else %}
-                    Scade tra <strong>{{ catena.giorni_scadenza }} giorni</strong>
-                {% endif %}
-            </div>
-            {% endif %}
-
-            <!-- Sequenza Scambi -->
-            <h6 class="fw-bold mb-3">
-                <i class="fas fa-exchange-alt me-2"></i>Sequenza Scambi:
-            </h6>
-            <div class="row g-3">
-                {% for exchange in catena.exchanges %}
-                <div class="col-12">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0 text-center" style="width: 40px;">
-                            <span class="badge bg-secondary rounded-circle" style="width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;">
-                                {{ forloop.counter }}
-                            </span>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <div class="card bg-light">
-                                <div class="card-body py-2 px-3">
-                                    <div class="row align-items-center">
-                                        <div class="col-md-5">
-                                            <span class="text-muted small">Offre:</span><br>
-                                            <strong>{{ exchange.giving_ad.titolo }}</strong>
-                                            <br><span class="text-muted small">{{ exchange.giver.username }}</span>
-                                        </div>
-                                        <div class="col-md-2 text-center">
-                                            <i class="fas fa-arrow-right text-primary fa-lg"></i>
-                                        </div>
-                                        <div class="col-md-5">
-                                            <span class="text-muted small">Riceve:</span><br>
-                                            <strong>{{ exchange.receiving_ad.titolo }}</strong>
-                                            <br><span class="text-muted small">{{ exchange.receiver.username }}</span>
-                                        </div>
-                                    </div>
-                                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <!-- Barra progresso 3D blu -->
+                    <div class="progress-3d-container" style="width: 120px;">
+                        <div class="progress progress-3d" style="height: 22px;">
+                            <div class="progress-bar progress-bar-3d"
+                                 role="progressbar"
+                                 style="width: {{ catena.percentuale }}%;"
+                                 aria-valuenow="{{ catena.percentuale }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                                <span class="progress-text">{{ catena.count_interessati }}/{{ catena.count_totale }}</span>
                             </div>
                         </div>
                     </div>
+                    <span class="badge bg-{{ catena.stato_class }} px-3 py-2">{{ catena.stato_display }}</span>
                 </div>
-                {% endfor %}
             </div>
+        </div>
 
-            <!-- Iniziatore e Data -->
-            <div class="mt-3 pt-3 border-top">
-                <small class="text-muted">
-                    <i class="fas fa-user me-1"></i>Iniziata da <strong>{{ catena.proposta.iniziatore.username }}</strong>
-                    <span class="ms-3">
-                        <i class="fas fa-calendar me-1"></i>{{ catena.proposta.data_creazione|date:"d/m/Y H:i" }}
-                    </span>
-                </small>
-            </div>
+        <!-- Body espandibile -->
+        <div id="catena-{{ forloop.counter }}" class="collapse">
+            <div class="card-body">
+                <!-- Scadenza -->
+                {% if catena.giorni_scadenza is not None %}
+                <div class="alert {% if catena.giorni_scadenza <= 1 %}alert-danger{% elif catena.giorni_scadenza <= 3 %}alert-warning{% else %}alert-info{% endif %} py-2 mb-3">
+                    <i class="fas fa-clock me-2"></i>
+                    {% if catena.giorni_scadenza == 0 %}
+                        <strong>Scade oggi!</strong>
+                    {% elif catena.giorni_scadenza == 1 %}
+                        <strong>Scade domani</strong>
+                    {% else %}
+                        Scade tra <strong>{{ catena.giorni_scadenza }} giorni</strong>
+                    {% endif %}
+                </div>
+                {% endif %}
 
-            <!-- Link alla pagina catene -->
-            <div class="mt-3">
-                <a href="{% url 'catene_scambio' %}#ciclo-{{ catena.ciclo.id }}" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-eye me-1"></i>Vedi Dettagli
-                </a>
+                <!-- Visualizzazione circolare scambi -->
+                <h6 class="fw-bold mb-3">
+                    <i class="fas fa-exchange-alt me-2"></i>Sequenza Scambi:
+                </h6>
+
+                <div class="exchange-circle-container">
+                    {% for exchange in catena.exchanges %}
+                    <div class="exchange-circle-item">
+                        <!-- Cerchio utente che dà -->
+                        <div class="user-circle">
+                            <div class="user-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="user-name">{{ exchange.giver.username }}</div>
+                            <div class="exchange-item giving">
+                                <i class="fas fa-gift me-1"></i>
+                                <strong>{{ exchange.giving_ad.titolo|truncatechars:20 }}</strong>
+                            </div>
+                        </div>
+
+                        <!-- Freccia -->
+                        <div class="exchange-arrow">
+                            <i class="fas fa-arrow-right fa-2x text-primary"></i>
+                        </div>
+
+                        <!-- Cerchio utente che riceve -->
+                        <div class="user-circle">
+                            <div class="user-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="user-name">{{ exchange.receiver.username }}</div>
+                            <div class="exchange-item receiving">
+                                <i class="fas fa-box me-1"></i>
+                                <strong>{{ exchange.receiving_ad.titolo|truncatechars:20 }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    {% if not forloop.last %}
+                    <div class="exchange-separator">
+                        <i class="fas fa-chevron-down text-muted"></i>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+
+                <!-- Link azioni -->
+                <div class="mt-4 pt-3 border-top d-flex gap-2">
+                    <a href="{% url 'catene_scambio' %}#ciclo-{{ catena.ciclo.id }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-eye me-1"></i>Vedi Dettagli
+                    </a>
+                    {% if catena.stato_class == 'success' and catena.percentuale == 100 %}
+                    <a href="{% url 'lista_messaggi' %}" class="btn btn-success btn-sm">
+                        <i class="fas fa-comments me-1"></i>Chat Gruppo
+                    </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -130,24 +145,195 @@
 </div>
 
 <style>
-.progress-bar-striped {
-    background-image: linear-gradient(45deg, rgba(255, 255, 255, .15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%, transparent 75%, transparent);
-    background-size: 1rem 1rem;
+/* Animazione icona collapse */
+.catena-header[aria-expanded="true"] .collapse-icon {
+    transform: rotate(90deg);
 }
 
-.card-header {
-    border-radius: 0.375rem 0.375rem 0 0 !important;
+/* Barra progresso 3D blu */
+.progress-3d {
+    background: linear-gradient(to bottom, #e0e0e0 0%, #cfcfcf 100%);
+    border-radius: 12px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+    overflow: hidden;
 }
 
+.progress-bar-3d {
+    background: linear-gradient(to bottom,
+        #4d94ff 0%,
+        #3d7ae0 50%,
+        #2d5fc7 51%,
+        #1e4fb0 100%
+    );
+    box-shadow:
+        inset 0 2px 9px rgba(255,255,255,0.3),
+        inset 0 -2px 6px rgba(0,0,0,0.4);
+    position: relative;
+    overflow: hidden;
+    transition: width 0.6s ease;
+}
+
+.progress-bar-3d::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to bottom,
+        rgba(255,255,255,0.4) 0%,
+        rgba(255,255,255,0) 100%
+    );
+    border-radius: 12px 12px 0 0;
+}
+
+.progress-text {
+    position: relative;
+    z-index: 2;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Layout circolare scambi */
+.exchange-circle-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 12px;
+}
+
+.exchange-circle-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.user-circle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
+.user-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.user-name {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+.exchange-item {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    text-align: center;
+    max-width: 200px;
+}
+
+.exchange-item.giving {
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    color: #8b4513;
+}
+
+.exchange-item.receiving {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    color: #2d5f5d;
+}
+
+.exchange-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+.exchange-separator {
+    text-align: center;
+    font-size: 1.5rem;
+    opacity: 0.5;
+}
+
+/* Card hover effect */
+.catena-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.catena-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15) !important;
+}
+
+/* Mobile responsive */
 @media (max-width: 768px) {
-    .col-md-5, .col-md-2 {
-        text-align: center;
+    .exchange-circle-item {
+        flex-direction: column;
+        gap: 20px;
     }
 
-    .fa-arrow-right {
+    .exchange-arrow {
         transform: rotate(90deg);
-        margin: 10px 0;
+    }
+
+    .progress-3d-container {
+        width: 80px !important;
+    }
+
+    .catena-header small {
+        display: block;
+        margin-top: 5px;
     }
 }
 </style>
+
+<script>
+// Anima l'icona quando si espande/collassa
+document.querySelectorAll('.catena-header').forEach(header => {
+    header.addEventListener('click', function() {
+        const icon = this.querySelector('.collapse-icon');
+        const target = this.getAttribute('data-bs-target');
+        const collapseElement = document.querySelector(target);
+
+        collapseElement.addEventListener('shown.bs.collapse', () => {
+            icon.style.transform = 'rotate(90deg)';
+        });
+
+        collapseElement.addEventListener('hidden.bs.collapse', () => {
+            icon.style.transform = 'rotate(0deg)';
+        });
+    });
+});
+</script>
+
 {% endblock %}

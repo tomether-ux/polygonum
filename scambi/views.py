@@ -2366,13 +2366,22 @@ def mie_proposte_catene(request):
             'stato_display': stato_display,
             'stato_class': stato_class,
             'giorni_scadenza': proposta.giorni_alla_scadenza() if proposta.data_scadenza else None,
+            'stato_ordinamento': 0 if proposta.stato == 'tutti_interessati' else (1 if proposta.stato == 'in_attesa' else 2)
         })
 
-    # Ordina per data creazione (più recenti prima)
-    catene_info.sort(key=lambda x: x['proposta'].data_creazione, reverse=True)
+    # Ordina per stato (tutti_interessati, in_attesa, altro) e poi per data creazione
+    catene_info.sort(key=lambda x: (x['stato_ordinamento'], -x['proposta'].data_creazione.timestamp()))
+
+    # Raggruppa per stato per visualizzazione
+    catene_per_stato = {
+        'tutti_interessati': [c for c in catene_info if c['stato_class'] == 'success' and c['percentuale'] == 100],
+        'in_attesa': [c for c in catene_info if c['stato_class'] == 'warning'],
+        'altro': [c for c in catene_info if c not in catene_info if c['stato_class'] not in ['success', 'warning']]
+    }
 
     context = {
         'catene_info': catene_info,
+        'catene_per_stato': catene_per_stato,
         'total_catene': len(catene_info),
     }
 
