@@ -1199,11 +1199,13 @@ def notifica_click_redirect(request, notifica_id):
 
 
 def context_processor_notifiche(request):
-    """Context processor per aggiungere dati notifiche a tutti i template"""
+    """Context processor per aggiungere dati notifiche e chat a tutti i template"""
     if request.user.is_authenticated:
+        from .notifications import conta_conversazioni_non_lette
         return {
             'notifiche_non_lette': conta_notifiche_non_lette(request.user),
-            'notifiche_recenti': ottieni_notifiche_recenti(request.user, 5)
+            'notifiche_recenti': ottieni_notifiche_recenti(request.user, 5),
+            'conversazioni_non_lette': conta_conversazioni_non_lette(request.user)
         }
     return {}
 
@@ -1497,7 +1499,6 @@ def ricerca_veloce(request):
 # === SISTEMA MESSAGGISTICA ===
 
 from .models import Conversazione, Messaggio, LetturaMessaggio, CatenaScambio
-from .notifications import notifica_nuovo_messaggio
 from django.db.models import Q, Prefetch
 
 
@@ -1562,10 +1563,7 @@ def chat_conversazione(request, conversazione_id):
             conversazione.ultimo_messaggio = timezone.now()
             conversazione.save()
 
-            # Notifica gli altri utenti nella conversazione
-            altri_utenti = conversazione.get_altri_utenti(request.user)
-            for utente in altri_utenti:
-                notifica_nuovo_messaggio(utente, messaggio)
+            # Non creiamo più notifiche per i messaggi - il badge sulla chat è sufficiente
 
             messages.success(request, 'Messaggio inviato!')
             return redirect('chat_conversazione', conversazione_id=conversazione.id)
@@ -1757,8 +1755,7 @@ def invia_messaggio_da_annuncio(request):
         conversazione.ultimo_messaggio = timezone.now()
         conversazione.save()
 
-        # Notifica il destinatario
-        notifica_nuovo_messaggio(destinatario, messaggio)
+        # Non creiamo più notifiche per i messaggi - il badge sulla chat è sufficiente
 
         return JsonResponse({
             'success': True,
