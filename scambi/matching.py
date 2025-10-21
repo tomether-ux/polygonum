@@ -634,11 +634,10 @@ def estrai_parole_chiave(testo):
 
     return parole_finali
 
-def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato, usa_sinonimi=True):
-    """Matching avanzato con supporto sinonimi che restituisce anche il tipo di match"""
-    from .synonym_matcher import parole_compatibili_con_sinonimi
+def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
+    """Matching avanzato che restituisce anche il tipo di match"""
 
-    print(f"\n🔍 DEBUG: === CONTROLLO COMPATIBILITÀ (sinonimi={'ON' if usa_sinonimi else 'OFF'}) ===")
+    print(f"\n🔍 DEBUG: === CONTROLLO COMPATIBILITÀ ===")
     print(f"🔍 Offerto - Titolo: '{annuncio_offerto.titolo}', Descrizione: '{annuncio_offerto.descrizione or 'VUOTA'}'")
     print(f"🔍 Cercato - Titolo: '{annuncio_cercato.titolo}', Descrizione: '{annuncio_cercato.descrizione or 'VUOTA'}'")
     print(f"🔍 Categorie - Offerto: '{annuncio_offerto.categoria}', Cercato: '{annuncio_cercato.categoria}'")
@@ -656,21 +655,28 @@ def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato, usa_sinonim
     print(f"🔍 Parole chiave offerto: {parole_offerto}")
     print(f"🔍 Parole chiave cercato: {parole_cercato}")
 
-    # NUOVO: Usa matching con sinonimi (cached per performance) - CONFIGURABILE
-    compatibile, tipo_match = parole_compatibili_con_sinonimi(parole_offerto, parole_cercato, usa_sinonimi=usa_sinonimi)
+    # NUOVA LOGICA: L'offerta deve contenere TUTTE le parole richieste
+    # Questo permette ricerche specifiche ("iPhone 12 Pro") o generiche ("telefono")
+    parole_mancanti = parole_cercato - parole_offerto
+    print(f"🔍 Parole richieste: {parole_cercato}")
+    print(f"🔍 Parole nell'offerta: {parole_offerto}")
+    print(f"🔍 Parole mancanti nell'offerta: {parole_mancanti}")
 
-    if compatibile:
-        if tipo_match == 'esatto':
-            print(f"✅ MATCH ESATTO: '{annuncio_offerto.titolo}' contiene tutte le parole richieste: {parole_cercato}")
-            return True, "specifico"
-        elif tipo_match == 'sinonimo':
-            print(f"✅ MATCH SINONIMO: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (via sinonimi)")
-            return True, "specifico"  # Sinonimi sono considerati match specifici
-        elif tipo_match == 'parziale':
-            print(f"✅ MATCH PARZIALE: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (parole o sinonimi in comune)")
-            return True, "parziale"
+    if not parole_mancanti:  # Tutte le parole richieste sono presenti nell'offerta
+        print(f"✅ MATCH SPECIFICO: '{annuncio_offerto.titolo}' contiene tutte le parole richieste: {parole_cercato}")
+        return True, "specifico"
 
-    # 2. MATCH PER CATEGORIA: Stessa categoria
+    # 2. MATCH PARZIALE: Alcune parole dell'offerta sono contenute nella ricerca
+    print(f"🔍 Controllo match parziale...")
+    for parola_offerta in parole_offerto:
+        for parola_cercata in parole_cercato:
+            print(f"🔍 Confronto parziale: '{parola_offerta}' vs '{parola_cercata}'")
+            if ((parola_offerta in parola_cercata or parola_cercata in parola_offerta) and
+                len(parola_offerta) > 3 and len(parola_cercata) > 3):
+                print(f"✅ MATCH PARZIALE: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (parole simili: {parola_offerta} ~ {parola_cercata})")
+                return True, "parziale"
+
+    # 3. MATCH PER CATEGORIA: Stessa categoria
     print(f"🔍 Controllo match per categoria...")
     print(f"🔍 Categoria offerto: '{annuncio_offerto.categoria}' (ID: {annuncio_offerto.categoria.id if annuncio_offerto.categoria else 'None'})")
     print(f"🔍 Categoria cercato: '{annuncio_cercato.categoria}' (ID: {annuncio_cercato.categoria.id if annuncio_cercato.categoria else 'None'})")
@@ -679,7 +685,7 @@ def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato, usa_sinonim
         print(f"✅ MATCH CATEGORIA: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' ({annuncio_offerto.categoria.nome})")
         return True, "categoria"
 
-    # 3. MATCH GENERICO: Cerco "qualsiasi cosa" di una categoria
+    # 4. MATCH GENERICO: Cerco "qualsiasi cosa" di una categoria
     print(f"🔍 Controllo match generico...")
     parole_generiche = {'qualsiasi', 'qualunque', 'qualcosa', 'oggetto', 'cosa', 'tutto', 'roba'}
     parole_generiche_trovate = parole_generiche & parole_cercato
