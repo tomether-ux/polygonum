@@ -151,6 +151,19 @@
                 </div>
                 {% endif %}
 
+                <!-- Opzione sinonimi -->
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="usaSinonimi" checked>
+                        <label class="form-check-label" for="usaSinonimi">
+                            <i class="fas fa-book me-1"></i>Cerca anche sinonimi (es. "libro" include "testo", "volume", ecc.)
+                        </label>
+                        <small class="form-text text-muted d-block ms-4">
+                            Disattiva per cercare solo corrispondenze esatte nei titoli
+                        </small>
+                    </div>
+                </div>
+
                 <button id="searchButton" onclick="startSearch()" class="btn btn-primary btn-lg">
                     <i class="fas fa-search me-2"></i>
                     <span id="buttonText">{% if personalizzato %}Cerca I Miei Scambi{% else %}Cerca Catene di Scambio{% endif %}</span>
@@ -463,6 +476,12 @@ function startSearch() {
         currentUrl.searchParams.delete('annuncio_id');
     }
 
+    // Aggiungi parametro sinonimi
+    const usaSinonimi = document.getElementById('usaSinonimi');
+    if (usaSinonimi) {
+        currentUrl.searchParams.set('usa_sinonimi', usaSinonimi.checked ? 'true' : 'false');
+    }
+
     // Delay minimo per mostrare l'animazione
     setTimeout(() => {
         window.location.href = currentUrl.toString();
@@ -530,6 +549,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // La ricerca è stata già eseguita, mostra i risultati
         document.getElementById('mainContent').style.display = 'block';
         document.getElementById('loadingScreen').style.display = 'none';
+    }
+
+    // Ripristina lo stato della checkbox sinonimi dall'URL
+    const usaSinonimi = document.getElementById('usaSinonimi');
+    if (usaSinonimi) {
+        const usaSinonimiParam = urlParams.get('usa_sinonimi');
+        if (usaSinonimiParam !== null) {
+            usaSinonimi.checked = usaSinonimiParam === 'true';
+        }
     }
 
     // Gestione dei click sulle stelle dei preferiti
