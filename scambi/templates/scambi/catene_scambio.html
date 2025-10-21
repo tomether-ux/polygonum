@@ -652,7 +652,32 @@ function proponiCatena(cicloId) {
                 button.classList.add('interested');
 
                 if (data.tutti_interessati) {
-                    alert('🎉 Tutti sono interessati! Verrà creata una chat di gruppo.');
+                    // Se la chat è stata creata, aggiorna il badge della chat
+                    if (data.chat_creata) {
+                        // Aggiorna entrambi i badge (mobile e desktop)
+                        // Desktop badge
+                        const desktopBadge = document.querySelector('#chatDropdown .badge');
+                        if (desktopBadge) {
+                            const currentCount = parseInt(desktopBadge.textContent) || 0;
+                            desktopBadge.textContent = currentCount + 1;
+                            // Assicura che il badge sia visibile
+                            desktopBadge.parentElement.style.display = '';
+                        }
+
+                        // Mobile badge
+                        const mobileBadge = document.querySelector('.d-lg-none a[href*="lista_messaggi"] .badge');
+                        if (mobileBadge) {
+                            const currentCount = parseInt(mobileBadge.textContent) || 0;
+                            mobileBadge.textContent = currentCount + 1;
+                        }
+
+                        // Mostra messaggio e chiedi se vuole andare alla chat
+                        if (confirm('🎉 Tutti sono interessati! È stata creata una chat di gruppo. Vuoi andare alla chat?')) {
+                            window.location.href = data.redirect_url;
+                        }
+                    } else {
+                        alert('🎉 Tutti sono interessati! Verrà creata una chat di gruppo.');
+                    }
                 } else {
                     alert(`✅ Interesse registrato! ${data.count_interessati}/${data.count_totale} utenti interessati.`);
                 }

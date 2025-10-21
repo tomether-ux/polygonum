@@ -58,10 +58,12 @@ class Command(BaseCommand):
                     self.style.WARNING(f"[{datetime.now()}] 🧹 Rimossi {deleted_count} cicli vecchi")
                 )
 
-            # Step 2: Rimuovi tutti i cicli esistenti (per evitare conflitti di hash)
-            deleted_count, _ = CicloScambio.objects.all().delete()
+            # Step 2: Marca tutti i cicli esistenti come non validi (invece di eliminarli)
+            # Questo preserva i cicli con PropostaCatena attive
+            existing_count = CicloScambio.objects.filter(valido=True).count()
+            CicloScambio.objects.filter(valido=True).update(valido=False)
             self.stdout.write(
-                self.style.WARNING(f"[{datetime.now()}] 🗑️ Rimossi {deleted_count} cicli esistenti")
+                self.style.WARNING(f"[{datetime.now()}] 🔄 Marcati {existing_count} cicli esistenti come non validi (saranno rivalutati)")
             )
 
             # Step 3: Calcola nuovi cicli
@@ -107,14 +109,18 @@ class Command(BaseCommand):
 
     def _salva_cicli_batch(self, cicli, batch_size):
         """
-        Salva i cicli nel database a batch per ottimizzare le performance
+        Salva i cicli nel database a batch usando upsert intelligente
+        - Se il ciclo esiste già (stesso hash_ciclo), lo riattiva e aggiorna i dettagli
+        - Se il ciclo è nuovo, lo crea
+        - Questo preserva gli ID dei cicli esistenti e le PropostaCatena collegate!
         """
         total_cicli = len(cicli)
-        salvati = 0
+        creati = 0
+        aggiornati = 0
         errori = 0
 
         self.stdout.write(
-            self.style.HTTP_INFO(f"[{datetime.now()}] 💾 Inizio salvataggio {total_cicli} cicli...")
+            self.style.HTTP_INFO(f"[{datetime.now()}] 💾 Inizio salvataggio/aggiornamento {total_cicli} cicli...")
         )
 
         for i in range(0, total_cicli, batch_size):
@@ -124,15 +130,29 @@ class Command(BaseCommand):
                 with transaction.atomic():
                     for ciclo_data in batch:
                         try:
-                            ciclo_obj = CicloScambio(
-                                users=ciclo_data['users'],
-                                lunghezza=ciclo_data['lunghezza'],
-                                dettagli=ciclo_data['dettagli'],
-                                hash_ciclo=ciclo_data['hash_ciclo'],
-                                valido=True
-                            )
-                            ciclo_obj.save()
-                            salvati += 1
+                            hash_ciclo = ciclo_data['hash_ciclo']
+
+                            # Cerca se esiste già un ciclo con questo hash
+                            ciclo_esistente = CicloScambio.objects.filter(hash_ciclo=hash_ciclo).first()
+
+                            if ciclo_esistente:
+                                # AGGIORNA il ciclo esistente (preserva ID e PropostaCatena!)
+                                ciclo_esistente.users = ciclo_data['users']
+                                ciclo_esistente.lunghezza = ciclo_data['lunghezza']
+                                ciclo_esistente.dettagli = ciclo_data['dettagli']
+                                ciclo_esistente.valido = True  # Riattiva
+                                ciclo_esistente.save()
+                                aggiornati += 1
+                            else:
+                                # CREA nuovo ciclo
+                                CicloScambio.objects.create(
+                                    users=ciclo_data['users'],
+                                    lunghezza=ciclo_data['lunghezza'],
+                                    dettagli=ciclo_data['dettagli'],
+                                    hash_ciclo=hash_ciclo,
+                                    valido=True
+                                )
+                                creati += 1
 
                         except Exception as e:
                             errori += 1
@@ -147,7 +167,7 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.HTTP_INFO(
                         f"[{datetime.now()}] 📊 Progresso: {progresso:.1f}% "
-                        f"({salvati} salvati, {errori} errori)"
+                        f"({creati} nuovi, {aggiornati} aggiornati, {errori} errori)"
                     )
                 )
 
@@ -160,9 +180,25 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 f"[{datetime.now()}] 💾 Salvataggio completato: "
-                f"{salvati} cicli salvati, {errori} errori"
+                f"{creati} cicli nuovi creati, {aggiornati} cicli esistenti aggiornati, {errori} errori"
             )
         )
+
+        # Cleanup cicli che non sono più validi (non trovati nel nuovo calcolo)
+        # Ma SOLO se non hanno proposte attive!
+        cicli_da_rimuovere = CicloScambio.objects.filter(
+            valido=False
+        ).exclude(
+            proposte__stato='in_attesa'  # Non eliminare cicli con proposte in attesa
+        )
+        rimossi_count = cicli_da_rimuovere.count()
+        if rimossi_count > 0:
+            cicli_da_rimuovere.delete()
+            self.stdout.write(
+                self.style.WARNING(
+                    f"[{datetime.now()}] 🗑️ Rimossi {rimossi_count} cicli non più validi (senza proposte attive)"
+                )
+            )
 
 
 # Script standalone per Render Cron Job

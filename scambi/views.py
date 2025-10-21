@@ -2061,14 +2061,22 @@ def proponi_catena(request, ciclo_id):
                         for utente in utenti_coinvolti:
                             notifica_tutti_interessati(utente, proposta_esistente)
 
-                    return JsonResponse({
+                    response_data = {
                         'success': True,
                         'action': 'added',
                         'message': 'Interesse confermato!',
                         'count_interessati': count_interessati,
                         'count_totale': count_totale,
                         'tutti_interessati': tutti_interessati
-                    })
+                    }
+
+                    # Se tutti sono interessati, aggiungi info sulla chat creata
+                    if tutti_interessati:
+                        response_data['chat_creata'] = True
+                        response_data['chat_id'] = conversazione.id
+                        response_data['redirect_url'] = reverse('lista_messaggi')
+
+                    return JsonResponse(response_data)
             except RispostaProposta.DoesNotExist:
                 # L'utente non ha ancora una risposta, creala
                 RispostaProposta.objects.create(
@@ -2115,14 +2123,22 @@ def proponi_catena(request, ciclo_id):
                     for utente in utenti_coinvolti:
                         notifica_tutti_interessati(utente, proposta_esistente)
 
-                return JsonResponse({
+                response_data = {
                     'success': True,
                     'action': 'added',
                     'message': 'Interesse confermato!',
                     'count_interessati': count_interessati,
                     'count_totale': count_totale,
                     'tutti_interessati': tutti_interessati
-                })
+                }
+
+                # Se tutti sono interessati, aggiungi info sulla chat creata
+                if tutti_interessati:
+                    response_data['chat_creata'] = True
+                    response_data['chat_id'] = conversazione.id
+                    response_data['redirect_url'] = reverse('lista_messaggi')
+
+                return JsonResponse(response_data)
         else:
             # Nessuna proposta esistente, crea nuova proposta
             proposta = PropostaCatena.objects.create(
