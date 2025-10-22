@@ -105,19 +105,31 @@ def check_synonym_match(parole_offerto, parole_cercato):
     if not _WORDNET_AVAILABLE:
         return False, None
 
-    # Espandi SOLO le parole cercate con sinonimi
+    # Espandi le parole cercate con sinonimi
     parole_cercato_espanse = set()
     for parola in parole_cercato:
-        sinonimi = get_synonyms(parola)
-        parole_cercato_espanse.update(sinonimi)
+        # Solo parole significative (>2 caratteri) vengono espanse
+        if len(parola) > 2:
+            sinonimi = get_synonyms(parola)
+            parole_cercato_espanse.update(sinonimi)
+        else:
+            parole_cercato_espanse.add(parola)
 
-    # Verifica se TUTTE le parole cercate (o loro sinonimi) sono presenti nell'offerta
-    # Controlla se almeno una parola cercata (espansa) è nell'offerta
-    match_trovati = parole_offerto & parole_cercato_espanse
+    # Espandi anche le parole offerte per match bidirezionale
+    parole_offerto_espanse = set()
+    for parola in parole_offerto:
+        if len(parola) > 2:
+            sinonimi = get_synonyms(parola)
+            parole_offerto_espanse.update(sinonimi)
+        else:
+            parole_offerto_espanse.add(parola)
+
+    # Trova match tra sinonimi
+    match_trovati = parole_offerto_espanse & parole_cercato_espanse
 
     if match_trovati:
-        # Verifica se ci sono parole significative (>3 caratteri)
-        parole_significative = [p for p in match_trovati if len(p) > 3]
+        # Verifica se ci sono parole significative (>3 caratteri) o numeri
+        parole_significative = [p for p in match_trovati if len(p) > 3 or p.isdigit()]
         if parole_significative:
             return True, 'sinonimo'
 
