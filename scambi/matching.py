@@ -676,6 +676,18 @@ def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
                 print(f"✅ MATCH PARZIALE: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (parole simili: {parola_offerta} ~ {parola_cercata})")
                 return True, "parziale"
 
+    # 2.5 MATCH CON SINONIMI: NUOVO - Solo se match esatto/parziale falliscono
+    print(f"🔍 Controllo match con sinonimi...")
+    try:
+        from .synonym_matcher import check_synonym_match
+        compatibile_sinonimo, tipo = check_synonym_match(parole_offerto, parole_cercato)
+        if compatibile_sinonimo:
+            print(f"✅ MATCH SINONIMO: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (via WordNet)")
+            return True, "specifico"  # Sinonimi considerati specifici
+    except Exception as e:
+        print(f"⚠️ Errore check sinonimi: {e}")
+        pass  # Se fallisce, continua con gli altri controlli
+
     # 3. MATCH PER CATEGORIA: Stessa categoria
     print(f"🔍 Controllo match per categoria...")
     print(f"🔍 Categoria offerto: '{annuncio_offerto.categoria}' (ID: {annuncio_offerto.categoria.id if annuncio_offerto.categoria else 'None'})")
