@@ -927,12 +927,152 @@ class CycleFinder:
     """
     Classe per trovare cicli di scambio usando algoritmo DFS
     Ottimizzata per il sistema di calcolo separato
+    SUPPORTA CALCOLO INCREMENTALE: ricalcola solo cicli impattati da modifiche
     """
 
     def __init__(self):
         self.grafo = {}  # dict: user_id -> [list di user_id con cui può scambiare]
         self.cicli_trovati = []
         self.cicli_hash_set = set()  # Per evitare duplicati
+
+    def get_annunci_modificati(self, timestamp_ultimo_calcolo):
+        """
+        Trova gli annunci modificati dall'ultimo calcolo
+
+        Args:
+            timestamp_ultimo_calcolo: DateTime dell'ultimo calcolo completo
+
+        Returns:
+            QuerySet di Annuncio modificati
+        """
+        from .models import Annuncio
+
+        annunci_modificati = Annuncio.objects.filter(
+            last_modified__gt=timestamp_ultimo_calcolo,
+            attivo=True
+        )
+
+        print(f"[{datetime.now()}] 📋 Trovati {annunci_modificati.count()} annunci modificati dal {timestamp_ultimo_calcolo}")
+        return annunci_modificati
+
+    def get_utenti_impattati(self, annunci_modificati):
+        """
+        Trova tutti gli utenti che potrebbero essere impattati dalle modifiche
+        Include:
+        - Utenti proprietari degli annunci modificati
+        - Utenti che hanno annunci compatibili con quelli modificati
+
+        Args:
+            annunci_modificati: QuerySet di annunci modificati
+
+        Returns:
+            set di user_id impattati
+        """
+        utenti_impattati = set()
+
+        # 1. Utenti proprietari degli annunci modificati
+        for annuncio in annunci_modificati:
+            utenti_impattati.add(annuncio.utente.id)
+
+        # 2. Utenti che potrebbero scambiare con questi annunci
+        # (annunci compatibili)
+        for annuncio_mod in annunci_modificati:
+            utenti_tutti = User.objects.filter(annuncio__attivo=True).distinct()
+
+            for utente in utenti_tutti:
+                if utente.id == annuncio_mod.utente.id:
+                    continue
+
+                # Controlla se c'è match tra questo utente e l'annuncio modificato
+                if self._utente_compatibile_con_annuncio(utente, annuncio_mod):
+                    utenti_impattati.add(utente.id)
+
+        print(f"[{datetime.now()}] 👥 Identificati {len(utenti_impattati)} utenti impattati dalle modifiche")
+        return utenti_impattati
+
+    def _utente_compatibile_con_annuncio(self, utente, annuncio):
+        """
+        Verifica se un utente ha annunci compatibili con l'annuncio dato
+        """
+        if annuncio.tipo == 'offro':
+            # L'annuncio offre qualcosa, cerchiamo chi lo cerca
+            richieste_utente = Annuncio.objects.filter(utente=utente, tipo='cerco', attivo=True)
+            for richiesta in richieste_utente:
+                compatible, tipo_match = oggetti_compatibili_con_tipo(annuncio, richiesta)
+                if compatible and tipo_match in ['specifico', 'parziale']:
+                    return True
+        else:
+            # L'annuncio cerca qualcosa, cerchiamo chi lo offre
+            offerte_utente = Annuncio.objects.filter(utente=utente, tipo='offro', attivo=True)
+            for offerta in offerte_utente:
+                compatible, tipo_match = oggetti_compatibili_con_tipo(offerta, annuncio)
+                if compatible and tipo_match in ['specifico', 'parziale']:
+                    return True
+
+        return False
+
+    def invalida_cicli_con_utenti(self, utenti_ids):
+        """
+        Marca come non validi tutti i cicli che coinvolgono gli utenti specificati
+
+        Args:
+            utenti_ids: set/list di user_id impattati
+
+        Returns:
+            int: Numero di cicli invalidati
+        """
+        from .models import CicloScambio
+        from django.conf import settings
+
+        count_invalidati = 0
+
+        # Controlla quale database stiamo usando
+        is_postgres = 'postgresql' in settings.DATABASES['default']['ENGINE']
+
+        for user_id in utenti_ids:
+            if is_postgres:
+                # PostgreSQL: usa __contains nativo per JSON
+                cicli = CicloScambio.objects.filter(valido=True, users__contains=user_id)
+            else:
+                # SQLite: usa __icontains come fallback (meno efficiente ma funziona)
+                cicli = CicloScambio.objects.filter(valido=True, users__icontains=f'"{user_id}"')
+
+            count = cicli.count()
+
+            if count > 0:
+                cicli.update(valido=False)
+                count_invalidati += count
+
+        print(f"[{datetime.now()}] ❌ Invalidati {count_invalidati} cicli impattati")
+        return count_invalidati
+
+    def trova_cicli_per_utenti(self, utenti_ids, max_length=6):
+        """
+        Trova cicli che coinvolgono specifici utenti (per calcolo incrementale)
+
+        Args:
+            utenti_ids: set/list di user_id per cui ricalcolare i cicli
+            max_length: Lunghezza massima dei cicli
+
+        Returns:
+            list: Cicli trovati
+        """
+        print(f"[{datetime.now()}] 🔍 Calcolo incrementale per {len(utenti_ids)} utenti...")
+
+        self.cicli_trovati.clear()
+        self.cicli_hash_set.clear()
+
+        if not self.grafo:
+            print(f"[{datetime.now()}] ⚠️ Grafo vuoto, costruisco il grafo completo")
+            self.costruisci_grafo()
+
+        # Trova cicli che iniziano da ciascuno degli utenti impattati
+        for user_id in utenti_ids:
+            if user_id in self.grafo:
+                self._trova_cicli_da_nodo(user_id, [user_id], max_length)
+
+        print(f"[{datetime.now()}] ✅ Calcolo incrementale: trovati {len(self.cicli_trovati)} nuovi cicli")
+        return self.cicli_trovati
 
     def costruisci_grafo(self):
         """

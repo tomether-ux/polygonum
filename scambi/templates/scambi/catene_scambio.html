@@ -151,6 +151,16 @@
                 </div>
                 {% endif %}
 
+                <!-- Opzione sinonimi -->
+                <div class="mb-3">
+                    <div class="alert alert-info py-2 px-3 mb-2">
+                        <small class="d-flex align-items-center mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span><strong>Ricerca sinonimi attiva</strong> - Il sistema usa WordNet per trovare più corrispondenze (es. "libro" include "volume", "bicicletta" include "bici")</span>
+                        </small>
+                    </div>
+                </div>
+
                 <button id="searchButton" onclick="startSearch()" class="btn btn-primary btn-lg">
                     <i class="fas fa-search me-2"></i>
                     <span id="buttonText">{% if personalizzato %}Cerca I Miei Scambi{% else %}Cerca Catene di Scambio{% endif %}</span>

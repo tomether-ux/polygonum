@@ -57,7 +57,8 @@ class Annuncio(models.Model):
 
     attivo = models.BooleanField(default=True)
     data_creazione = models.DateTimeField(auto_now_add=True)
-    
+    last_modified = models.DateTimeField(auto_now=True, verbose_name="Ultima modifica")
+
     def __str__(self):
         return f"{self.utente.username} - {self.tipo}: {self.titolo}"
 
@@ -777,3 +778,49 @@ class RispostaProposta(models.Model):
         # Annulla la proposta se qualcuno non è interessato
         self.proposta.stato = 'rifiutata'
         self.proposta.save()
+
+
+# === SISTEMA CALCOLO INCREMENTALE ===
+
+class CalcoloMetadata(models.Model):
+    """
+    Modello per tracciare i metadati dell'ultimo calcolo cicli
+    Utilizzato per il calcolo incrementale
+    """
+    # Singleton pattern: solo 1 record nel DB
+    singleton_id = models.IntegerField(default=1, unique=True)
+
+    # Timestamp dell'ultimo calcolo completo
+    ultimo_calcolo_completo = models.DateTimeField(
+        help_text="Timestamp dell'ultimo calcolo completo di tutti i cicli"
+    )
+
+    # Statistiche dell'ultimo calcolo
+    cicli_calcolati = models.IntegerField(default=0)
+    durata_calcolo_secondi = models.FloatField(default=0.0)
+
+    class Meta:
+        verbose_name = "Metadata Calcolo"
+        verbose_name_plural = "Metadata Calcoli"
+
+    def __str__(self):
+        return f"Ultimo calcolo: {self.ultimo_calcolo_completo}"
+
+    @classmethod
+    def get_or_create_singleton(cls):
+        """Ottiene o crea il record singleton"""
+        obj, created = cls.objects.get_or_create(
+            singleton_id=1,
+            defaults={'ultimo_calcolo_completo': timezone.now()}
+        )
+        return obj
+
+    @classmethod
+    def aggiorna_calcolo(cls, cicli_count, durata):
+        """Aggiorna i metadati dopo un calcolo"""
+        obj = cls.get_or_create_singleton()
+        obj.ultimo_calcolo_completo = timezone.now()
+        obj.cicli_calcolati = cicli_count
+        obj.durata_calcolo_secondi = durata
+        obj.save()
+        return obj
