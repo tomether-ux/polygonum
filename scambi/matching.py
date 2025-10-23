@@ -623,8 +623,13 @@ def normalizza_testo(testo):
     return testo
 
 def estrai_parole_chiave(testo):
-    """Estrae le parole chiave significative dal testo"""
+    """Estrae le parole chiave significative dal testo, preservando termini composti"""
     print(f"🔧 ESTRAZIONE PAROLE da: '{testo}'")
+
+    # NOVITÀ: Estrai termini composti PRIMA di normalizzare
+    from .synonym_matcher import extract_compound_terms
+    termini_composti = extract_compound_terms(testo)
+    print(f"🔧 Termini composti trovati: {termini_composti}")
 
     testo_normalizzato = normalizza_testo(testo)
     print(f"🔧 Testo normalizzato: '{testo_normalizzato}'")
@@ -639,8 +644,12 @@ def estrai_parole_chiave(testo):
     print(f"🔧 Senza stop words: {parole_senza_stop}")
 
     # Rimuovi parole troppo corte
-    parole_finali = {p for p in parole_senza_stop if len(p) > 2}
-    print(f"🔧 Parole finali (>2 caratteri): {parole_finali}")
+    parole_singole = {p for p in parole_senza_stop if len(p) > 2}
+    print(f"🔧 Parole singole (>2 caratteri): {parole_singole}")
+
+    # UNISCI parole singole + termini composti
+    parole_finali = parole_singole | termini_composti
+    print(f"🔧 Parole finali (singole + composti): {parole_finali}")
 
     return parole_finali
 
