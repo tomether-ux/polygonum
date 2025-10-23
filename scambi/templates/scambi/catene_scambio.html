@@ -584,10 +584,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (toggleSinonimi) {
         toggleSinonimi.addEventListener('change', filtraCateneSinonimi);
 
-        // Nascondi immediatamente le catene con sinonimi al caricamento (checkbox disattivato di default)
-        if (urlParams.get('cerca') === 'true') {
-            filtraCateneSinonimi();
-        }
+        // SEMPRE nascondi le catene con sinonimi al caricamento (checkbox disattivato di default)
+        // Applica il filtro indipendentemente dal parametro cerca=true
+        filtraCateneSinonimi();
     }
 
     // Gestione dei click sulle stelle dei preferiti
