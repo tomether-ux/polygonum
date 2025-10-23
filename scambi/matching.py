@@ -158,8 +158,8 @@ def crea_scambio_diretto(utente_a, utente_b, offerta_a, richiesta_b, offerta_b, 
     _, tipo_match_1 = oggetti_compatibili_con_tipo(offerta_a, richiesta_b)
     _, tipo_match_2 = oggetti_compatibili_con_tipo(offerta_b, richiesta_a)
 
-    punteggio_match_1 = {"specifico": 10, "parziale": 8, "categoria": 6, "generico": 4}.get(tipo_match_1, 0)
-    punteggio_match_2 = {"specifico": 10, "parziale": 8, "categoria": 6, "generico": 4}.get(tipo_match_2, 0)
+    punteggio_match_1 = {"specifico": 10, "sinonimo": 9, "parziale": 8, "categoria": 6, "generico": 4}.get(tipo_match_1, 0)
+    punteggio_match_2 = {"specifico": 10, "sinonimo": 9, "parziale": 8, "categoria": 6, "generico": 4}.get(tipo_match_2, 0)
 
     # Calcola punteggio distanza geografica
     distanza_km, tipo_distanza = calcola_distanza_geografica(utente_a, utente_b)
@@ -207,6 +207,7 @@ def crea_scambio_diretto_avanzato(utente_a, utente_b, offerta_a, richiesta_b, of
     _, tipo_match_2 = oggetti_compatibili_con_tipo(offerta_b, richiesta_a)
 
     ha_match_non_specifici = any(match in ["categoria", "generico"] for match in [tipo_match_1, tipo_match_2])
+    ha_sinonimi = any(match == "sinonimo" for match in [tipo_match_1, tipo_match_2])
 
     if ha_match_non_specifici:
         categoria_qualita = "generica"
@@ -252,7 +253,8 @@ def crea_scambio_diretto_avanzato(utente_a, utente_b, offerta_a, richiesta_b, of
         'metodo_a': offerta_a.metodo_scambio,
         'metodo_b': offerta_b.metodo_scambio,
         'distanza_limite_a': offerta_a.distanza_massima_km,
-        'distanza_limite_b': offerta_b.distanza_massima_km
+        'distanza_limite_b': offerta_b.distanza_massima_km,
+        'usa_sinonimi': ha_sinonimi  # Flag per filtraggio UI
     }
 
 def trova_catene_per_annuncio(annuncio_specifico, max_lunghezza=6):
@@ -528,9 +530,13 @@ def crea_catena_dettagliata(percorso_utenti, annunci_scambi):
         _, tipo_match = oggetti_compatibili_con_tipo(scambio['annuncio_offro'], scambio['annuncio_cerco'])
         tipi_match.append(tipo_match)
         
-        # Assegna punteggi: specifico=3, categoria=2, generico=1
+        # Assegna punteggi: specifico=3, sinonimo=2.5, parziale=2.5, categoria=2, generico=1
         if tipo_match == "specifico":
             punteggio_qualita += 3
+        elif tipo_match == "sinonimo":
+            punteggio_qualita += 2.5
+        elif tipo_match == "parziale":
+            punteggio_qualita += 2.5
         elif tipo_match == "categoria":
             punteggio_qualita += 2
         elif tipo_match == "generico":
@@ -563,6 +569,9 @@ def crea_catena_dettagliata(percorso_utenti, annunci_scambi):
     # Se c'è anche un solo match "categoria" o "generico", la catena è generica
     ha_match_non_specifici = any(match in ["categoria", "generico"] for match in tipi_match)
 
+    # Controlla se ci sono match tramite sinonimi
+    ha_sinonimi = any(match == "sinonimo" for match in tipi_match)
+
     if ha_match_non_specifici:
         categoria_qualita = "generica"
     elif punteggio_medio >= 2.5:
@@ -577,7 +586,8 @@ def crea_catena_dettagliata(percorso_utenti, annunci_scambi):
         'annunci_coinvolti': annunci_coinvolti,
         'categoria_qualita': categoria_qualita,
         'punteggio_qualita': punteggio_qualita,
-        'tipi_match': tipi_match
+        'tipi_match': tipi_match,
+        'usa_sinonimi': ha_sinonimi  # Flag per filtraggio UI
     }
 
 def rimuovi_duplicati(catene):
@@ -683,7 +693,7 @@ def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
         compatibile_sinonimo, tipo = check_synonym_match(parole_offerto, parole_cercato)
         if compatibile_sinonimo:
             print(f"✅ MATCH SINONIMO: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (via WordNet)")
-            return True, "specifico"  # Sinonimi considerati specifici
+            return True, "sinonimo"  # Marcato come 'sinonimo' per consentire filtraggio
     except Exception as e:
         print(f"⚠️ Errore check sinonimi: {e}")
         pass  # Se fallisce, continua con gli altri controlli
