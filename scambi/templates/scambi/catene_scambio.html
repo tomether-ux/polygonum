@@ -154,12 +154,12 @@
                 <!-- Opzione sinonimi -->
                 <div class="mb-3">
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="includiSinonimi" checked>
+                        <input class="form-check-input" type="checkbox" id="includiSinonimi">
                         <label class="form-check-label" for="includiSinonimi">
                             <i class="fas fa-book me-1"></i>
-                            <strong>Includi corrispondenze tramite sinonimi</strong>
+                            <strong>Includi anche corrispondenze tramite sinonimi</strong>
                             <br>
-                            <small class="text-muted">Il sistema usa WordNet per trovare più risultati (es. "libro" include "volume", "bicicletta" include "bici")</small>
+                            <small class="text-muted">Attiva per trovare più risultati usando WordNet (es. "libro" include "volume", "bicicletta" include "bici")</small>
                         </label>
                     </div>
                 </div>
@@ -583,6 +583,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const toggleSinonimi = document.getElementById('includiSinonimi');
     if (toggleSinonimi) {
         toggleSinonimi.addEventListener('change', filtraCateneSinonimi);
+
+        // Nascondi immediatamente le catene con sinonimi al caricamento (checkbox disattivato di default)
+        if (urlParams.get('cerca') === 'true') {
+            filtraCateneSinonimi();
+        }
     }
 
     // Gestione dei click sulle stelle dei preferiti
