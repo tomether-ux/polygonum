@@ -153,11 +153,14 @@
 
                 <!-- Opzione sinonimi -->
                 <div class="mb-3">
-                    <div class="alert alert-info py-2 px-3 mb-2">
-                        <small class="d-flex align-items-center mb-0">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <span><strong>Ricerca sinonimi attiva</strong> - Il sistema usa WordNet per trovare più corrispondenze (es. "libro" include "volume", "bicicletta" include "bici")</span>
-                        </small>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="includiSinonimi" checked>
+                        <label class="form-check-label" for="includiSinonimi">
+                            <i class="fas fa-book me-1"></i>
+                            <strong>Includi corrispondenze tramite sinonimi</strong>
+                            <br>
+                            <small class="text-muted">Il sistema usa WordNet per trovare più risultati (es. "libro" include "volume", "bicicletta" include "bici")</small>
+                        </label>
                     </div>
                 </div>
 
@@ -209,7 +212,7 @@
             <h2 class="text-warning mb-3">💫 Scambi Diretti</h2>
 
             {% for scambio in scambi_diretti_specifici %}
-            <div class="card mb-4 border-warning">
+            <div class="card mb-4 border-warning" data-usa-sinonimi="{{ scambio.usa_sinonimi|default:'false'|lower }}">
                 <div class="card-header bg-warning text-dark">
                     <h5 class="mb-0">
                         🔄 Scambio Diretto: {{ scambio.utenti.0 }} ↔ {{ scambio.utenti.1 }}
@@ -281,7 +284,7 @@
         </h2>
 
         {% for catena in catene_specifiche %}
-        <div class="modern-chain-card high-quality mb-4" id="ciclo-{{ catena.id_ciclo }}" data-ciclo-id="{{ catena.id_ciclo }}">
+        <div class="modern-chain-card high-quality mb-4" id="ciclo-{{ catena.id_ciclo }}" data-ciclo-id="{{ catena.id_ciclo }}" data-usa-sinonimi="{{ catena.usa_sinonimi|default:'false'|lower }}">
             <div class="chain-card-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="chain-title">
@@ -533,6 +536,40 @@ function showStep(stepNumber) {
     }
 }
 
+// Filtra le catene in base al toggle dei sinonimi
+function filtraCateneSinonimi() {
+    const includiSinonimi = document.getElementById('includiSinonimi').checked;
+    const catene = document.querySelectorAll('.modern-chain-card, .card.mb-4');
+
+    catene.forEach(catena => {
+        // Controlla se la catena usa sinonimi leggendo i dati dal DOM
+        const usaSinonimi = catena.dataset.usaSinonimi === 'true';
+
+        if (!includiSinonimi && usaSinonimi) {
+            // Nascondi catene con sinonimi se l'opzione è disattivata
+            catena.style.display = 'none';
+        } else {
+            // Mostra tutte le catene se l'opzione è attivata
+            catena.style.display = '';
+        }
+    });
+
+    // Aggiorna contatori
+    aggiornaContatori();
+}
+
+function aggiornaContatori() {
+    const cateneVisibili = document.querySelectorAll('.modern-chain-card:not([style*="display: none"]), .card.mb-4:not([style*="display: none"])');
+    const scambiDirecti = Array.from(cateneVisibili).filter(c => c.querySelector('h5')?.textContent.includes('Scambio Diretto')).length;
+    const cateneLunghe = cateneVisibili.length - scambiDirecti;
+
+    // Aggiorna il messaggio di risultati se esiste
+    const alertSuccess = document.querySelector('.alert-success');
+    if (alertSuccess && cateneVisibili.length > 0) {
+        alertSuccess.innerHTML = `<strong>Risultati:</strong> Trovate ${cateneVisibili.length} catene con parole in comune nei titoli<br><small class="text-muted">${scambiDirecti} scambi diretti + ${cateneLunghe} catene lunghe</small>`;
+    }
+}
+
 // Se la pagina viene caricata con cerca=true, mostra subito il risultato senza loading
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -540,6 +577,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // La ricerca è stata già eseguita, mostra i risultati
         document.getElementById('mainContent').style.display = 'block';
         document.getElementById('loadingScreen').style.display = 'none';
+    }
+
+    // Aggiungi listener per il toggle sinonimi
+    const toggleSinonimi = document.getElementById('includiSinonimi');
+    if (toggleSinonimi) {
+        toggleSinonimi.addEventListener('change', filtraCateneSinonimi);
     }
 
     // Gestione dei click sulle stelle dei preferiti
