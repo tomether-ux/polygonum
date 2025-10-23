@@ -38,13 +38,13 @@
                             <!-- Username Field -->
                             <div class="mb-4">
                                 <label for="{{ form.username.id_for_label }}" class="form-label text-polygonum-primary fw-bold">
-                                    <i class="fas fa-user me-2"></i>{{ form.username.label }}
+                                    <i class="fas fa-user me-2"></i>Username o Email
                                 </label>
                                 <input type="{{ form.username.field.widget.input_type }}"
                                        name="{{ form.username.name }}"
                                        id="{{ form.username.id_for_label }}"
                                        class="form-control form-control-lg border-2"
-                                       placeholder="Inserisci il tuo username"
+                                       placeholder="Inserisci username o email"
                                        {% if form.username.value %}value="{{ form.username.value }}"{% endif %}
                                        required>
                                 {% if form.username.errors %}
