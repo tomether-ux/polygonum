@@ -10,6 +10,37 @@ from datetime import datetime
 _WORDNET_INITIALIZED = False
 _WORDNET_AVAILABLE = False
 
+# Lista di termini composti comuni da preservare durante l'analisi
+# Questi termini vengono cercati PRIMA di splittare in singole parole
+COMPOUND_TERMS = {
+    # Elettronica e tecnologia
+    'macchina fotografica', 'fotocamera digitale', 'telefono cellulare', 'hard disk',
+    'scheda madre', 'scheda video', 'carta di credito', 'chiavetta usb',
+    'mouse wireless', 'tastiera meccanica', 'cuffie bluetooth', 'smart tv',
+    'power bank', 'action cam', 'dash cam', 'ring light',
+
+    # Casa e mobili
+    'divano letto', 'tavolo da pranzo', 'sedia da ufficio', 'lampada da terra',
+    'mobile tv', 'armadio guardaroba', 'specchio da parete', 'tappeto persiano',
+
+    # Sport e tempo libero
+    'racchetta da tennis', 'mountain bike', 'bici da corsa', 'tavola da surf',
+    'sci da discesa', 'pattini a rotelle', 'borsa da palestra', 'scarpe da ginnastica',
+    'pallone da calcio', 'tuta da sci',
+
+    # Musica
+    'chitarra elettrica', 'chitarra acustica', 'tastiera elettronica', 'cassa bluetooth',
+
+    # Libri e giochi
+    'gioco da tavolo', 'libro di testo', 'fumetto manga', 'console portatile',
+
+    # Vari
+    'macchina da caffè', 'ferro da stiro', 'asciuga capelli', 'macchina per cucire',
+}
+
+# Normalizza i termini composti (tutto minuscolo)
+COMPOUND_TERMS = {term.lower() for term in COMPOUND_TERMS}
+
 
 def initialize_wordnet():
     """
@@ -50,6 +81,27 @@ def initialize_wordnet():
 
     _WORDNET_INITIALIZED = True
     return _WORDNET_AVAILABLE
+
+
+def extract_compound_terms(text):
+    """
+    Estrae termini composti da un testo prima di splittarlo in singole parole
+
+    Args:
+        text (str): Testo da analizzare
+
+    Returns:
+        set: Insieme di termini composti trovati nel testo
+    """
+    text_lower = text.lower()
+    found_compounds = set()
+
+    # Cerca ogni termine composto nel testo
+    for compound in COMPOUND_TERMS:
+        if compound in text_lower:
+            found_compounds.add(compound)
+
+    return found_compounds
 
 
 @lru_cache(maxsize=10000)
