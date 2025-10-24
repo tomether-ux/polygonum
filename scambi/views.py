@@ -376,7 +376,8 @@ def catene_scambio(request):
             except Annuncio.DoesNotExist:
                 pass
 
-    # Group long chains by number of participants
+    # Group chains by number of participants (including direct exchanges as 2-person chains)
+    catene_2 = scambi_diretti_specifici  # Direct exchanges are 2-person chains
     catene_3 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 3]
     catene_4 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 4]
     catene_5 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 5]
@@ -385,6 +386,7 @@ def catene_scambio(request):
     return render(request, 'scambi/catene_scambio.html', {
         'scambi_diretti_specifici': scambi_diretti_specifici,
         'catene_specifiche': catene_specifiche,
+        'catene_2': catene_2,
         'catene_3': catene_3,
         'catene_4': catene_4,
         'catene_5': catene_5,
@@ -860,7 +862,8 @@ def le_mie_catene(request):
         scambi_diretti_specifici = scambi_diretti_alta + scambi_diretti_generici
         catene_specifiche = catene_alta_qualita + catene_generiche
 
-        # Group long chains by number of participants
+        # Group chains by number of participants (including direct exchanges as 2-person chains)
+        catene_2 = scambi_diretti_specifici  # Direct exchanges are 2-person chains
         catene_3 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 3]
         catene_4 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 4]
         catene_5 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 5]
@@ -884,6 +887,7 @@ def le_mie_catene(request):
             # Variabili per compatibilità template
             'scambi_diretti_specifici': scambi_diretti_specifici,
             'catene_specifiche': catene_specifiche,
+            'catene_2': catene_2,
             'catene_3': catene_3,
             'catene_4': catene_4,
             'catene_5': catene_5,
