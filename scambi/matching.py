@@ -695,7 +695,8 @@ def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
                 print(f"✅ MATCH PARZIALE: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (parole simili: {parola_offerta} ~ {parola_cercata})")
                 return True, "parziale"
 
-    # 2.5 MATCH CON SINONIMI: NUOVO - Solo se match esatto/parziale falliscono
+    # 2.5 MATCH CON SINONIMI: Priorità ALTA - Prima della categoria
+    # I sinonimi sono match semantici forti, devono avere priorità sulla categoria
     print(f"🔍 Controllo match con sinonimi...")
     try:
         from .synonym_matcher import check_synonym_match
@@ -707,7 +708,7 @@ def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
         print(f"⚠️ Errore check sinonimi: {e}")
         pass  # Se fallisce, continua con gli altri controlli
 
-    # 3. MATCH PER CATEGORIA: Stessa categoria
+    # 3. MATCH PER CATEGORIA: Stessa categoria (priorità più bassa dei sinonimi)
     print(f"🔍 Controllo match per categoria...")
     print(f"🔍 Categoria offerto: '{annuncio_offerto.categoria}' (ID: {annuncio_offerto.categoria.id if annuncio_offerto.categoria else 'None'})")
     print(f"🔍 Categoria cercato: '{annuncio_cercato.categoria}' (ID: {annuncio_cercato.categoria.id if annuncio_cercato.categoria else 'None'})")
@@ -1130,8 +1131,8 @@ class CycleFinder:
             for richiesta in richieste_b:
                 # Usa solo compatibilità titoli (non algoritmo avanzato)
                 compatible, tipo_match = oggetti_compatibili_con_tipo(offerta, richiesta)
-                # Accetta match specifico o parziale (non categoria o generico)
-                if compatible and tipo_match in ['specifico', 'parziale']:
+                # Accetta match specifico, parziale o sinonimo (non categoria o generico)
+                if compatible and tipo_match in ['specifico', 'parziale', 'sinonimo']:
                     return True
         return False
 

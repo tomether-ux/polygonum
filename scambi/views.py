@@ -376,9 +376,19 @@ def catene_scambio(request):
             except Annuncio.DoesNotExist:
                 pass
 
+    # Group long chains by number of participants
+    catene_3 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 3]
+    catene_4 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 4]
+    catene_5 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 5]
+    catene_6 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 6]
+
     return render(request, 'scambi/catene_scambio.html', {
         'scambi_diretti_specifici': scambi_diretti_specifici,
         'catene_specifiche': catene_specifiche,
+        'catene_3': catene_3,
+        'catene_4': catene_4,
+        'catene_5': catene_5,
+        'catene_6': catene_6,
         'totale_catene': len(scambi_diretti_specifici) + len(catene_specifiche),
         'totale_scambi_diretti': len(scambi_diretti_specifici),
         'totale_catene_lunghe': len(catene_specifiche),
@@ -850,6 +860,12 @@ def le_mie_catene(request):
         scambi_diretti_specifici = scambi_diretti_alta + scambi_diretti_generici
         catene_specifiche = catene_alta_qualita + catene_generiche
 
+        # Group long chains by number of participants
+        catene_3 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 3]
+        catene_4 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 4]
+        catene_5 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 5]
+        catene_6 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 6]
+
         context = {
             'scambi_diretti_alta': scambi_diretti_alta,
             'scambi_diretti_generici': scambi_diretti_generici,
@@ -868,6 +884,10 @@ def le_mie_catene(request):
             # Variabili per compatibilità template
             'scambi_diretti_specifici': scambi_diretti_specifici,
             'catene_specifiche': catene_specifiche,
+            'catene_3': catene_3,
+            'catene_4': catene_4,
+            'catene_5': catene_5,
+            'catene_6': catene_6,
         }
 
     elif cerca_nuove and not ha_annunci:
