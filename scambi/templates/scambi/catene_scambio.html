@@ -117,15 +117,9 @@
             <!-- Bottone di ricerca -->
             <div class="mb-4">
                 {% if ricerca_eseguita %}
-                    <div class="alert alert-success d-flex align-items-center">
+                    <div class="alert alert-success d-flex align-items-center py-2 px-3 mb-3" style="font-size: 0.9rem;">
                         <i class="fas fa-check-circle me-2"></i>
-                        <span>Ricerca completata!
-                            {% if user_filtered %}
-                                Mostrando solo le catene che coinvolgono i tuoi annunci.
-                            {% else %}
-                                Risultati aggiornati.
-                            {% endif %}
-                        </span>
+                        <span>Ricerca completata{% if user_filtered %} - Mostrando solo le tue catene{% endif %}</span>
                     </div>
                 {% else %}
                     <div class="alert alert-warning d-flex align-items-center">
@@ -196,80 +190,13 @@
     </div>
 
 {% elif totale_catene > 0 %}
-    <div class="alert alert-success">
-        <strong>Risultati:</strong> Trovate {{ totale_catene }} catene con parole in comune nei titoli
-        <br><small class="text-muted">{{ totale_scambi_diretti }} scambi diretti + {{ totale_catene_lunghe }} catene lunghe</small>
-    </div>
-
-    <!-- SCAMBI DIRETTI (MASSIMA PRIORITÀ) -->
-    {% if scambi_diretti_specifici %}
-        <div id="scambi-diretti" class="alert alert-warning">
-            <h4><i class="fas fa-star me-2"></i>Scambi Diretti Disponibili (2 Persone)</h4>
-            <p>Questi sono i più semplici da realizzare - solo 2 persone si scambiano direttamente!</p>
-        </div>
-
-        {% if scambi_diretti_specifici %}
-            <h2 class="text-warning mb-3">💫 Scambi Diretti</h2>
-
-            {% for scambio in scambi_diretti_specifici %}
-            <div class="card mb-4 border-warning" data-usa-sinonimi="{{ scambio.usa_sinonimi|default:'false'|lower }}">
-                <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0">
-                        🔄 Scambio Diretto: {{ scambio.utenti.0 }} ↔ {{ scambio.utenti.1 }}
-                        <span class="badge bg-dark">Punteggio: {{ scambio.punteggio_qualita|floatformat:1 }}</span>
-                        {% if scambio.distanza_km <= 30 %}
-                            <span class="badge bg-success">📍 {{ scambio.distanza_km|floatformat:0 }}km</span>
-                        {% elif scambio.distanza_km <= 100 %}
-                            <span class="badge bg-warning">📍 {{ scambio.distanza_km|floatformat:0 }}km</span>
-                        {% else %}
-                            <span class="badge bg-secondary">📍 {{ scambio.distanza_km|floatformat:0 }}km</span>
-                        {% endif %}
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Lo Scambio:</h6>
-                            <div class="alert alert-info">
-                                {% for scambio_desc in scambio.scambi %}
-                                    <div><i class="fas fa-arrow-right me-2"></i>{{ scambio_desc }}</div>
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <h6>Annunci Coinvolti:</h6>
-                            {% for item in scambio.annunci_coinvolti %}
-                            <a href="{% url 'dettaglio_annuncio' item.annuncio.id %}" class="text-decoration-none">
-                                <div class="card mb-2 border-warning clickable-ad-card">
-                                    <div class="card-body p-2">
-                                        <strong class="text-dark">{{ item.annuncio.titolo }}</strong>
-                                        <br><small><a href="{% url 'profilo_utente' item.utente %}" class="text-muted text-decoration-underline" onclick="event.stopPropagation();">{{ item.utente }}</a> - {{ item.annuncio.categoria.nome }}</small>
-                                        <br>
-                                        {% if item.ruolo == 'offre' %}
-                                            <span class="badge bg-success">Offre</span>
-                                        {% else %}
-                                            <span class="badge bg-primary">Cerca</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </a>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        {% endif %}
-    {% endif %}
-
 
     <!-- CATENE RAGGRUPPATE PER NUMERO DI PARTECIPANTI -->
-    {% if catene_specifiche %}
-        <h2 id="catene-lunghe" class="modern-section-title mb-4">
-            <span class="title-icon">✨</span>
-            Catene Lunghe
-            <span class="title-badge">{{ catene_specifiche|length }}</span>
+    {% if catene_specifiche or catene_2 %}
+        <h2 id="catene-scambio" class="modern-section-title mb-4">
+            <span class="title-icon">🔗</span>
+            Catene di Scambio Disponibili
+            <span class="title-badge">{{ totale_catene }}</span>
         </h2>
 
         <!-- Raggruppamento per numero di partecipanti -->
