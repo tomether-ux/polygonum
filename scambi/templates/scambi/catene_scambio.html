@@ -541,6 +541,29 @@ function aggiornaContatori() {
     if (alertSuccess && cateneVisibili.length > 0) {
         alertSuccess.innerHTML = `<strong>Risultati:</strong> Trovate ${cateneVisibili.length} catene con parole in comune nei titoli<br><small class="text-muted">${scambiDirecti} scambi diretti + ${cateneLunghe} catene lunghe</small>`;
     }
+
+    // Aggiorna i conteggi dei badge per ogni gruppo e nascondi i gruppi vuoti
+    ['3', '4', '5', '6'].forEach(groupNum => {
+        const group = document.getElementById(`group-${groupNum}`)?.parentElement;
+        if (group) {
+            // Conta le catene visibili in questo gruppo
+            const cateneVisibiliGruppo = group.querySelectorAll('.modern-chain-card:not([style*="display: none"])');
+            const count = cateneVisibiliGruppo.length;
+
+            // Aggiorna il badge del conteggio
+            const badge = group.querySelector('.group-count-badge');
+            if (badge) {
+                badge.textContent = `${count} catene`;
+            }
+
+            // Nascondi il gruppo se non ha catene visibili
+            if (count === 0) {
+                group.style.display = 'none';
+            } else {
+                group.style.display = '';
+            }
+        }
+    });
 }
 
 // Se la pagina viene caricata con cerca=true, mostra subito il risultato senza loading
