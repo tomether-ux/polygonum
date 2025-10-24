@@ -264,18 +264,7 @@
     {% endif %}
 
 
-    <!-- CATENE LUNGHE -->
-    <!-- Navigazione rapida -->
-    <div class="alert alert-light">
-        <strong>📋 Navigazione rapida:</strong>
-        {% if scambi_diretti_specifici %}
-            <a href="#scambi-diretti" class="btn btn-warning btn-sm me-2">Scambi Diretti ({{ totale_scambi_diretti }})</a>
-        {% endif %}
-        {% if catene_specifiche %}
-            <a href="#catene-lunghe" class="btn btn-success btn-sm">Catene Lunghe ({{ catene_specifiche|length }})</a>
-        {% endif %}
-    </div>
-
+    <!-- CATENE RAGGRUPPATE PER NUMERO DI PARTECIPANTI -->
     {% if catene_specifiche %}
         <h2 id="catene-lunghe" class="modern-section-title mb-4">
             <span class="title-icon">✨</span>
@@ -283,129 +272,96 @@
             <span class="title-badge">{{ catene_specifiche|length }}</span>
         </h2>
 
-        {% for catena in catene_specifiche %}
-        <div class="modern-chain-card high-quality mb-4" id="ciclo-{{ catena.id_ciclo }}" data-ciclo-id="{{ catena.id_ciclo }}" data-usa-sinonimi="{{ catena.usa_sinonimi|default:'false'|lower }}">
-            <div class="chain-card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="chain-title">
-                        <span class="chain-icon">🔗</span>
-                        <span class="chain-number">#{{ forloop.counter }}</span>
-                        <span class="chain-people">{{ catena.utenti|length }} Persone</span>
+        <!-- Raggruppamento per numero di partecipanti -->
+        <div class="chains-grouped-container">
+            <!-- Gruppo 3 persone - Triangle -->
+            {% if catene_3 %}
+            <div class="chain-group mb-4">
+                <button class="chain-group-header" onclick="toggleGroup('group-3')">
+                    <div class="group-title">
+                        <span class="group-icon">🔺</span>
+                        <span class="group-name">Triangle</span>
+                        <span class="group-description">3 persone</span>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="chain-score">
-                            <i class="fas fa-star"></i>
-                            <span>{{ catena.punteggio_qualita }}</span>
-                        </div>
-                        {% if user.is_authenticated and catena.id_ciclo %}
-                            <span class="badge-scadenza" style="display: none;">
-                                <i class="fas fa-clock me-1"></i>
-                                <span class="scadenza-text"></span>
-                            </span>
-                            <span class="badge-interessati" style="display: none;">
-                                <i class="fas fa-users me-1"></i>
-                                <span class="count-text">0/{{ catena.utenti|length }}</span>
-                            </span>
-                            <button class="btn-mi-interessa" onclick="proponiCatena({{ catena.id_ciclo }})">
-                                <i class="fas fa-heart me-1"></i>Mi interessa
-                            </button>
-                        {% endif %}
+                    <div class="group-meta">
+                        <span class="group-count-badge">{{ catene_3|length }} catene</span>
+                        <i class="fas fa-chevron-down chevron-icon"></i>
                     </div>
-                </div>
-            </div>
-
-            <div class="chain-card-body">
-                <div class="participants-section mb-3">
-                    <h6 class="section-label">
-                        <i class="fas fa-users me-2"></i>Partecipanti
-                    </h6>
-                    <div class="participants-list">
-                        {% for utente in catena.utenti %}
-                            <span class="participant-badge">
-                                <i class="fas fa-user-circle"></i>
-                                {{ utente.user.username }}
-                            </span>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <div class="exchange-section">
-                    <h6 class="section-label mb-3">
-                        <i class="fas fa-exchange-alt me-2"></i>Sequenza Scambi
-                    </h6>
-
-                    {% for utente in catena.utenti %}
-                    <div class="aligned-exchange-row">
-                        <div class="user-column">
-                            <div class="modern-exchange-step">
-                                <div class="user-avatar">
-                                    {{ utente.user.username|slice:":1"|upper }}
-                                </div>
-                                <div class="user-exchange-info">
-                                    <div class="user-name">{{ utente.user.username }}</div>
-                                    {% if utente.richiede %}
-                                        <div class="exchange-detail request">
-                                            <i class="fas fa-search"></i>
-                                            <span>Cerca: {{ utente.richiede.titolo|truncatechars:30 }}</span>
-                                        </div>
-                                    {% endif %}
-                                    {% if utente.offerta %}
-                                        <div class="exchange-detail offer">
-                                            <i class="fas fa-hand-holding"></i>
-                                            <span>Offre: {{ utente.offerta.titolo|truncatechars:30 }}</span>
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="announcements-column">
-                            {% if utente.richiede %}
-                            <a href="{% url 'dettaglio_annuncio' utente.richiede.id %}" class="modern-announcement-card compact">
-                                <div class="announcement-icon request-icon">
-                                    <i class="fas fa-search"></i>
-                                </div>
-                                <div class="announcement-content">
-                                    <div class="announcement-title">{{ utente.richiede.titolo }}</div>
-                                    <div class="announcement-meta">
-                                        <span class="announcement-category">
-                                            {{ utente.richiede.categoria.nome }}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="announcement-role-badge request-badge">Cerca</div>
-                            </a>
-                            {% endif %}
-
-                            {% if utente.offerta %}
-                            <a href="{% url 'dettaglio_annuncio' utente.offerta.id %}" class="modern-announcement-card compact">
-                                <div class="announcement-icon offer-icon">
-                                    <i class="fas fa-gift"></i>
-                                </div>
-                                <div class="announcement-content">
-                                    <div class="announcement-title">{{ utente.offerta.titolo }}</div>
-                                    <div class="announcement-meta">
-                                        <span class="announcement-category">
-                                            {{ utente.offerta.categoria.nome }}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="announcement-role-badge offer-badge">Offre</div>
-                            </a>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    {% if not forloop.last %}
-                        <div class="modern-exchange-arrow">
-                            <i class="fas fa-arrow-down"></i>
-                        </div>
-                    {% endif %}
+                </button>
+                <div id="group-3" class="chain-group-content">
+                    {% for catena in catene_3 %}
+                    {% include "scambi/partials/chain_card.html" %}
                     {% endfor %}
                 </div>
             </div>
+            {% endif %}
+
+            <!-- Gruppo 4 persone - Square -->
+            {% if catene_4 %}
+            <div class="chain-group mb-4">
+                <button class="chain-group-header" onclick="toggleGroup('group-4')">
+                    <div class="group-title">
+                        <span class="group-icon">⬛</span>
+                        <span class="group-name">Square</span>
+                        <span class="group-description">4 persone</span>
+                    </div>
+                    <div class="group-meta">
+                        <span class="group-count-badge">{{ catene_4|length }} catene</span>
+                        <i class="fas fa-chevron-down chevron-icon"></i>
+                    </div>
+                </button>
+                <div id="group-4" class="chain-group-content">
+                    {% for catena in catene_4 %}
+                    {% include "scambi/partials/chain_card.html" %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Gruppo 5 persone - Pentagon -->
+            {% if catene_5 %}
+            <div class="chain-group mb-4">
+                <button class="chain-group-header" onclick="toggleGroup('group-5')">
+                    <div class="group-title">
+                        <span class="group-icon">⬟</span>
+                        <span class="group-name">Pentagon</span>
+                        <span class="group-description">5 persone</span>
+                    </div>
+                    <div class="group-meta">
+                        <span class="group-count-badge">{{ catene_5|length }} catene</span>
+                        <i class="fas fa-chevron-down chevron-icon"></i>
+                    </div>
+                </button>
+                <div id="group-5" class="chain-group-content">
+                    {% for catena in catene_5 %}
+                    {% include "scambi/partials/chain_card.html" %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Gruppo 6 persone - Hexagon -->
+            {% if catene_6 %}
+            <div class="chain-group mb-4">
+                <button class="chain-group-header" onclick="toggleGroup('group-6')">
+                    <div class="group-title">
+                        <span class="group-icon">⬢</span>
+                        <span class="group-name">Hexagon</span>
+                        <span class="group-description">6 persone</span>
+                    </div>
+                    <div class="group-meta">
+                        <span class="group-count-badge">{{ catene_6|length }} catene</span>
+                        <i class="fas fa-chevron-down chevron-icon"></i>
+                    </div>
+                </button>
+                <div id="group-6" class="chain-group-content">
+                    {% for catena in catene_6 %}
+                    {% include "scambi/partials/chain_card.html" %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
-        {% endfor %}
     {% endif %}
 
 
@@ -456,6 +412,23 @@
 </div>
 
 <script>
+// Toggle collapsible group
+function toggleGroup(groupId) {
+    const content = document.getElementById(groupId);
+    const header = event.target.closest('.chain-group-header');
+    const chevron = header.querySelector('.chevron-icon');
+
+    if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+        // Close
+        content.style.maxHeight = '0px';
+        chevron.style.transform = 'rotate(0deg)';
+    } else {
+        // Open
+        content.style.maxHeight = content.scrollHeight + 'px';
+        chevron.style.transform = 'rotate(180deg)';
+    }
+}
+
 function startSearch() {
     // Nascondi il contenuto principale e mostra la schermata di loading
     document.getElementById('mainContent').style.display = 'none';
@@ -1526,6 +1499,133 @@ document.addEventListener('DOMContentLoaded', function() {
     .badge-interessati {
         font-size: 0.75rem;
         padding: 4px 10px;
+    }
+}
+
+/* ========== COLLAPSIBLE CHAIN GROUPS ========== */
+
+.chains-grouped-container {
+    margin-top: 20px;
+}
+
+.chain-group {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.chain-group:hover {
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.12);
+}
+
+.chain-group-header {
+    width: 100%;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border: none;
+    padding: 20px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.chain-group-header:hover {
+    background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%);
+}
+
+.group-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.group-icon {
+    font-size: 2rem;
+    transition: transform 0.3s ease;
+}
+
+.chain-group-header:hover .group-icon {
+    transform: scale(1.1);
+}
+
+.group-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    letter-spacing: 0.5px;
+}
+
+.group-description {
+    font-size: 1rem;
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+.group-meta {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.group-count-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 25px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.chevron-icon {
+    font-size: 1.2rem;
+    color: #667eea;
+    transition: transform 0.3s ease;
+}
+
+.chain-group-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+    padding: 0 25px;
+}
+
+.chain-group-content > *:first-child {
+    margin-top: 20px;
+}
+
+.chain-group-content > *:last-child {
+    margin-bottom: 20px;
+}
+
+/* Responsive adjustments for groups */
+@media (max-width: 768px) {
+    .chain-group-header {
+        padding: 15px;
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+
+    .group-title {
+        flex-wrap: wrap;
+    }
+
+    .group-name {
+        font-size: 1.2rem;
+    }
+
+    .group-meta {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .chain-group-content {
+        padding: 0 15px;
     }
 }
 </style>
