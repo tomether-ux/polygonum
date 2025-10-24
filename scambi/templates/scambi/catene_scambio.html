@@ -518,12 +518,19 @@ function filtraCateneSinonimi() {
         // Controlla se la catena usa sinonimi leggendo i dati dal DOM
         const usaSinonimi = catena.dataset.usaSinonimi === 'true';
 
-        if (!includiSinonimi && usaSinonimi) {
-            // Nascondi catene con sinonimi se l'opzione è disattivata
-            catena.style.display = 'none';
-        } else {
-            // Mostra tutte le catene se l'opzione è attivata
+        // Logica corretta:
+        // - Se includiSinonimi è TRUE: mostra TUTTE le catene (con e senza sinonimi)
+        // - Se includiSinonimi è FALSE: mostra SOLO le catene SENZA sinonimi (nascondi quelle con sinonimi)
+        if (includiSinonimi) {
+            // Mostra tutte le catene (con e senza sinonimi)
             catena.style.display = '';
+        } else {
+            // Nascondi solo le catene che usano sinonimi
+            if (usaSinonimi) {
+                catena.style.display = 'none';
+            } else {
+                catena.style.display = '';
+            }
         }
     });
 
