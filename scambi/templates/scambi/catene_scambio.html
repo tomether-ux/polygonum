@@ -575,6 +575,26 @@ document.addEventListener('DOMContentLoaded', function() {
         // La ricerca è stata già eseguita, mostra i risultati
         document.getElementById('mainContent').style.display = 'block';
         document.getElementById('loadingScreen').style.display = 'none';
+
+        // Apri automaticamente tutti i gruppi che contengono catene
+        ['2', '3', '4', '5', '6'].forEach(groupNum => {
+            const groupContent = document.getElementById(`group-${groupNum}`);
+            if (groupContent) {
+                const cateneInGruppo = groupContent.querySelectorAll('.modern-chain-card, .card.mb-4');
+                if (cateneInGruppo.length > 0) {
+                    // Apri il gruppo
+                    groupContent.style.maxHeight = groupContent.scrollHeight + 'px';
+                    // Ruota la chevron
+                    const header = groupContent.previousElementSibling;
+                    if (header) {
+                        const chevron = header.querySelector('.chevron-icon');
+                        if (chevron) {
+                            chevron.style.transform = 'rotate(180deg)';
+                        }
+                    }
+                }
+            }
+        });
     }
 
     // Aggiungi listener per il toggle sinonimi
