@@ -274,6 +274,74 @@
 
         <!-- Raggruppamento per numero di partecipanti -->
         <div class="chains-grouped-container">
+            <!-- Gruppo 2 persone - Line -->
+            {% if catene_2 %}
+            <div class="chain-group mb-4">
+                <button class="chain-group-header" onclick="toggleGroup('group-2')">
+                    <div class="group-title">
+                        <span class="group-icon">➖</span>
+                        <span class="group-name">Line</span>
+                        <span class="group-description">2 persone</span>
+                    </div>
+                    <div class="group-meta">
+                        <span class="group-count-badge">{{ catene_2|length }} catene</span>
+                        <i class="fas fa-chevron-down chevron-icon"></i>
+                    </div>
+                </button>
+                <div id="group-2" class="chain-group-content">
+                    {% for scambio in catene_2 %}
+                    <div class="card mb-4 border-warning" data-usa-sinonimi="{{ scambio.usa_sinonimi|default:'false'|lower }}">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">
+                                🔄 Scambio Diretto: {{ scambio.utenti.0 }} ↔ {{ scambio.utenti.1 }}
+                                <span class="badge bg-dark">Punteggio: {{ scambio.punteggio_qualita|floatformat:1 }}</span>
+                                {% if scambio.distanza_km <= 30 %}
+                                    <span class="badge bg-success">📍 {{ scambio.distanza_km|floatformat:0 }}km</span>
+                                {% elif scambio.distanza_km <= 100 %}
+                                    <span class="badge bg-warning">📍 {{ scambio.distanza_km|floatformat:0 }}km</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">📍 {{ scambio.distanza_km|floatformat:0 }}km</span>
+                                {% endif %}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Lo Scambio:</h6>
+                                    <div class="alert alert-info">
+                                        {% for scambio_desc in scambio.scambi %}
+                                            <div><i class="fas fa-arrow-right me-2"></i>{{ scambio_desc }}</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <h6>Annunci Coinvolti:</h6>
+                                    {% for item in scambio.annunci_coinvolti %}
+                                    <a href="{% url 'dettaglio_annuncio' item.annuncio.id %}" class="text-decoration-none">
+                                        <div class="card mb-2 border-warning clickable-ad-card">
+                                            <div class="card-body p-2">
+                                                <strong class="text-dark">{{ item.annuncio.titolo }}</strong>
+                                                <br><small><a href="{% url 'profilo_utente' item.utente %}" class="text-muted text-decoration-underline" onclick="event.stopPropagation();">{{ item.utente }}</a> - {{ item.annuncio.categoria.nome }}</small>
+                                                <br>
+                                                {% if item.ruolo == 'offre' %}
+                                                    <span class="badge bg-success">Offre</span>
+                                                {% else %}
+                                                    <span class="badge bg-primary">Cerca</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Gruppo 3 persone - Triangle -->
             {% if catene_3 %}
             <div class="chain-group mb-4">
@@ -550,11 +618,11 @@ function aggiornaContatori() {
     }
 
     // Aggiorna i conteggi dei badge per ogni gruppo e nascondi i gruppi vuoti
-    ['3', '4', '5', '6'].forEach(groupNum => {
+    ['2', '3', '4', '5', '6'].forEach(groupNum => {
         const group = document.getElementById(`group-${groupNum}`)?.parentElement;
         if (group) {
-            // Conta le catene visibili in questo gruppo
-            const cateneVisibiliGruppo = group.querySelectorAll('.modern-chain-card:not([style*="display: none"])');
+            // Conta le catene visibili in questo gruppo (include sia modern-chain-card che card.mb-4 per scambi diretti)
+            const cateneVisibiliGruppo = group.querySelectorAll('.modern-chain-card:not([style*="display: none"]), .card.mb-4:not([style*="display: none"])');
             const count = cateneVisibiliGruppo.length;
 
             // Aggiorna il badge del conteggio
