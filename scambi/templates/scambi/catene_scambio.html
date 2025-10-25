@@ -151,9 +151,7 @@
                         <input class="form-check-input" type="checkbox" id="includiSinonimi">
                         <label class="form-check-label" for="includiSinonimi">
                             <i class="fas fa-book me-1"></i>
-                            <strong>Includi anche corrispondenze tramite sinonimi</strong>
-                            <br>
-                            <small class="text-muted">Attiva per trovare più risultati usando WordNet (es. "libro" include "volume", "bicicletta" include "bici")</small>
+                            <strong>Cerca sinonimi</strong>
                         </label>
                     </div>
                 </div>
@@ -396,13 +394,6 @@
     {% endif %}
 {% endif %}
 
-<div class="card bg-light mt-4">
-    <div class="card-body text-center">
-        <strong>{{ totale_catene }}</strong> catene totali -
-        <strong class="text-success">{{ totale_specifiche }}</strong> specifiche (match sui titoli) -
-        <strong class="text-info">{{ totale_generiche }}</strong> generiche (solo categoria)
-    </div>
-        </div>
     </div>
 </div>
 
@@ -537,12 +528,6 @@ function aggiornaContatori() {
     const cateneVisibili = document.querySelectorAll('.modern-chain-card:not([style*="display: none"]), .card.mb-4:not([style*="display: none"])');
     const scambiDirecti = Array.from(cateneVisibili).filter(c => c.querySelector('h5')?.textContent.includes('Scambio Diretto')).length;
     const cateneLunghe = cateneVisibili.length - scambiDirecti;
-
-    // Aggiorna il messaggio di risultati se esiste
-    const alertSuccess = document.querySelector('.alert-success');
-    if (alertSuccess && cateneVisibili.length > 0) {
-        alertSuccess.innerHTML = `<strong>Risultati:</strong> Trovate ${cateneVisibili.length} catene con parole in comune nei titoli<br><small class="text-muted">${scambiDirecti} scambi diretti + ${cateneLunghe} catene lunghe</small>`;
-    }
 
     // Aggiorna i conteggi dei badge per ogni gruppo e nascondi i gruppi vuoti
     ['2', '3', '4', '5', '6'].forEach(groupNum => {
