@@ -146,9 +146,18 @@ class UserProfileForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from .models import Citta
+
+        # DEBUG: Verifica che le città esistano
+        citta_count = Citta.objects.count()
+        print(f"DEBUG UserProfileForm.__init__: Città nel database = {citta_count}")
+
         # Popola il queryset con tutte le città ordinate per nome
         self.fields['citta_obj'].queryset = Citta.objects.all().order_by('nome')
         self.fields['citta_obj'].empty_label = "Seleziona una città..."
+
+        # DEBUG: Verifica che il queryset sia stato impostato
+        queryset_count = self.fields['citta_obj'].queryset.count()
+        print(f"DEBUG UserProfileForm.__init__: Queryset impostato = {queryset_count}")
 
 
 class RicercaAvanzataForm(forms.Form):
