@@ -15,9 +15,20 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
+    // Debug: verifica che jQuery e Select2 siano caricati
+    console.log('jQuery version:', $.fn.jquery);
+    console.log('Select2 loaded:', typeof $.fn.select2 !== 'undefined');
+
     $(document).ready(function() {
+        console.log('Initializing Select2 on #id_citta_obj');
+
+        // Verifica che l'elemento esista
+        var $cittaSelect = $('#id_citta_obj');
+        console.log('Element found:', $cittaSelect.length);
+        console.log('Number of options:', $cittaSelect.find('option').length);
+
         // Inizializza Select2 sul campo città
-        $('#id_citta_obj').select2({
+        $cittaSelect.select2({
             theme: 'bootstrap-5',
             placeholder: 'Seleziona una città...',
             allowClear: true,
@@ -31,6 +42,8 @@
                 }
             }
         });
+
+        console.log('Select2 initialized');
     });
 </script>
 {% endblock %}
