@@ -628,6 +628,12 @@ def modifica_profilo(request):
     else:
         form = UserProfileForm(instance=profilo)
 
+        # DEBUG: Verifica quante città ci sono nel queryset
+        from scambi.models import Citta
+        citta_count = Citta.objects.count()
+        queryset_count = form.fields['citta_obj'].queryset.count()
+        print(f"DEBUG modifica_profilo: Città nel DB={citta_count}, Queryset nel form={queryset_count}")
+
     return render(request, 'scambi/modifica_profilo.html', {
         'form': form,
         'profilo': profilo
