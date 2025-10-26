@@ -112,11 +112,11 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="id_citta_obj">Città *</label>
+                                    <!-- DEBUG: Totale città = {{ citta_list|length }} -->
                                     <select name="citta_obj" class="form-control" id="id_citta_obj">
                                         <option value="">Seleziona una città...</option>
-                                        {% load static %}
                                         {% for citta in citta_list %}
-                                            <option value="{{ citta.id }}" {% if profilo.citta_obj.id == citta.id %}selected{% endif %}>
+                                            <option value="{{ citta.id }}" {% if profilo.citta_obj and profilo.citta_obj.id == citta.id %}selected{% endif %}>
                                                 {{ citta.nome }} ({{ citta.provincia }})
                                             </option>
                                         {% endfor %}
