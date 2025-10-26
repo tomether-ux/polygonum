@@ -20,30 +20,40 @@
     console.log('Select2 loaded:', typeof $.fn.select2 !== 'undefined');
 
     $(document).ready(function() {
-        console.log('Initializing Select2 on #id_citta_obj');
+        // Aspetta che il DOM sia completamente caricato
+        setTimeout(function() {
+            console.log('Initializing Select2 on #id_citta_obj');
 
-        // Verifica che l'elemento esista
-        var $cittaSelect = $('#id_citta_obj');
-        console.log('Element found:', $cittaSelect.length);
-        console.log('Number of options:', $cittaSelect.find('option').length);
+            // Verifica che l'elemento esista
+            var $cittaSelect = $('#id_citta_obj');
+            console.log('Element found:', $cittaSelect.length);
+            console.log('Number of options BEFORE Select2:', $cittaSelect.find('option').length);
 
-        // Inizializza Select2 sul campo città
-        $cittaSelect.select2({
-            theme: 'bootstrap-5',
-            placeholder: 'Seleziona una città...',
-            allowClear: true,
-            width: '100%',
-            language: {
-                noResults: function() {
-                    return "Nessuna città trovata";
-                },
-                searching: function() {
-                    return "Ricerca in corso...";
-                }
+            // Distruggi Select2 se già inizializzato
+            if ($cittaSelect.data('select2')) {
+                $cittaSelect.select2('destroy');
             }
-        });
 
-        console.log('Select2 initialized');
+            // Inizializza Select2 sul campo città
+            $cittaSelect.select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Seleziona una città...',
+                allowClear: true,
+                width: '100%',
+                data: null,  // Non usare AJAX, usa le opzioni nel select
+                language: {
+                    noResults: function() {
+                        return "Nessuna città trovata";
+                    },
+                    searching: function() {
+                        return "Ricerca in corso...";
+                    }
+                }
+            });
+
+            console.log('Select2 initialized');
+            console.log('Number of options AFTER Select2:', $cittaSelect.find('option').length);
+        }, 100);  // Ritarda di 100ms per assicurarsi che il DOM sia pronto
     });
 </script>
 {% endblock %}
