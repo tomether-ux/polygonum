@@ -634,9 +634,14 @@ def modifica_profilo(request):
         queryset_count = form.fields['citta_obj'].queryset.count()
         print(f"DEBUG modifica_profilo: Città nel DB={citta_count}, Queryset nel form={queryset_count}")
 
+    # Carica tutte le città per il template
+    from scambi.models import Citta
+    citta_list = Citta.objects.all().order_by('nome')
+
     return render(request, 'scambi/modifica_profilo.html', {
         'form': form,
-        'profilo': profilo
+        'profilo': profilo,
+        'citta_list': citta_list
     })
 
 def custom_logout(request):
