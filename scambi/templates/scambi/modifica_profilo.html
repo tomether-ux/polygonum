@@ -111,11 +111,17 @@
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    {{ form.citta_obj.label_tag }}
-                                    {{ form.citta_obj }}
-                                    {% if form.citta_obj.help_text %}
-                                        <small class="text-muted d-block mt-1">{{ form.citta_obj.help_text }}</small>
-                                    {% endif %}
+                                    <label for="id_citta_obj">Città *</label>
+                                    <select name="citta_obj" class="form-control" id="id_citta_obj">
+                                        <option value="">Seleziona una città...</option>
+                                        {% load static %}
+                                        {% for citta in citta_list %}
+                                            <option value="{{ citta.id }}" {% if profilo.citta_obj.id == citta.id %}selected{% endif %}>
+                                                {{ citta.nome }} ({{ citta.provincia }})
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <small class="text-muted d-block mt-1">Seleziona la tua città. La provincia e regione verranno impostate automaticamente.</small>
                                     {% if form.citta_obj.errors %}
                                         <div class="text-danger small">{{ form.citta_obj.errors.0 }}</div>
                                     {% endif %}
