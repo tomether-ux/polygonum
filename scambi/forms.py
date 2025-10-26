@@ -123,41 +123,31 @@ class AnnuncioForm(forms.ModelForm):
         }
 
 class UserProfileForm(forms.ModelForm):
+    # Definisci esplicitamente il campo citta_obj con queryset
+    from .models import Citta
+    citta_obj = forms.ModelChoiceField(
+        queryset=Citta.objects.all().order_by('nome'),
+        required=False,
+        empty_label="Seleziona una città...",
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+        }),
+        label='Città *',
+        help_text='Seleziona la tua città. La provincia e regione verranno impostate automaticamente.'
+    )
+
     class Meta:
         model = UserProfile
         fields = ['citta_obj', 'cap']
         widgets = {
-            'citta_obj': forms.Select(attrs={
-                'class': 'form-control',
-            }),
             'cap': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Es: 00100, 20121...'
             }),
         }
         labels = {
-            'citta_obj': 'Città *',
             'cap': 'CAP (opzionale)'
         }
-        help_texts = {
-            'citta_obj': 'Seleziona la tua città. La provincia e regione verranno impostate automaticamente.'
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        from .models import Citta
-
-        # DEBUG: Verifica che le città esistano
-        citta_count = Citta.objects.count()
-        print(f"DEBUG UserProfileForm.__init__: Città nel database = {citta_count}")
-
-        # Popola il queryset con tutte le città ordinate per nome
-        self.fields['citta_obj'].queryset = Citta.objects.all().order_by('nome')
-        self.fields['citta_obj'].empty_label = "Seleziona una città..."
-
-        # DEBUG: Verifica che il queryset sia stato impostato
-        queryset_count = self.fields['citta_obj'].queryset.count()
-        print(f"DEBUG UserProfileForm.__init__: Queryset impostato = {queryset_count}")
 
 
 class RicercaAvanzataForm(forms.Form):
