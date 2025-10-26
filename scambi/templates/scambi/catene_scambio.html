@@ -511,25 +511,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('mainContent').style.display = 'block';
         document.getElementById('loadingScreen').style.display = 'none';
 
-        // Apri automaticamente tutti i gruppi che contengono catene
-        ['2', '3', '4', '5', '6'].forEach(groupNum => {
-            const groupContent = document.getElementById(`group-${groupNum}`);
-            if (groupContent) {
-                const cateneInGruppo = groupContent.querySelectorAll('.modern-chain-card');
-                if (cateneInGruppo.length > 0) {
-                    // Apri il gruppo
-                    groupContent.style.maxHeight = groupContent.scrollHeight + 'px';
-                    // Ruota la chevron
-                    const header = groupContent.previousElementSibling;
-                    if (header) {
-                        const chevron = header.querySelector('.chevron-icon');
-                        if (chevron) {
-                            chevron.style.transform = 'rotate(180deg)';
-                        }
-                    }
-                }
-            }
-        });
+        // I gruppi rimangono chiusi - l'utente deve aprirli manualmente
     }
 
     // Aggiungi listener per il toggle sinonimi
