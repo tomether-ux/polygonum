@@ -1978,9 +1978,6 @@ def webhook_calcola_cicli(request):
             verbosity=0  # Ridotto a 0 per evitare output troppo verboso nel webhook
         )
 
-        # Rivalidate cycles dopo il calcolo (fix per cicli invalidi)
-        call_command("rivalidate_cycles")
-
         # Ripristina stdout
         sys.stdout = old_stdout
         command_output = output_buffer.getvalue()
