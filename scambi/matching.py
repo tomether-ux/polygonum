@@ -892,15 +892,15 @@ def calcola_distanza_geografica(utente_a, utente_b):
 
         if distanza_km == 0:
             return 0, "stessa_citta"
-        elif distanza_km == 999:
-            return 999, "posizione_sconosciuta"
+        elif distanza_km >= 9999:
+            return 9999, "posizione_sconosciuta"
         elif distanza_km <= 50:
             return distanza_km, "province_vicine"
         else:
             return distanza_km, "province_lontane"
 
     except UserProfile.DoesNotExist:
-        return 999, "profilo_mancante"
+        return 9999, "profilo_mancante"
 
 def calcola_distanza_haversine(lat1, lon1, lat2, lon2):
     """Calcola distanza in km tra due punti usando la formula di Haversine"""

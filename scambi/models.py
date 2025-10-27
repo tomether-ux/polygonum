@@ -199,9 +199,9 @@ class UserProfile(models.Model):
     def get_distanza_km(self, altro_profilo):
         """Calcola la distanza da un altro profilo usando il database città"""
         if not self.citta_obj or not altro_profilo.citta_obj:
-            return 999  # Distanza default se manca la città
+            return 9999  # Distanza default se manca la città (valore alto per distinguere da distanze reali)
 
-        return DistanzaCitta.get_distanza(self.citta_obj, altro_profilo.citta_obj) or 999
+        return DistanzaCitta.get_distanza(self.citta_obj, altro_profilo.citta_obj) or 9999
 
     class Meta:
         verbose_name = "Profilo Utente"
