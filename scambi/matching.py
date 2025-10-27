@@ -1461,10 +1461,26 @@ def converti_ciclo_db_a_view_format(ciclo_db):
                     break
 
         # Costruisci il mapping utente -> offerte/richieste dai dettagli scambi
+        # FILTRO: Verifica che TUTTI gli scambi siano completi (nessun None)
         user_offers = {}
         user_requests = {}
 
         if 'scambi' in dettagli:
+            # Prima verifica che tutti gli scambi abbiano oggetti validi
+            num_scambi_attesi = len(user_ids)
+            scambi_completi = 0
+
+            for scambio in dettagli['scambi']:
+                # Se lo scambio non ha oggetti, significa che ha fallito i controlli metodo/distanza
+                if scambio and scambio.get('oggetti'):
+                    scambi_completi += 1
+
+            # Se mancano scambi, questo ciclo è incompleto → non visualizzare
+            if scambi_completi < num_scambi_attesi:
+                print(f"⚠️ Ciclo {ciclo_db.id} incompleto: {scambi_completi}/{num_scambi_attesi} scambi validi")
+                return None
+
+            # Ora costruisci il mapping
             for scambio in dettagli['scambi']:
                 da_user = scambio.get('da_user')
                 a_user = scambio.get('a_user')
