@@ -1122,17 +1122,30 @@ class CycleFinder:
     def _c_e_match_tra_utenti(self, utente_a, utente_b):
         """
         Verifica se due utenti possono scambiare direttamente.
-        Usa solo matching titoli (senza considerare prezzo/distanza) per costruire il grafo.
+        Include controlli per metodo di scambio e distanza geografica.
         """
         offerte_a = Annuncio.objects.filter(utente=utente_a, tipo='offro', attivo=True)
         richieste_b = Annuncio.objects.filter(utente=utente_b, tipo='cerco', attivo=True)
 
+        # Calcola distanza geografica tra i due utenti
+        distanza_km, _ = calcola_distanza_geografica(utente_a, utente_b)
+
         for offerta in offerte_a:
             for richiesta in richieste_b:
-                # Usa solo compatibilità titoli (non algoritmo avanzato)
+                # Usa solo compatibilità titoli
                 compatible, tipo_match = oggetti_compatibili_con_tipo(offerta, richiesta)
                 # Accetta match specifico, parziale o sinonimo (non categoria o generico)
                 if compatible and tipo_match in ['specifico', 'parziale', 'sinonimo']:
+                    # Verifica metodo scambio
+                    metodo_ok, _ = verifica_compatibilita_metodo_scambio(offerta, richiesta)
+                    if not metodo_ok:
+                        continue
+
+                    # Verifica distanza
+                    distanza_ok, _ = verifica_compatibilita_distanza(offerta, richiesta, distanza_km)
+                    if not distanza_ok:
+                        continue
+
                     return True
         return False
 
