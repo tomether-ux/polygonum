@@ -1502,6 +1502,13 @@ def converti_ciclo_db_a_view_format(ciclo_db):
                         except Annuncio.DoesNotExist:
                             pass
 
+        # FILTRO: Verifica che tutti gli annunci coinvolti siano ancora attivi
+        annunci_da_verificare = list(user_offers.values()) + list(user_requests.values())
+        for annuncio in annunci_da_verificare:
+            if not annuncio.attivo:
+                print(f"⚠️ Ciclo {ciclo_db.id} contiene annuncio disattivato: {annuncio.id} - '{annuncio.titolo}'")
+                return None
+
         # NUOVO: Riordina gli utenti secondo la sequenza di scambio
         # La sequenza corretta è: A offre a B, B offre a C, C offre a A
         # Quindi dobbiamo seguire i link da_user -> a_user
