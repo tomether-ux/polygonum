@@ -18,8 +18,7 @@
             <div class="loading-container mx-auto">
                 <!-- Custom Polygon Chain Loading Animation -->
                 <div class="chain-loader mb-4">
-                    <svg viewBox="0 0 240 220" width="240" height="220">
-                        <!-- Definisci i gradienti blu -->
+                    <svg viewBox="0 0 220 220" width="220" height="220" style="margin: 0 auto; display: block;">
                         <defs>
                             <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
@@ -29,95 +28,148 @@
                         </defs>
 
                         <!--
-                        Coordinate dei punti (base condivisa sempre in basso):
-                        Base: P1 (60, 180) - P2 (180, 180)
+                        Centro: (110, 110)
+                        Raggio: 70px
+                        Base condivisa sempre sul lato inferiore (verso sud)
 
-                        Triangolo: P1, P2, P3(120, 80)
-                        Quadrato: P1, P2, poi sopra P4(180, 80), P5(60, 80)
-                        Pentagono: Base + P6(200, 130), P7(120, 50), P8(40, 130)
-                        Esagono: Base + P9(200, 120), P10(180, 60), P11(60, 60), P12(40, 120)
+                        Triangolo equilatero (vertice in alto):
+                        - P1 (sinistra base): (110 - 60.62, 110 + 35) = (49.38, 145)
+                        - P2 (destra base): (110 + 60.62, 110 + 35) = (170.62, 145)
+                        - P3 (vertice alto): (110, 110 - 70) = (110, 40)
+
+                        Quadrato (base in basso):
+                        - P1 (sinistra base): (60, 160)
+                        - P2 (destra base): (160, 160)
+                        - P3 (destra alto): (160, 60)
+                        - P4 (sinistra alto): (60, 60)
+
+                        Pentagono regolare (base in basso, vertice in alto):
+                        Angolo iniziale: -90° (vertice alto), poi +72° per ogni vertice
+                        - P1 (vertice alto): (110, 40)
+                        - P2 (destra alto): (110 + 70*sin(18°), 40 + 70*cos(18°)) = (131.65, 106.54)
+                        - P3 (destra base): (110 + 70*sin(54°), 40 + 70*cos(54°)) = (166.62, 151.41)
+                        - P4 (sinistra base): (110 - 70*sin(54°), 40 + 70*cos(54°)) = (53.38, 151.41)
+                        - P5 (sinistra alto): (110 - 70*sin(18°), 40 + 70*cos(18°)) = (88.35, 106.54)
+
+                        Esagono regolare (base piatta in basso):
+                        - P1 (destra base): (145, 160.62)
+                        - P2 (destra): (175, 110)
+                        - P3 (destra alto): (145, 59.38)
+                        - P4 (sinistra alto): (75, 59.38)
+                        - P5 (sinistra): (45, 110)
+                        - P6 (sinistra base): (75, 160.62)
                         -->
 
-                        <!-- Unico path che disegna tutte le forme progressivamente -->
-                        <path d="
-                            M 60 180
-                            L 180 180
-                            L 120 80
-                            L 60 180
-                            L 60 80
-                            L 180 80
-                            L 180 180
-                            M 60 180
-                            L 40 130
-                            L 120 50
-                            L 200 130
-                            L 180 180
-                            M 60 180
-                            L 40 120
-                            L 60 60
-                            L 180 60
-                            L 200 120
-                            L 180 180
-                        "
-                        stroke="url(#lineGradient)"
-                        stroke-width="5"
-                        fill="none"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-dasharray="2000"
-                        stroke-dashoffset="2000">
-                            <!-- Animazione del disegno continuo -->
-                            <animate
-                                attributeName="stroke-dashoffset"
-                                from="2000"
-                                to="0"
-                                dur="8s"
-                                repeatCount="indefinite"/>
+                        <!-- TRIANGOLO (primi 2 secondi) -->
+                        <path d="M 49.38 145 L 170.62 145 L 110 40 L 49.38 145"
+                              stroke="url(#lineGradient)"
+                              stroke-width="4"
+                              fill="none"
+                              stroke-linecap="round"
+                              stroke-linejoin="round">
+                            <animate attributeName="stroke-dasharray"
+                                     values="0,500; 250,500; 250,500; 250,500; 250,500"
+                                     keyTimes="0; 0.25; 0.5; 0.75; 1"
+                                     dur="8s"
+                                     repeatCount="indefinite"/>
+                            <animate attributeName="stroke-dashoffset"
+                                     values="250; 0; 0; 0; 0"
+                                     keyTimes="0; 0.25; 0.5; 0.75; 1"
+                                     dur="8s"
+                                     repeatCount="indefinite"/>
                         </path>
 
-                        <!-- Marker ai vertici delle forme -->
-                        <!-- Base condivisa -->
-                        <circle cx="60" cy="180" r="6" fill="#667eea">
-                            <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
-                        </circle>
-                        <circle cx="180" cy="180" r="6" fill="#667eea">
-                            <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" begin="0.2s"/>
+                        <!-- QUADRATO (secondi 2-4) -->
+                        <path d="M 60 160 L 160 160 L 160 60 L 60 60 L 60 160"
+                              stroke="url(#lineGradient)"
+                              stroke-width="4"
+                              fill="none"
+                              stroke-linecap="round"
+                              stroke-linejoin="round">
+                            <animate attributeName="stroke-dasharray"
+                                     values="0,500; 0,500; 400,500; 400,500; 400,500"
+                                     keyTimes="0; 0.25; 0.5; 0.75; 1"
+                                     dur="8s"
+                                     repeatCount="indefinite"/>
+                            <animate attributeName="stroke-dashoffset"
+                                     values="400; 400; 0; 0; 0"
+                                     keyTimes="0; 0.25; 0.5; 0.75; 1"
+                                     dur="8s"
+                                     repeatCount="indefinite"/>
+                        </path>
+
+                        <!-- PENTAGONO (secondi 4-6) -->
+                        <path d="M 110 40 L 166.62 106.54 L 143.26 165 L 76.74 165 L 53.38 106.54 L 110 40"
+                              stroke="url(#lineGradient)"
+                              stroke-width="4"
+                              fill="none"
+                              stroke-linecap="round"
+                              stroke-linejoin="round">
+                            <animate attributeName="stroke-dasharray"
+                                     values="0,500; 0,500; 0,500; 450,500; 450,500"
+                                     keyTimes="0; 0.25; 0.5; 0.75; 1"
+                                     dur="8s"
+                                     repeatCount="indefinite"/>
+                            <animate attributeName="stroke-dashoffset"
+                                     values="450; 450; 450; 0; 0"
+                                     keyTimes="0; 0.25; 0.5; 0.75; 1"
+                                     dur="8s"
+                                     repeatCount="indefinite"/>
+                        </path>
+
+                        <!-- ESAGONO (secondi 6-8) -->
+                        <path d="M 145 160.62 L 175 110 L 145 59.38 L 75 59.38 L 45 110 L 75 160.62 L 145 160.62"
+                              stroke="url(#lineGradient)"
+                              stroke-width="4"
+                              fill="none"
+                              stroke-linecap="round"
+                              stroke-linejoin="round">
+                            <animate attributeName="stroke-dasharray"
+                                     values="0,500; 0,500; 0,500; 0,500; 480,500"
+                                     keyTimes="0; 0.25; 0.5; 0.75; 1"
+                                     dur="8s"
+                                     repeatCount="indefinite"/>
+                            <animate attributeName="stroke-dashoffset"
+                                     values="480; 480; 480; 480; 0"
+                                     keyTimes="0; 0.25; 0.5; 0.75; 1"
+                                     dur="8s"
+                                     repeatCount="indefinite"/>
+                        </path>
+
+                        <!-- Vertici che appaiono (piccoli cerchi) -->
+                        <!-- Triangolo -->
+                        <circle cx="110" cy="40" r="5" fill="#4facfe">
+                            <animate attributeName="opacity" values="0;0;1;1;1;1;0" keyTimes="0;0.1;0.25;0.5;0.75;0.95;1" dur="8s" repeatCount="indefinite"/>
                         </circle>
 
-                        <!-- Vertici superiori -->
-                        <circle cx="120" cy="80" r="6" fill="#4facfe">
-                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite"/>
+                        <!-- Quadrato -->
+                        <circle cx="160" cy="60" r="5" fill="#4facfe">
+                            <animate attributeName="opacity" values="0;0;0;0;1;1;0" keyTimes="0;0.25;0.3;0.45;0.5;0.95;1" dur="8s" repeatCount="indefinite"/>
                         </circle>
-                        <circle cx="60" cy="80" r="6" fill="#4facfe">
-                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="1s"/>
-                        </circle>
-                        <circle cx="180" cy="80" r="6" fill="#4facfe">
-                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="1.5s"/>
+                        <circle cx="60" cy="60" r="5" fill="#4facfe">
+                            <animate attributeName="opacity" values="0;0;0;0;1;1;0" keyTimes="0;0.25;0.3;0.47;0.5;0.95;1" dur="8s" repeatCount="indefinite"/>
                         </circle>
 
-                        <!-- Vertici pentagono -->
-                        <circle cx="40" cy="130" r="6" fill="#00f2fe">
-                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="3s"/>
+                        <!-- Pentagono -->
+                        <circle cx="166.62" cy="106.54" r="5" fill="#00f2fe">
+                            <animate attributeName="opacity" values="0;0;0;0;0;0;1;1;0" keyTimes="0;0.5;0.55;0.7;0.73;0.74;0.75;0.95;1" dur="8s" repeatCount="indefinite"/>
                         </circle>
-                        <circle cx="120" cy="50" r="6" fill="#00f2fe">
-                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="3.5s"/>
-                        </circle>
-                        <circle cx="200" cy="130" r="6" fill="#00f2fe">
-                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="4s"/>
+                        <circle cx="53.38" cy="106.54" r="5" fill="#00f2fe">
+                            <animate attributeName="opacity" values="0;0;0;0;0;0;1;1;0" keyTimes="0;0.5;0.55;0.7;0.71;0.72;0.75;0.95;1" dur="8s" repeatCount="indefinite"/>
                         </circle>
 
-                        <!-- Vertici esagono -->
-                        <circle cx="40" cy="120" r="6" fill="#764ba2">
-                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="5s"/>
+                        <!-- Esagono -->
+                        <circle cx="175" cy="110" r="5" fill="#764ba2">
+                            <animate attributeName="opacity" values="0;0;0;0;0;0;0;0;1;1" keyTimes="0;0.75;0.78;0.85;0.88;0.9;0.92;0.94;0.96;1" dur="8s" repeatCount="indefinite"/>
                         </circle>
-                        <circle cx="60" cy="60" r="6" fill="#764ba2">
-                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="5.5s"/>
+                        <circle cx="145" cy="59.38" r="5" fill="#764ba2">
+                            <animate attributeName="opacity" values="0;0;0;0;0;0;0;0;1;1" keyTimes="0;0.75;0.78;0.85;0.88;0.9;0.92;0.94;0.97;1" dur="8s" repeatCount="indefinite"/>
                         </circle>
-                        <circle cx="180" cy="60" r="6" fill="#764ba2">
-                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="6s"/>
+                        <circle cx="75" cy="59.38" r="5" fill="#764ba2">
+                            <animate attributeName="opacity" values="0;0;0;0;0;0;0;0;1;1" keyTimes="0;0.75;0.78;0.85;0.88;0.9;0.92;0.94;0.98;1" dur="8s" repeatCount="indefinite"/>
                         </circle>
-                        <circle cx="200" cy="120" r="6" fill="#764ba2">
-                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="6.5s"/>
+                        <circle cx="45" cy="110" r="5" fill="#764ba2">
+                            <animate attributeName="opacity" values="0;0;0;0;0;0;0;0;1;1" keyTimes="0;0.75;0.78;0.85;0.88;0.9;0.92;0.94;0.99;1" dur="8s" repeatCount="indefinite"/>
                         </circle>
                     </svg>
                 </div>
