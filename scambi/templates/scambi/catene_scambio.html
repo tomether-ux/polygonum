@@ -16,53 +16,109 @@
         <!-- Loading Screen -->
         <div id="loadingScreen" class="text-center py-5" style="display: none;">
             <div class="loading-container mx-auto">
-                <!-- Custom Chain Loading Animation -->
+                <!-- Custom Polygon Chain Loading Animation -->
                 <div class="chain-loader mb-4">
-                    <svg viewBox="0 0 200 200" width="200" height="200">
+                    <svg viewBox="0 0 240 220" width="240" height="220">
                         <!-- Definisci i gradienti blu -->
                         <defs>
-                            <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-                            </linearGradient>
-                            <linearGradient id="lightBlueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#4facfe;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#4facfe;stop-opacity:1" />
                                 <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1" />
                             </linearGradient>
                         </defs>
 
-                        <!-- Cerchio 1 (top) -->
-                        <circle cx="100" cy="50" r="20" fill="url(#blueGradient)" class="node node-1">
-                            <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite" begin="0s"/>
-                        </circle>
+                        <!--
+                        Coordinate dei punti (base condivisa sempre in basso):
+                        Base: P1 (60, 180) - P2 (180, 180)
 
-                        <!-- Cerchio 2 (bottom-left) -->
-                        <circle cx="60" cy="130" r="20" fill="url(#blueGradient)" class="node node-2">
-                            <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite" begin="0.66s"/>
-                        </circle>
+                        Triangolo: P1, P2, P3(120, 80)
+                        Quadrato: P1, P2, poi sopra P4(180, 80), P5(60, 80)
+                        Pentagono: Base + P6(200, 130), P7(120, 50), P8(40, 130)
+                        Esagono: Base + P9(200, 120), P10(180, 60), P11(60, 60), P12(40, 120)
+                        -->
 
-                        <!-- Cerchio 3 (bottom-right) -->
-                        <circle cx="140" cy="130" r="20" fill="url(#blueGradient)" class="node node-3">
-                            <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite" begin="1.33s"/>
-                        </circle>
-
-                        <!-- Linea 1 -> 2 -->
-                        <path d="M 100 70 L 60 110" stroke="url(#lightBlueGradient)" stroke-width="4" fill="none" stroke-linecap="round" class="link link-1">
-                            <animate attributeName="stroke-dasharray" values="0,200;200,0" dur="2s" repeatCount="indefinite" begin="0s"/>
-                            <animate attributeName="stroke-dashoffset" from="0" to="200" dur="2s" repeatCount="indefinite" begin="0s"/>
+                        <!-- Unico path che disegna tutte le forme progressivamente -->
+                        <path d="
+                            M 60 180
+                            L 180 180
+                            L 120 80
+                            L 60 180
+                            L 60 80
+                            L 180 80
+                            L 180 180
+                            M 60 180
+                            L 40 130
+                            L 120 50
+                            L 200 130
+                            L 180 180
+                            M 60 180
+                            L 40 120
+                            L 60 60
+                            L 180 60
+                            L 200 120
+                            L 180 180
+                        "
+                        stroke="url(#lineGradient)"
+                        stroke-width="5"
+                        fill="none"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-dasharray="2000"
+                        stroke-dashoffset="2000">
+                            <!-- Animazione del disegno continuo -->
+                            <animate
+                                attributeName="stroke-dashoffset"
+                                from="2000"
+                                to="0"
+                                dur="8s"
+                                repeatCount="indefinite"/>
                         </path>
 
-                        <!-- Linea 2 -> 3 -->
-                        <path d="M 80 130 L 120 130" stroke="url(#lightBlueGradient)" stroke-width="4" fill="none" stroke-linecap="round" class="link link-2">
-                            <animate attributeName="stroke-dasharray" values="0,200;200,0" dur="2s" repeatCount="indefinite" begin="0.66s"/>
-                            <animate attributeName="stroke-dashoffset" from="0" to="200" dur="2s" repeatCount="indefinite" begin="0.66s"/>
-                        </path>
+                        <!-- Marker ai vertici delle forme -->
+                        <!-- Base condivisa -->
+                        <circle cx="60" cy="180" r="6" fill="#667eea">
+                            <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+                        </circle>
+                        <circle cx="180" cy="180" r="6" fill="#667eea">
+                            <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" begin="0.2s"/>
+                        </circle>
 
-                        <!-- Linea 3 -> 1 -->
-                        <path d="M 140 110 L 100 70" stroke="url(#lightBlueGradient)" stroke-width="4" fill="none" stroke-linecap="round" class="link link-3">
-                            <animate attributeName="stroke-dasharray" values="0,200;200,0" dur="2s" repeatCount="indefinite" begin="1.33s"/>
-                            <animate attributeName="stroke-dashoffset" from="0" to="200" dur="2s" repeatCount="indefinite" begin="1.33s"/>
-                        </path>
+                        <!-- Vertici superiori -->
+                        <circle cx="120" cy="80" r="6" fill="#4facfe">
+                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite"/>
+                        </circle>
+                        <circle cx="60" cy="80" r="6" fill="#4facfe">
+                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="1s"/>
+                        </circle>
+                        <circle cx="180" cy="80" r="6" fill="#4facfe">
+                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="1.5s"/>
+                        </circle>
+
+                        <!-- Vertici pentagono -->
+                        <circle cx="40" cy="130" r="6" fill="#00f2fe">
+                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="3s"/>
+                        </circle>
+                        <circle cx="120" cy="50" r="6" fill="#00f2fe">
+                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="3.5s"/>
+                        </circle>
+                        <circle cx="200" cy="130" r="6" fill="#00f2fe">
+                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="4s"/>
+                        </circle>
+
+                        <!-- Vertici esagono -->
+                        <circle cx="40" cy="120" r="6" fill="#764ba2">
+                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="5s"/>
+                        </circle>
+                        <circle cx="60" cy="60" r="6" fill="#764ba2">
+                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="5.5s"/>
+                        </circle>
+                        <circle cx="180" cy="60" r="6" fill="#764ba2">
+                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="6s"/>
+                        </circle>
+                        <circle cx="200" cy="120" r="6" fill="#764ba2">
+                            <animate attributeName="opacity" values="0;1;0" dur="8s" repeatCount="indefinite" begin="6.5s"/>
+                        </circle>
                     </svg>
                 </div>
 
