@@ -15,33 +15,77 @@
 
         <!-- Loading Screen -->
         <div id="loadingScreen" class="text-center py-5" style="display: none;">
-            <div class="bg-polygonum-secondary rounded-3 p-5 mx-auto" style="max-width: 500px;">
-                <div class="mb-4">
-                    <div class="spinner-border text-polygonum-primary" style="width: 4rem; height: 4rem;" role="status">
-                        <span class="visually-hidden">Caricamento...</span>
-                    </div>
+            <div class="loading-container mx-auto">
+                <!-- Custom Chain Loading Animation -->
+                <div class="chain-loader mb-4">
+                    <svg viewBox="0 0 200 200" width="200" height="200">
+                        <!-- Definisci i gradienti blu -->
+                        <defs>
+                            <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="lightBlueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#4facfe;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Cerchio 1 (top) -->
+                        <circle cx="100" cy="50" r="20" fill="url(#blueGradient)" class="node node-1">
+                            <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite" begin="0s"/>
+                        </circle>
+
+                        <!-- Cerchio 2 (bottom-left) -->
+                        <circle cx="60" cy="130" r="20" fill="url(#blueGradient)" class="node node-2">
+                            <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite" begin="0.66s"/>
+                        </circle>
+
+                        <!-- Cerchio 3 (bottom-right) -->
+                        <circle cx="140" cy="130" r="20" fill="url(#blueGradient)" class="node node-3">
+                            <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite" begin="1.33s"/>
+                        </circle>
+
+                        <!-- Linea 1 -> 2 -->
+                        <path d="M 100 70 L 60 110" stroke="url(#lightBlueGradient)" stroke-width="4" fill="none" stroke-linecap="round" class="link link-1">
+                            <animate attributeName="stroke-dasharray" values="0,200;200,0" dur="2s" repeatCount="indefinite" begin="0s"/>
+                            <animate attributeName="stroke-dashoffset" from="0" to="200" dur="2s" repeatCount="indefinite" begin="0s"/>
+                        </path>
+
+                        <!-- Linea 2 -> 3 -->
+                        <path d="M 80 130 L 120 130" stroke="url(#lightBlueGradient)" stroke-width="4" fill="none" stroke-linecap="round" class="link link-2">
+                            <animate attributeName="stroke-dasharray" values="0,200;200,0" dur="2s" repeatCount="indefinite" begin="0.66s"/>
+                            <animate attributeName="stroke-dashoffset" from="0" to="200" dur="2s" repeatCount="indefinite" begin="0.66s"/>
+                        </path>
+
+                        <!-- Linea 3 -> 1 -->
+                        <path d="M 140 110 L 100 70" stroke="url(#lightBlueGradient)" stroke-width="4" fill="none" stroke-linecap="round" class="link link-3">
+                            <animate attributeName="stroke-dasharray" values="0,200;200,0" dur="2s" repeatCount="indefinite" begin="1.33s"/>
+                            <animate attributeName="stroke-dashoffset" from="0" to="200" dur="2s" repeatCount="indefinite" begin="1.33s"/>
+                        </path>
+                    </svg>
                 </div>
-                <h4 class="text-polygonum-primary mb-3">
-                    <i class="fas fa-cogs me-2"></i>Elaborazione in corso...
+
+                <h4 class="loading-title mb-3">
+                    Ricerca catene in corso...
                 </h4>
-                <p class="text-muted mb-4">Il nostro algoritmo sta analizzando tutti gli annunci per trovare le migliori catene di scambio.</p>
+                <p class="loading-subtitle mb-4">Analizziamo tutti gli annunci per trovare i migliori scambi</p>
 
                 <!-- Progress Bar -->
-                <div class="progress mb-3" style="height: 10px;">
-                    <div id="progressBar" class="progress-bar bg-polygonum-primary progress-bar-striped progress-bar-animated"
-                         role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress mb-3" style="height: 10px; border-radius: 10px; background: rgba(102, 126, 234, 0.1);">
+                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                         style="width: 0%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); border-radius: 10px;"
+                         role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                     </div>
                 </div>
 
                 <!-- Loading Steps -->
-                <div class="text-start">
-                    <small class="text-muted">
-                        <div id="step1" class="mb-1">⏳ Caricamento annunci...</div>
-                        <div id="step2" class="mb-1" style="display: none;">✅ Annunci caricati • ⏳ Analisi compatibilità...</div>
-                        <div id="step3" class="mb-1" style="display: none;">✅ Compatibilità verificata • ⏳ Calcolo distanze...</div>
-                        <div id="step4" class="mb-1" style="display: none;">✅ Distanze calcolate • ⏳ Generazione catene...</div>
-                        <div id="step5" class="mb-1" style="display: none;">✅ Catene generate • ⏳ Finalizzazione...</div>
-                    </small>
+                <div class="loading-steps">
+                    <div id="step1" class="loading-step active">⏳ Caricamento annunci...</div>
+                    <div id="step2" class="loading-step" style="display: none;">✅ Annunci caricati • ⏳ Analisi compatibilità...</div>
+                    <div id="step3" class="loading-step" style="display: none;">✅ Compatibilità verificata • ⏳ Calcolo distanze...</div>
+                    <div id="step4" class="loading-step" style="display: none;">✅ Distanze calcolate • ⏳ Generazione catene...</div>
+                    <div id="step5" class="loading-step" style="display: none;">✅ Catene generate • ⏳ Finalizzazione...</div>
                 </div>
             </div>
         </div>
