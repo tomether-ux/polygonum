@@ -116,10 +116,16 @@
                         </path>
 
                         <!-- PENTAGONO REGOLARE (1-1.5s) -->
-                        <!-- Lato = 80, tutti gli angoli interni = 108° -->
-                        <!-- Partendo dalla base (70,170)-(150,170), calcolo gli altri vertici -->
-                        <!-- Ogni angolo esterno = 72° -->
-                        <path d="M 70 170 L 150 170 L 174.41 113.82 L 110 77.64 L 45.59 113.82 L 70 170"
+                        <!-- Lato = 80, 5 vertici, angoli interni = 108°, angoli esterni = 72° -->
+                        <!-- V1: (70, 170) - base sinistra -->
+                        <!-- V2: (150, 170) - base destra -->
+                        <!-- Da V2, ruoto di -72° (orario): direzione = (cos(-72°), sin(-72°)) = (0.309, -0.951) -->
+                        <!-- V3: (150, 170) + 80*(0.309, -0.951) = (150 + 24.72, 170 - 76.08) = (174.72, 93.92) -->
+                        <!-- Da V3, ruoto di -144°: direzione = (cos(-144°), sin(-144°)) = (-0.809, -0.588) -->
+                        <!-- V4: (174.72, 93.92) + 80*(-0.809, -0.588) = (174.72 - 64.72, 93.92 - 47.04) = (110, 46.88) -->
+                        <!-- Da V4, ruoto di -216° = 144°: direzione = (cos(144°), sin(144°)) = (-0.809, 0.588) -->
+                        <!-- V5: (110, 46.88) + 80*(-0.809, 0.588) = (110 - 64.72, 46.88 + 47.04) = (45.28, 93.92) -->
+                        <path d="M 70 170 L 150 170 L 174.72 93.92 L 110 46.88 L 45.28 93.92 L 70 170"
                               stroke="url(#lineGradient)"
                               stroke-width="4"
                               fill="none"
