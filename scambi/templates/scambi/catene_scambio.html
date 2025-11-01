@@ -80,7 +80,7 @@
                         V6: (30, 100.72)
                         -->
 
-                        <!-- TRIANGOLO EQUILATERO (primi 0.5 secondi) -->
+                        <!-- TRIANGOLO EQUILATERO (0-0.5s) -->
                         <path d="M 70 170 L 150 170 L 110 100.72 L 70 170"
                               stroke="url(#lineGradient)"
                               stroke-width="4"
@@ -88,12 +88,11 @@
                               stroke-linecap="round"
                               stroke-linejoin="round"
                               stroke-dasharray="250"
-                              stroke-dashoffset="250">
+                              stroke-dashoffset="0">
                             <animate attributeName="stroke-dashoffset"
-                                     from="250"
-                                     to="0"
-                                     dur="0.5s"
-                                     fill="freeze"
+                                     values="250; 0; 0; 0; 0; 250"
+                                     keyTimes="0; 0.25; 0.5; 0.75; 0.99; 1"
+                                     dur="2s"
                                      repeatCount="indefinite"/>
                         </path>
 
@@ -107,24 +106,13 @@
                               stroke-dasharray="320"
                               stroke-dashoffset="320">
                             <animate attributeName="stroke-dashoffset"
-                                     from="320"
-                                     to="0"
-                                     begin="0.5s"
-                                     dur="0.5s"
-                                     fill="freeze"
+                                     values="320; 320; 0; 0; 0; 320"
+                                     keyTimes="0; 0.25; 0.5; 0.75; 0.99; 1"
+                                     dur="2s"
                                      repeatCount="indefinite"/>
                         </path>
 
                         <!-- PENTAGONO REGOLARE (1-1.5s) -->
-                        <!-- Lato = 80, 5 vertici, angoli interni = 108°, angoli esterni = 72° -->
-                        <!-- V1: (70, 170) - base sinistra -->
-                        <!-- V2: (150, 170) - base destra -->
-                        <!-- Da V2, ruoto di -72° (orario): direzione = (cos(-72°), sin(-72°)) = (0.309, -0.951) -->
-                        <!-- V3: (150, 170) + 80*(0.309, -0.951) = (150 + 24.72, 170 - 76.08) = (174.72, 93.92) -->
-                        <!-- Da V3, ruoto di -144°: direzione = (cos(-144°), sin(-144°)) = (-0.809, -0.588) -->
-                        <!-- V4: (174.72, 93.92) + 80*(-0.809, -0.588) = (174.72 - 64.72, 93.92 - 47.04) = (110, 46.88) -->
-                        <!-- Da V4, ruoto di -216° = 144°: direzione = (cos(144°), sin(144°)) = (-0.809, 0.588) -->
-                        <!-- V5: (110, 46.88) + 80*(-0.809, 0.588) = (110 - 64.72, 46.88 + 47.04) = (45.28, 93.92) -->
                         <path d="M 70 170 L 150 170 L 174.72 93.92 L 110 46.88 L 45.28 93.92 L 70 170"
                               stroke="url(#lineGradient)"
                               stroke-width="4"
@@ -134,23 +122,13 @@
                               stroke-dasharray="400"
                               stroke-dashoffset="400">
                             <animate attributeName="stroke-dashoffset"
-                                     from="400"
-                                     to="0"
-                                     begin="1s"
-                                     dur="0.5s"
-                                     fill="freeze"
+                                     values="400; 400; 400; 0; 0; 400"
+                                     keyTimes="0; 0.25; 0.5; 0.75; 0.99; 1"
+                                     dur="2s"
                                      repeatCount="indefinite"/>
                         </path>
 
                         <!-- ESAGONO REGOLARE (1.5-2s) -->
-                        <!-- Lato = 80, 6 vertici, angoli interni = 120° -->
-                        <!-- Da base (70,170)-(150,170), angoli esterni = 60° -->
-                        <!-- V1: (70, 170) -->
-                        <!-- V2: (150, 170) -->
-                        <!-- V3: (150, 170) + 80*(cos(-60°), sin(-60°)) = (150 + 40, 170 - 69.28) = (190, 100.72) -->
-                        <!-- V4: (190, 100.72) + 80*(cos(-120°), sin(-120°)) = (190 - 40, 100.72 - 69.28) = (150, 31.44) -->
-                        <!-- V5: (150, 31.44) + 80*(-1, 0) = (70, 31.44) -->
-                        <!-- V6: (70, 31.44) + 80*(cos(120°), sin(120°)) = (70 - 40, 31.44 + 69.28) = (30, 100.72) -->
                         <path d="M 70 170 L 150 170 L 190 100.72 L 150 31.44 L 70 31.44 L 30 100.72 L 70 170"
                               stroke="url(#lineGradient)"
                               stroke-width="4"
@@ -160,11 +138,9 @@
                               stroke-dasharray="480"
                               stroke-dashoffset="480">
                             <animate attributeName="stroke-dashoffset"
-                                     from="480"
-                                     to="0"
-                                     begin="1.5s"
-                                     dur="0.5s"
-                                     fill="freeze"
+                                     values="480; 480; 480; 480; 0; 480"
+                                     keyTimes="0; 0.25; 0.5; 0.75; 0.99; 1"
+                                     dur="2s"
                                      repeatCount="indefinite"/>
                         </path>
                     </svg>
