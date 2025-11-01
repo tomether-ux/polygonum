@@ -137,17 +137,24 @@
                         </path>
 
                         <!-- ESAGONO REGOLARE (1.5-2s) -->
-                        <!-- Lato = 80, tutti gli angoli interni = 120° -->
-                        <path d="M 70 170 L 150 170 L 190 130 L 190 90 L 150 50 L 70 50 L 30 90 L 30 130 L 70 170"
+                        <!-- Lato = 80, 6 vertici, angoli interni = 120° -->
+                        <!-- Da base (70,170)-(150,170), angoli esterni = 60° -->
+                        <!-- V1: (70, 170) -->
+                        <!-- V2: (150, 170) -->
+                        <!-- V3: (150, 170) + 80*(cos(-60°), sin(-60°)) = (150 + 40, 170 - 69.28) = (190, 100.72) -->
+                        <!-- V4: (190, 100.72) + 80*(cos(-120°), sin(-120°)) = (190 - 40, 100.72 - 69.28) = (150, 31.44) -->
+                        <!-- V5: (150, 31.44) + 80*(-1, 0) = (70, 31.44) -->
+                        <!-- V6: (70, 31.44) + 80*(cos(120°), sin(120°)) = (70 - 40, 31.44 + 69.28) = (30, 100.72) -->
+                        <path d="M 70 170 L 150 170 L 190 100.72 L 150 31.44 L 70 31.44 L 30 100.72 L 70 170"
                               stroke="url(#lineGradient)"
                               stroke-width="4"
                               fill="none"
                               stroke-linecap="round"
                               stroke-linejoin="round"
-                              stroke-dasharray="560"
-                              stroke-dashoffset="560">
+                              stroke-dasharray="480"
+                              stroke-dashoffset="480">
                             <animate attributeName="stroke-dashoffset"
-                                     from="560"
+                                     from="480"
                                      to="0"
                                      begin="1.5s"
                                      dur="0.5s"
