@@ -28,42 +28,56 @@
                         </defs>
 
                         <!--
-                        POLIGONI REGOLARI CON BASE COMUNE
-                        Base condivisa: da (70, 170) a (150, 170) - lunghezza 80px
-                        Centro base: (110, 170)
-                        Lato comune: 80px
+                        POLIGONI REGOLARI CON BASE COMUNE (lato = 80px)
+                        Base condivisa: da (70, 170) a (150, 170)
+                        Centro base: x=110, y=170
 
-                        TRIANGOLO EQUILATERO (lato = 80):
-                        - Base sinistra: (70, 170)
-                        - Base destra: (150, 170)
-                        - Vertice alto: (110, 170 - 80*√3/2) = (110, 170 - 69.28) = (110, 100.72)
+                        Per poligoni regolari con n lati e lato L:
+                        - Raggio del cerchio circoscritto: R = L / (2 * sin(180°/n))
+                        - I vertici sono su un cerchio di raggio R
+                        - Angolo tra vertici consecutivi: 360°/n
 
-                        QUADRATO (lato = 80):
-                        - Base sinistra: (70, 170)
-                        - Base destra: (150, 170)
-                        - Alto destra: (150, 90)
-                        - Alto sinistra: (70, 90)
+                        TRIANGOLO (n=3, L=80):
+                        R = 80 / (2 * sin(60°)) = 80 / 1.732 = 46.19
+                        Base: y=170, Vertici base a ±40 dal centro x=110
+                        Centro: (110, 170 - 46.19*cos(30°)) = (110, 130)
+                        V1: (70, 170)
+                        V2: (150, 170)
+                        V3: (110, 130 - 46.19) = (110, 100.72)
 
-                        PENTAGONO REGOLARE (lato = 80):
-                        Angolo interno = 108°, angolo al centro = 72°
-                        Apotema = 80/(2*tan(36°)) = 55.05
-                        Centro: (110, 170 - 55.05) = (110, 114.95)
-                        - Base sinistra: (70, 170)
-                        - Base destra: (150, 170)
-                        - Destra: (110 + 80*cos(18°), 114.95 - 80*sin(18°)) = (186.08, 90.24)
-                        - Alto: (110, 114.95 - 80) = (110, 34.95)
-                        - Sinistra: (110 - 80*cos(18°), 114.95 - 80*sin(18°)) = (33.92, 90.24)
+                        QUADRATO (n=4, L=80):
+                        R = 80 / (2 * sin(45°)) = 56.57
+                        V1: (70, 170)
+                        V2: (150, 170)
+                        V3: (150, 90)
+                        V4: (70, 90)
 
-                        ESAGONO REGOLARE (lato = 80):
-                        Angolo al centro = 60°
-                        - Base sinistra: (70, 170)
-                        - Base destra: (150, 170)
-                        - Destra basso: (110 + 80*cos(30°), 170 - 80*sin(30°)) = (179.28, 130)
-                        - Destra alto: (179.28, 90)
-                        - Alto destra: (150, 50)
-                        - Alto sinistra: (70, 50)
-                        - Sinistra alto: (40.72, 90)
-                        - Sinistra basso: (40.72, 130)
+                        PENTAGONO (n=5, L=80):
+                        R = 80 / (2 * sin(36°)) = 68.02
+                        Angolo base dal centro: 54° sotto orizzontale
+                        Centro: (110, 170 - 68.02*cos(54°)) = (110, 130)
+                        Angolo step: 72°
+                        V1: (70, 170) = centro + R*(sin(-54°), cos(-54°))
+                        V2: (150, 170) = centro + R*(sin(54°), cos(54°))
+                        V3: (110 + 68.02*sin(126°), 130 - 68.02*cos(126°)) = (165.02, 90)
+                        V4: (110, 130 - 68.02) = (110, 62)
+                        V5: (110 - 68.02*sin(126°), 130 - 68.02*cos(126°)) = (54.98, 90)
+
+                        ESAGONO (n=6, L=80):
+                        R = 80 / (2 * sin(30°)) = 80
+                        Centro: (110, 170 - 80*cos(60°)) = (110, 130)
+                        V1: (70, 170)
+                        V2: (150, 170)
+                        V3: (110 + 80*sin(60°), 130 - 80*0.5) = (179.28, 90)
+                        V4: (110 + 80*sin(60°), 130 - 80*1.5) = (179.28, 10)
+                        NO - RICALCOLO:
+                        Centro sul bordo inferiore del lato base
+                        V1: (70, 170)
+                        V2: (150, 170)
+                        V3: (150 + 40, 170 - 69.28) = (190, 100.72)
+                        V4: (150, 170 - 2*69.28) = (150, 31.44)
+                        V5: (70, 31.44)
+                        V6: (30, 100.72)
                         -->
 
                         <!-- TRIANGOLO EQUILATERO (primi 0.5 secondi) -->
@@ -102,7 +116,10 @@
                         </path>
 
                         <!-- PENTAGONO REGOLARE (1-1.5s) -->
-                        <path d="M 70 170 L 150 170 L 186.08 90.24 L 110 34.95 L 33.92 90.24 L 70 170"
+                        <!-- Lato = 80, tutti gli angoli interni = 108° -->
+                        <!-- Partendo dalla base (70,170)-(150,170), calcolo gli altri vertici -->
+                        <!-- Ogni angolo esterno = 72° -->
+                        <path d="M 70 170 L 150 170 L 174.41 113.82 L 110 77.64 L 45.59 113.82 L 70 170"
                               stroke="url(#lineGradient)"
                               stroke-width="4"
                               fill="none"
@@ -120,16 +137,17 @@
                         </path>
 
                         <!-- ESAGONO REGOLARE (1.5-2s) -->
-                        <path d="M 70 170 L 150 170 L 179.28 130 L 179.28 90 L 150 50 L 70 50 L 40.72 90 L 40.72 130 L 70 170"
+                        <!-- Lato = 80, tutti gli angoli interni = 120° -->
+                        <path d="M 70 170 L 150 170 L 190 130 L 190 90 L 150 50 L 70 50 L 30 90 L 30 130 L 70 170"
                               stroke="url(#lineGradient)"
                               stroke-width="4"
                               fill="none"
                               stroke-linecap="round"
                               stroke-linejoin="round"
-                              stroke-dasharray="480"
-                              stroke-dashoffset="480">
+                              stroke-dasharray="560"
+                              stroke-dashoffset="560">
                             <animate attributeName="stroke-dashoffset"
-                                     from="480"
+                                     from="560"
                                      to="0"
                                      begin="1.5s"
                                      dur="0.5s"
