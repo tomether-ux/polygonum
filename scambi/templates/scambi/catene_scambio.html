@@ -60,7 +60,7 @@
                         - P6 (sinistra base): (75, 160.62)
                         -->
 
-                        <!-- TRIANGOLO (primi 2 secondi) -->
+                        <!-- TRIANGOLO (primi 0.5 secondi) -->
                         <path d="M 49.38 145 L 170.62 145 L 110 40 L 49.38 145"
                               stroke="url(#lineGradient)"
                               stroke-width="4"
@@ -72,12 +72,12 @@
                             <animate attributeName="stroke-dashoffset"
                                      from="250"
                                      to="0"
-                                     dur="2s"
+                                     dur="0.5s"
                                      fill="freeze"
                                      repeatCount="indefinite"/>
                         </path>
 
-                        <!-- QUADRATO (secondi 2-4) -->
+                        <!-- QUADRATO (0.5-1s) -->
                         <path d="M 60 160 L 160 160 L 160 60 L 60 60 L 60 160"
                               stroke="url(#lineGradient)"
                               stroke-width="4"
@@ -89,13 +89,13 @@
                             <animate attributeName="stroke-dashoffset"
                                      from="400"
                                      to="0"
-                                     begin="2s"
-                                     dur="2s"
+                                     begin="0.5s"
+                                     dur="0.5s"
                                      fill="freeze"
                                      repeatCount="indefinite"/>
                         </path>
 
-                        <!-- PENTAGONO (secondi 4-6) -->
+                        <!-- PENTAGONO (1-1.5s) -->
                         <path d="M 110 40 L 166.62 106.54 L 143.26 165 L 76.74 165 L 53.38 106.54 L 110 40"
                               stroke="url(#lineGradient)"
                               stroke-width="4"
@@ -107,13 +107,13 @@
                             <animate attributeName="stroke-dashoffset"
                                      from="450"
                                      to="0"
-                                     begin="4s"
-                                     dur="2s"
+                                     begin="1s"
+                                     dur="0.5s"
                                      fill="freeze"
                                      repeatCount="indefinite"/>
                         </path>
 
-                        <!-- ESAGONO (secondi 6-8) -->
+                        <!-- ESAGONO (1.5-2s) -->
                         <path d="M 145 160.62 L 175 110 L 145 59.38 L 75 59.38 L 45 110 L 75 160.62 L 145 160.62"
                               stroke="url(#lineGradient)"
                               stroke-width="4"
@@ -125,8 +125,8 @@
                             <animate attributeName="stroke-dashoffset"
                                      from="480"
                                      to="0"
-                                     begin="6s"
-                                     dur="2s"
+                                     begin="1.5s"
+                                     dur="0.5s"
                                      fill="freeze"
                                      repeatCount="indefinite"/>
                         </path>
@@ -134,37 +134,73 @@
                         <!-- Vertici che appaiono (piccoli cerchi) -->
                         <!-- Triangolo -->
                         <circle cx="110" cy="40" r="5" fill="#4facfe">
-                            <animate attributeName="opacity" values="0;0;1;1;1;1;0" keyTimes="0;0.1;0.25;0.5;0.75;0.95;1" dur="8s" repeatCount="indefinite"/>
+                            <animate attributeName="opacity"
+                                     from="0" to="1"
+                                     begin="0.5s" dur="0.1s"
+                                     fill="freeze"
+                                     repeatCount="indefinite"/>
                         </circle>
 
                         <!-- Quadrato -->
                         <circle cx="160" cy="60" r="5" fill="#4facfe">
-                            <animate attributeName="opacity" values="0;0;0;0;1;1;0" keyTimes="0;0.25;0.3;0.45;0.5;0.95;1" dur="8s" repeatCount="indefinite"/>
+                            <animate attributeName="opacity"
+                                     from="0" to="1"
+                                     begin="1s" dur="0.1s"
+                                     fill="freeze"
+                                     repeatCount="indefinite"/>
                         </circle>
                         <circle cx="60" cy="60" r="5" fill="#4facfe">
-                            <animate attributeName="opacity" values="0;0;0;0;1;1;0" keyTimes="0;0.25;0.3;0.47;0.5;0.95;1" dur="8s" repeatCount="indefinite"/>
+                            <animate attributeName="opacity"
+                                     from="0" to="1"
+                                     begin="1s" dur="0.1s"
+                                     fill="freeze"
+                                     repeatCount="indefinite"/>
                         </circle>
 
                         <!-- Pentagono -->
                         <circle cx="166.62" cy="106.54" r="5" fill="#00f2fe">
-                            <animate attributeName="opacity" values="0;0;0;0;0;0;1;1;0" keyTimes="0;0.5;0.55;0.7;0.73;0.74;0.75;0.95;1" dur="8s" repeatCount="indefinite"/>
+                            <animate attributeName="opacity"
+                                     from="0" to="1"
+                                     begin="1.5s" dur="0.1s"
+                                     fill="freeze"
+                                     repeatCount="indefinite"/>
                         </circle>
                         <circle cx="53.38" cy="106.54" r="5" fill="#00f2fe">
-                            <animate attributeName="opacity" values="0;0;0;0;0;0;1;1;0" keyTimes="0;0.5;0.55;0.7;0.71;0.72;0.75;0.95;1" dur="8s" repeatCount="indefinite"/>
+                            <animate attributeName="opacity"
+                                     from="0" to="1"
+                                     begin="1.5s" dur="0.1s"
+                                     fill="freeze"
+                                     repeatCount="indefinite"/>
                         </circle>
 
                         <!-- Esagono -->
                         <circle cx="175" cy="110" r="5" fill="#764ba2">
-                            <animate attributeName="opacity" values="0;0;0;0;0;0;0;0;1;1" keyTimes="0;0.75;0.78;0.85;0.88;0.9;0.92;0.94;0.96;1" dur="8s" repeatCount="indefinite"/>
+                            <animate attributeName="opacity"
+                                     from="0" to="1"
+                                     begin="2s" dur="0.1s"
+                                     fill="freeze"
+                                     repeatCount="indefinite"/>
                         </circle>
                         <circle cx="145" cy="59.38" r="5" fill="#764ba2">
-                            <animate attributeName="opacity" values="0;0;0;0;0;0;0;0;1;1" keyTimes="0;0.75;0.78;0.85;0.88;0.9;0.92;0.94;0.97;1" dur="8s" repeatCount="indefinite"/>
+                            <animate attributeName="opacity"
+                                     from="0" to="1"
+                                     begin="2s" dur="0.1s"
+                                     fill="freeze"
+                                     repeatCount="indefinite"/>
                         </circle>
                         <circle cx="75" cy="59.38" r="5" fill="#764ba2">
-                            <animate attributeName="opacity" values="0;0;0;0;0;0;0;0;1;1" keyTimes="0;0.75;0.78;0.85;0.88;0.9;0.92;0.94;0.98;1" dur="8s" repeatCount="indefinite"/>
+                            <animate attributeName="opacity"
+                                     from="0" to="1"
+                                     begin="2s" dur="0.1s"
+                                     fill="freeze"
+                                     repeatCount="indefinite"/>
                         </circle>
                         <circle cx="45" cy="110" r="5" fill="#764ba2">
-                            <animate attributeName="opacity" values="0;0;0;0;0;0;0;0;1;1" keyTimes="0;0.75;0.78;0.85;0.88;0.9;0.92;0.94;0.99;1" dur="8s" repeatCount="indefinite"/>
+                            <animate attributeName="opacity"
+                                     from="0" to="1"
+                                     begin="2s" dur="0.1s"
+                                     fill="freeze"
+                                     repeatCount="indefinite"/>
                         </circle>
                     </svg>
                 </div>
