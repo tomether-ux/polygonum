@@ -1366,7 +1366,7 @@ def get_cicli_precalcolati():
         }
     """
     import time
-    from .models import CicloScambio
+    from .models import CicloScambio, Annuncio
 
     start_time = time.time()
 
@@ -1375,13 +1375,37 @@ def get_cicli_precalcolati():
     # Carica tutti i cicli validi
     cicli_db = CicloScambio.objects.filter(valido=True).order_by('-calcolato_at')
 
+    # ===== OTTIMIZZAZIONE: PRE-CARICAMENTO ANNUNCI =====
+    # Estrai tutti gli ID degli annunci coinvolti nei cicli PRIMA di processarli
+    print("🚀 Pre-caricamento annunci...")
+    annunci_ids = set()
+
+    for ciclo_db in cicli_db:
+        dettagli = ciclo_db.dettagli
+        if 'scambi' in dettagli:
+            for scambio in dettagli['scambi']:
+                oggetti = scambio.get('oggetti', [])
+                for oggetto in oggetti:
+                    # Estrai ID da 'offerto' e 'richiesto'
+                    if 'offerto' in oggetto and 'id' in oggetto['offerto']:
+                        annunci_ids.add(oggetto['offerto']['id'])
+                    if 'richiesto' in oggetto and 'id' in oggetto['richiesto']:
+                        annunci_ids.add(oggetto['richiesto']['id'])
+
+    print(f"📦 Trovati {len(annunci_ids)} annunci unici coinvolti nei cicli")
+
+    # Carica TUTTI gli annunci in UNA SOLA QUERY
+    annunci_dict = {a.id: a for a in Annuncio.objects.filter(id__in=annunci_ids)}
+    print(f"✅ Pre-caricati {len(annunci_dict)} annunci in memoria")
+    # ===== FINE OTTIMIZZAZIONE =====
+
     scambi_diretti = []
     catene_lunghe = []
 
     for ciclo_db in cicli_db:
         try:
-            # Converti il ciclo dal database al formato compatibile con le views
-            ciclo_convertito = converti_ciclo_db_a_view_format(ciclo_db)
+            # Passa il dizionario annunci pre-caricati alla funzione di conversione
+            ciclo_convertito = converti_ciclo_db_a_view_format(ciclo_db, annunci_dict)
 
             if ciclo_convertito:
                 if ciclo_db.lunghezza == 2:
@@ -1406,12 +1430,13 @@ def get_cicli_precalcolati():
     }
 
 
-def converti_ciclo_db_a_view_format(ciclo_db):
+def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
     """
     Converte un CicloScambio dal database al formato richiesto dalle views.
 
     Args:
         ciclo_db: Istanza CicloScambio dal database
+        annunci_dict: Dizionario {annuncio_id: Annuncio} pre-caricato (ottimizzazione)
 
     Returns:
         dict: Ciclo nel formato compatibile con le views esistenti
@@ -1449,12 +1474,19 @@ def converti_ciclo_db_a_view_format(ciclo_db):
                         richiesto_id = oggetto.get('richiesto', {}).get('id')
 
                         if offerto_id and richiesto_id:
-                            offerta_ann = Annuncio.objects.get(id=offerto_id)
-                            richiesta_ann = Annuncio.objects.get(id=richiesto_id)
-                            _, tipo_match = oggetti_compatibili_con_tipo(offerta_ann, richiesta_ann)
-                            if tipo_match == 'sinonimo':
-                                usa_sinonimi = True
-                                break
+                            # OTTIMIZZAZIONE: Usa dizionario pre-caricato invece di query DB
+                            if annunci_dict:
+                                offerta_ann = annunci_dict.get(offerto_id)
+                                richiesta_ann = annunci_dict.get(richiesto_id)
+                            else:
+                                offerta_ann = Annuncio.objects.get(id=offerto_id)
+                                richiesta_ann = Annuncio.objects.get(id=richiesto_id)
+
+                            if offerta_ann and richiesta_ann:
+                                _, tipo_match = oggetti_compatibili_con_tipo(offerta_ann, richiesta_ann)
+                                if tipo_match == 'sinonimo':
+                                    usa_sinonimi = True
+                                    break
                     except:
                         pass
                 if usa_sinonimi:
@@ -1490,16 +1522,30 @@ def converti_ciclo_db_a_view_format(ciclo_db):
                     # L'utente da_user offre 'offerto' e l'utente a_user cerca 'richiesto'
                     if 'offerto' in oggetto and da_user:
                         try:
-                            offerta = Annuncio.objects.get(id=oggetto['offerto']['id'])
-                            user_offers[da_user] = offerta
-                        except Annuncio.DoesNotExist:
+                            offerto_id = oggetto['offerto']['id']
+                            # OTTIMIZZAZIONE: Usa dizionario pre-caricato invece di query DB
+                            if annunci_dict:
+                                offerta = annunci_dict.get(offerto_id)
+                            else:
+                                offerta = Annuncio.objects.get(id=offerto_id)
+
+                            if offerta:
+                                user_offers[da_user] = offerta
+                        except (Annuncio.DoesNotExist, KeyError):
                             pass
 
                     if 'richiesto' in oggetto and a_user:
                         try:
-                            richiesta = Annuncio.objects.get(id=oggetto['richiesto']['id'])
-                            user_requests[a_user] = richiesta
-                        except Annuncio.DoesNotExist:
+                            richiesto_id = oggetto['richiesto']['id']
+                            # OTTIMIZZAZIONE: Usa dizionario pre-caricato invece di query DB
+                            if annunci_dict:
+                                richiesta = annunci_dict.get(richiesto_id)
+                            else:
+                                richiesta = Annuncio.objects.get(id=richiesto_id)
+
+                            if richiesta:
+                                user_requests[a_user] = richiesta
+                        except (Annuncio.DoesNotExist, KeyError):
                             pass
 
         # FILTRO: Verifica che tutti gli annunci coinvolti siano ancora attivi
