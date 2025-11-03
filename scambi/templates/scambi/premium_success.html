@@ -1,0 +1,118 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Benvenuto in Premium! - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Success Card -->
+            <div class="card shadow-lg border-0">
+                <div class="card-body text-center py-5">
+                    <!-- Success Icon -->
+                    <div class="mb-4">
+                        <i class="fas fa-check-circle text-success" style="font-size: 80px;"></i>
+                    </div>
+
+                    <!-- Title -->
+                    <h1 class="display-4 mb-3">
+                        <i class="fas fa-crown text-warning me-2"></i>Benvenuto in Premium!
+                    </h1>
+
+                    <!-- Success Message -->
+                    <p class="lead text-muted mb-4">
+                        Il tuo account è stato aggiornato con successo
+                    </p>
+
+                    <!-- Benefits Unlocked -->
+                    <div class="alert alert-success mb-4">
+                        <h5 class="mb-3"><i class="fas fa-unlock-alt me-2"></i>Cosa Hai Sbloccato:</h5>
+                        <div class="row text-start">
+                            <div class="col-md-6">
+                                <ul class="list-unstyled mb-0">
+                                    <li><i class="fas fa-check text-success me-2"></i><strong>Annunci illimitati</strong></li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Badge Premium visibile</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Priorità nelle catene</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Nessuna pubblicità</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul class="list-unstyled mb-0">
+                                    <li><i class="fas fa-check text-success me-2"></i>Supporto prioritario</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Statistiche avanzate</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Early access features</li>
+                                    <li><i class="fas fa-check text-success me-2"></i>Cancellazione flessibile</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subscription Info -->
+                    {% if profilo.premium_scadenza %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Il tuo abbonamento si rinnoverà il <strong>{{ profilo.premium_scadenza|date:"d/m/Y" }}</strong>
+                    </div>
+                    {% endif %}
+
+                    <!-- Action Buttons -->
+                    <div class="mt-4">
+                        <a href="{% url 'crea_annuncio' %}" class="btn btn-warning btn-lg me-2">
+                            <i class="fas fa-plus me-2"></i>Crea il Tuo Primo Annuncio Illimitato
+                        </a>
+                        <a href="{% url 'profilo_utente' user.username %}" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-user me-2"></i>Vai al Tuo Profilo
+                        </a>
+                    </div>
+
+                    <!-- Additional Info -->
+                    <div class="mt-5 pt-4 border-top">
+                        <p class="text-muted small mb-2">
+                            <i class="fas fa-envelope me-2"></i>
+                            Riceverai una conferma via email con i dettagli dell'abbonamento
+                        </p>
+                        <p class="text-muted small mb-0">
+                            <i class="fas fa-question-circle me-2"></i>
+                            Hai domande? <a href="mailto:support@polygonum.it">Contatta il nostro supporto</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Share Success -->
+            <div class="card mt-4 shadow">
+                <div class="card-body text-center">
+                    <h6 class="mb-3"><i class="fas fa-share-alt me-2"></i>Condividi Polygonum con gli amici!</h6>
+                    <p class="text-muted small mb-3">
+                        Più utenti = più opportunità di scambio per tutti
+                    </p>
+                    <div class="btn-group" role="group">
+                        <a href="https://facebook.com/sharer/sharer.php?u=https://polygonum.it" target="_blank" class="btn btn-outline-primary btn-sm">
+                            <i class="fab fa-facebook me-1"></i>Facebook
+                        </a>
+                        <a href="https://twitter.com/intent/tweet?text=Ho%20appena%20fatto%20l'upgrade%20a%20Premium%20su%20Polygonum!&url=https://polygonum.it" target="_blank" class="btn btn-outline-info btn-sm">
+                            <i class="fab fa-twitter me-1"></i>Twitter
+                        </a>
+                        <a href="https://wa.me/?text=Sto%20usando%20Polygonum%20per%20scambiare%20oggetti%20-%20Provala!%20https://polygonum.it" target="_blank" class="btn btn-outline-success btn-sm">
+                            <i class="fab fa-whatsapp me-1"></i>WhatsApp
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confetti Animation -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+<script>
+    // Trigger confetti animation on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
+    });
+</script>
+{% endblock %}

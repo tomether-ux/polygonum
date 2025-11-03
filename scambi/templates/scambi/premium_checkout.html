@@ -1,0 +1,134 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Checkout Premium - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <h2><i class="fas fa-crown text-warning me-2"></i>Upgrade a Premium</h2>
+                <p class="text-muted">Sblocca annunci illimitati e tutte le funzionalità premium</p>
+            </div>
+
+            <!-- Riepilogo Ordine -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Riepilogo Ordine</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-8">
+                            <h6>Piano Premium - Mensile</h6>
+                            <small class="text-muted">
+                                <i class="fas fa-check me-1"></i>Annunci illimitati<br>
+                                <i class="fas fa-check me-1"></i>Badge Premium<br>
+                                <i class="fas fa-check me-1"></i>Priorità nelle catene<br>
+                                <i class="fas fa-check me-1"></i>Supporto prioritario
+                            </small>
+                        </div>
+                        <div class="col-4 text-end">
+                            <h4 class="text-success mb-0">6,99€</h4>
+                            <small class="text-muted">/mese</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Totale</h5>
+                        <h4 class="text-success mb-0">6,99€</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informazioni Pagamento -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Metodo di Pagamento</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        <i class="fas fa-lock me-2"></i>Pagamento sicuro gestito da PayPal
+                    </p>
+
+                    <!-- PayPal Button Container -->
+                    <div id="paypal-button-container"></div>
+
+                    <!-- Fallback per test (da rimuovere in produzione) -->
+                    <div class="alert alert-info mt-4">
+                        <h6><i class="fas fa-info-circle me-2"></i>Modalità Test</h6>
+                        <p class="mb-2 small">Per testare il sistema senza PayPal configurato:</p>
+                        <a href="{% url 'premium_success' %}" class="btn btn-success btn-sm">
+                            <i class="fas fa-check me-1"></i>Simula Pagamento Riuscito
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Garanzie -->
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <i class="fas fa-lock fa-2x text-success mb-2"></i>
+                            <p class="small mb-0"><strong>Pagamento Sicuro</strong></p>
+                            <p class="text-muted small">Crittografia SSL</p>
+                        </div>
+                        <div class="col-md-4">
+                            <i class="fas fa-undo fa-2x text-success mb-2"></i>
+                            <p class="small mb-0"><strong>Cancella Quando Vuoi</strong></p>
+                            <p class="text-muted small">Nessun vincolo</p>
+                        </div>
+                        <div class="col-md-4">
+                            <i class="fas fa-headset fa-2x text-success mb-2"></i>
+                            <p class="small mb-0"><strong>Supporto Dedicato</strong></p>
+                            <p class="text-muted small">Aiuto prioritario</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Link Annulla -->
+            <div class="text-center mt-4">
+                <a href="{% url 'pricing' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Torna ai Piani
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PayPal SDK -->
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=EUR"></script>
+
+<script>
+    // Render PayPal button
+    paypal.Buttons({
+        createOrder: function(data, actions) {
+            return actions.order.create({
+                purchase_units: [{
+                    description: 'Polygonum Premium - Piano Mensile',
+                    amount: {
+                        currency_code: 'EUR',
+                        value: '6.99'
+                    }
+                }]
+            });
+        },
+        onApprove: function(data, actions) {
+            return actions.order.capture().then(function(details) {
+                // Redirect to success page
+                window.location.href = "{% url 'premium_success' %}";
+            });
+        },
+        onCancel: function(data) {
+            // Redirect to cancel page
+            window.location.href = "{% url 'premium_cancel' %}";
+        },
+        onError: function(err) {
+            console.error('PayPal Error:', err);
+            alert('Si è verificato un errore durante il pagamento. Riprova più tardi.');
+        }
+    }).render('#paypal-button-container');
+</script>
+{% endblock %}
