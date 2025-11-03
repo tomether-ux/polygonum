@@ -126,18 +126,45 @@ def dettaglio_annuncio(request, annuncio_id):
 @login_required
 def crea_annuncio(request):
     """Crea un nuovo annuncio"""
+    # Ottieni o crea il profilo dell'utente
+    profilo, created = UserProfile.objects.get_or_create(user=request.user)
+
     if request.method == 'POST':
         form = AnnuncioForm(request.POST, request.FILES)  # Aggiungi request.FILES
         if form.is_valid():
             annuncio = form.save(commit=False)
             annuncio.utente = request.user
+
+            # Controlla i limiti prima di salvare
+            tipo = annuncio.tipo
+            puo_creare, messaggio_errore = profilo.puo_creare_annuncio(tipo)
+
+            if not puo_creare:
+                messages.error(request, messaggio_errore)
+                return render(request, 'scambi/crea_annuncio.html', {
+                    'form': form,
+                    'profilo': profilo
+                })
+
             annuncio.save()
             messages.success(request, 'Annuncio creato con successo!')
             return redirect('lista_annunci')
     else:
         form = AnnuncioForm()
-    
-    return render(request, 'scambi/crea_annuncio.html', {'form': form})
+
+    # Calcola statistiche per il template
+    context = {
+        'form': form,
+        'profilo': profilo,
+        'count_offro': profilo.get_count_annunci('offro'),
+        'count_cerco': profilo.get_count_annunci('cerco'),
+        'limite_offro': profilo.get_limite_annunci('offro'),
+        'limite_cerco': profilo.get_limite_annunci('cerco'),
+        'rimanenti_offro': profilo.get_annunci_rimanenti('offro'),
+        'rimanenti_cerco': profilo.get_annunci_rimanenti('cerco'),
+    }
+
+    return render(request, 'scambi/crea_annuncio.html', context)
 
 @login_required
 def modifica_annuncio(request, annuncio_id):
@@ -174,6 +201,15 @@ def elimina_annuncio(request, annuncio_id):
 def attiva_annuncio(request, annuncio_id):
     """Attiva un annuncio disattivato"""
     annuncio = get_object_or_404(Annuncio, id=annuncio_id, utente=request.user)
+
+    # Controlla i limiti prima di attivare
+    profilo, created = UserProfile.objects.get_or_create(user=request.user)
+    puo_creare, messaggio_errore = profilo.puo_creare_annuncio(annuncio.tipo)
+
+    if not puo_creare:
+        messages.error(request, f'Non puoi riattivare questo annuncio: {messaggio_errore}')
+        return redirect('profilo_utente', username=request.user.username)
+
     annuncio.attivo = True
     annuncio.save()
     messages.success(request, f'Annuncio "{annuncio.titolo}" attivato con successo!')

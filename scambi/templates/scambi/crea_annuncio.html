@@ -13,6 +13,67 @@
                     </h3>
                 </div>
                 <div class="card-body">
+                    <!-- Alert Limiti Annunci -->
+                    {% if not profilo.is_premium %}
+                    <div class="alert alert-info mb-4">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>Limiti Annunci
+                        </h6>
+                        <div class="row text-center">
+                            <div class="col-md-6">
+                                <strong>Annunci "Offro"</strong>
+                                <div class="progress mt-2 mb-2">
+                                    {% widthratio count_offro limite_offro 100 as percentuale_offro %}
+                                    <div class="progress-bar {% if count_offro >= limite_offro %}bg-danger{% elif count_offro >= limite_offro|add:'-1' %}bg-warning{% else %}bg-success{% endif %}"
+                                         role="progressbar"
+                                         style="width: {{ percentuale_offro }}%"
+                                         aria-valuenow="{{ count_offro }}"
+                                         aria-valuemin="0"
+                                         aria-valuemax="{{ limite_offro }}">
+                                    </div>
+                                </div>
+                                <small>{{ count_offro }} / {{ limite_offro }} utilizzati</small>
+                                {% if rimanenti_offro > 0 %}
+                                    <br><small class="text-success">Ancora {{ rimanenti_offro }} disponibili</small>
+                                {% else %}
+                                    <br><small class="text-danger"><strong>Limite raggiunto!</strong></small>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Annunci "Cerco"</strong>
+                                <div class="progress mt-2 mb-2">
+                                    {% widthratio count_cerco limite_cerco 100 as percentuale_cerco %}
+                                    <div class="progress-bar {% if count_cerco >= limite_cerco %}bg-danger{% elif count_cerco >= limite_cerco|add:'-1' %}bg-warning{% else %}bg-success{% endif %}"
+                                         role="progressbar"
+                                         style="width: {{ percentuale_cerco }}%"
+                                         aria-valuenow="{{ count_cerco }}"
+                                         aria-valuemin="0"
+                                         aria-valuemax="{{ limite_cerco }}">
+                                    </div>
+                                </div>
+                                <small>{{ count_cerco }} / {{ limite_cerco }} utilizzati</small>
+                                {% if rimanenti_cerco > 0 %}
+                                    <br><small class="text-success">Ancora {{ rimanenti_cerco }} disponibili</small>
+                                {% else %}
+                                    <br><small class="text-danger"><strong>Limite raggiunto!</strong></small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <hr>
+                        <p class="mb-0 text-center">
+                            <small>
+                                <i class="fas fa-crown text-warning me-1"></i>
+                                Passa a <strong>Premium</strong> per annunci illimitati!
+                            </small>
+                        </p>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-success mb-4">
+                        <i class="fas fa-crown text-warning me-2"></i>
+                        <strong>Utente Premium</strong> - Annunci illimitati!
+                    </div>
+                    {% endif %}
+
                     <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
 

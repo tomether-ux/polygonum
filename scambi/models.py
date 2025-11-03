@@ -170,6 +170,10 @@ class UserProfile(models.Model):
     email_verified = models.BooleanField(default=False, verbose_name="Email Verificata")
     email_verification_token = models.CharField(max_length=100, blank=True, null=True)
 
+    # Premium membership
+    is_premium = models.BooleanField(default=False, verbose_name="Utente Premium")
+    premium_scadenza = models.DateTimeField(null=True, blank=True, verbose_name="Scadenza Premium")
+
     @property
     def citta(self):
         """Property per retrocompatibilità: restituisce nome città"""
@@ -202,6 +206,52 @@ class UserProfile(models.Model):
             return 9999  # Distanza default se manca la città (valore alto per distinguere da distanze reali)
 
         return DistanzaCitta.get_distanza(self.citta_obj, altro_profilo.citta_obj) or 9999
+
+    # === SISTEMA LIMITI ANNUNCI ===
+
+    def get_limite_annunci(self, tipo):
+        """
+        Restituisce il limite di annunci per tipo (offro/cerco)
+        - Free: 5 annunci per tipo
+        - Premium: illimitato
+        """
+        if self.is_premium:
+            return None  # Nessun limite
+        return 5  # Limite per utenti free
+
+    def get_count_annunci(self, tipo):
+        """Conta gli annunci attivi dell'utente per tipo"""
+        return Annuncio.objects.filter(
+            utente=self.user,
+            tipo=tipo,
+            attivo=True
+        ).count()
+
+    def puo_creare_annuncio(self, tipo):
+        """
+        Verifica se l'utente può creare un nuovo annuncio del tipo specificato
+        Returns: (bool, str) - (può_creare, messaggio_errore)
+        """
+        if self.is_premium:
+            return True, ""
+
+        limite = self.get_limite_annunci(tipo)
+        count_attuale = self.get_count_annunci(tipo)
+
+        if count_attuale >= limite:
+            tipo_display = "offro" if tipo == "offro" else "cerco"
+            return False, f"Hai raggiunto il limite di {limite} annunci '{tipo_display}'. Passa a Premium per annunci illimitati!"
+
+        return True, ""
+
+    def get_annunci_rimanenti(self, tipo):
+        """Calcola quanti annunci può ancora creare l'utente per tipo"""
+        if self.is_premium:
+            return None  # Illimitati
+
+        limite = self.get_limite_annunci(tipo)
+        count_attuale = self.get_count_annunci(tipo)
+        return max(0, limite - count_attuale)
 
     class Meta:
         verbose_name = "Profilo Utente"
