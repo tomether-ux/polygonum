@@ -13,6 +13,9 @@
                         <div class="col">
                             <h3 class="mb-0">
                                 <i class="fas fa-user me-2"></i>{{ utente.username }}
+                                {% if profilo.is_premium %}
+                                    <span class="badge bg-warning text-dark ms-2"><i class="fas fa-crown"></i> Premium</span>
+                                {% endif %}
                                 {% if profilo.email_verified %}
                                     <span class="badge bg-success ms-2"><i class="fas fa-check-circle"></i> Verificato</span>
                                 {% endif %}
@@ -44,6 +47,45 @@
                             <p class="text-muted">{{ utente.date_joined|date:"F Y" }}</p>
                         </div>
                     </div>
+
+                    <!-- Premium Status (solo per proprio profilo) -->
+                    {% if is_own_profile %}
+                    <hr>
+                    <div class="row">
+                        <div class="col-12">
+                            {% if profilo.is_premium %}
+                                <div class="alert alert-warning mb-0">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-crown fa-2x me-3"></i>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1"><strong>Account Premium Attivo</strong></h6>
+                                            <small>
+                                                {% if profilo.premium_scadenza %}
+                                                    Scadenza: {{ profilo.premium_scadenza|date:"d/m/Y" }}
+                                                {% else %}
+                                                    Annunci illimitati • Nessuna scadenza
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info mb-0">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-info-circle fa-2x me-3"></i>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1"><strong>Account Gratuito</strong></h6>
+                                            <small>Limite: 5 annunci "offro" + 5 annunci "cerco"</small>
+                                        </div>
+                                        <a href="{% url 'pricing' %}" class="btn btn-warning btn-sm">
+                                            <i class="fas fa-crown me-1"></i>Passa a Premium
+                                        </a>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

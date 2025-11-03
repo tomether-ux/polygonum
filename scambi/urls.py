@@ -91,4 +91,10 @@ urlpatterns = [
 
     # Webhook per calcolo cicli (alternativa gratuita al cron job)
     path('webhook/calcola-cicli/', views.webhook_calcola_cicli, name='webhook_calcola_cicli'),
+
+    # Sistema Premium
+    path('pricing/', views.pricing, name='pricing'),
+    path('premium/checkout/', views.premium_checkout, name='premium_checkout'),
+    path('premium/success/', views.premium_success, name='premium_success'),
+    path('premium/cancel/', views.premium_cancel, name='premium_cancel'),
 ]

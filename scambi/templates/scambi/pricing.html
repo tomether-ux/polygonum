@@ -1,0 +1,220 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Prezzi e Piani - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="text-center mb-5">
+        <h1 class="display-4"><i class="fas fa-crown text-warning me-3"></i>Passa a Premium</h1>
+        <p class="lead text-muted">Sblocca tutte le funzionalità e crea annunci illimitati</p>
+    </div>
+
+    <!-- Pricing Cards -->
+    <div class="row justify-content-center">
+        <!-- Free Plan -->
+        <div class="col-md-5 mb-4">
+            <div class="card h-100 shadow">
+                <div class="card-header bg-secondary text-white text-center py-4">
+                    <h3 class="mb-0">Gratuito</h3>
+                    <p class="mb-0 mt-2"><small>Per iniziare</small></p>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <div class="text-center mb-4">
+                        <h2 class="display-3">0€</h2>
+                        <p class="text-muted">per sempre</p>
+                    </div>
+
+                    <h6 class="mb-3"><i class="fas fa-check-circle text-success me-2"></i>Cosa è incluso:</h6>
+                    <ul class="list-unstyled mb-4 flex-grow-1">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>5 annunci "offro"</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>5 annunci "cerco"</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Ricerca scambi base</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Messaggi illimitati</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Partecipazione a catene di scambio</li>
+                        <li class="mb-2 text-muted"><i class="fas fa-times text-danger me-2"></i>Badge Premium</li>
+                        <li class="mb-2 text-muted"><i class="fas fa-times text-danger me-2"></i>Annunci illimitati</li>
+                        <li class="mb-2 text-muted"><i class="fas fa-times text-danger me-2"></i>Priorità nelle catene</li>
+                    </ul>
+
+                    <div class="text-center">
+                        {% if user.is_authenticated %}
+                            {% if not user.userprofile.is_premium %}
+                                <button class="btn btn-outline-secondary btn-lg w-100" disabled>
+                                    <i class="fas fa-check me-2"></i>Piano Attuale
+                                </button>
+                            {% else %}
+                                <button class="btn btn-outline-secondary btn-lg w-100" disabled>
+                                    Piano Gratuito
+                                </button>
+                            {% endif %}
+                        {% else %}
+                            <a href="{% url 'register' %}" class="btn btn-secondary btn-lg w-100">
+                                <i class="fas fa-user-plus me-2"></i>Registrati Gratis
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Premium Plan -->
+        <div class="col-md-5 mb-4">
+            <div class="card h-100 shadow-lg border-warning" style="border-width: 3px;">
+                <div class="card-header bg-warning text-dark text-center py-4">
+                    <h3 class="mb-0"><i class="fas fa-crown me-2"></i>Premium</h3>
+                    <p class="mb-0 mt-2"><small>Consigliato per chi scambia seriamente</small></p>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <div class="text-center mb-4">
+                        <h2 class="display-3">6,99€</h2>
+                        <p class="text-muted">al mese</p>
+                        <p class="text-success mb-0"><small><strong>59€/anno</strong> (risparmia 25%)</small></p>
+                    </div>
+
+                    <h6 class="mb-3"><i class="fas fa-star text-warning me-2"></i>Tutto del piano Gratuito, più:</h6>
+                    <ul class="list-unstyled mb-4 flex-grow-1">
+                        <li class="mb-2"><i class="fas fa-check text-warning me-2"></i><strong>Annunci illimitati</strong></li>
+                        <li class="mb-2"><i class="fas fa-check text-warning me-2"></i>Badge Premium visibile</li>
+                        <li class="mb-2"><i class="fas fa-check text-warning me-2"></i>Priorità nelle catene di scambio</li>
+                        <li class="mb-2"><i class="fas fa-check text-warning me-2"></i>Nessuna pubblicità</li>
+                        <li class="mb-2"><i class="fas fa-check text-warning me-2"></i>Supporto prioritario</li>
+                        <li class="mb-2"><i class="fas fa-check text-warning me-2"></i>Accesso anticipato a nuove funzionalità</li>
+                        <li class="mb-2"><i class="fas fa-check text-warning me-2"></i>Statistiche avanzate</li>
+                        <li class="mb-2"><i class="fas fa-check text-warning me-2"></i>Cancella quando vuoi</li>
+                    </ul>
+
+                    <div class="text-center">
+                        {% if user.is_authenticated %}
+                            {% if user.userprofile.is_premium %}
+                                <button class="btn btn-warning btn-lg w-100" disabled>
+                                    <i class="fas fa-crown me-2"></i>Piano Attuale
+                                </button>
+                            {% else %}
+                                <a href="{% url 'premium_checkout' %}" class="btn btn-warning btn-lg w-100 pulse-button">
+                                    <i class="fas fa-crown me-2"></i>Passa a Premium
+                                </a>
+                            {% endif %}
+                        {% else %}
+                            <a href="{% url 'login' %}?next={% url 'pricing' %}" class="btn btn-warning btn-lg w-100">
+                                <i class="fas fa-sign-in-alt me-2"></i>Accedi per Continuare
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="row mt-5">
+        <div class="col-md-10 offset-md-1">
+            <h3 class="text-center mb-4"><i class="fas fa-question-circle me-2"></i>Domande Frequenti</h3>
+
+            <div class="accordion" id="faqAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingOne">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                            <strong>Posso cancellare in qualsiasi momento?</strong>
+                        </button>
+                    </h2>
+                    <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Sì, puoi cancellare l'abbonamento Premium in qualsiasi momento. Continuerai ad avere accesso alle funzionalità Premium fino alla fine del periodo pagato.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingTwo">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                            <strong>Cosa succede ai miei annunci se cancello Premium?</strong>
+                        </button>
+                    </h2>
+                    <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Gli annunci extra oltre il limite gratuito (5+5) verranno automaticamente disattivati. Potrai riattivarli solo se resti nei limiti del piano gratuito o se riattivi Premium.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingThree">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                            <strong>Quali metodi di pagamento accettate?</strong>
+                        </button>
+                    </h2>
+                    <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Accettiamo pagamenti tramite PayPal, carte di credito/debito (Visa, Mastercard, American Express) e altre opzioni locali tramite PayPal.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingFour">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour">
+                            <strong>Posso provare Premium gratuitamente?</strong>
+                        </button>
+                    </h2>
+                    <div id="collapseFour" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Al momento non offriamo un periodo di prova gratuito, ma puoi iniziare con il piano gratuito per testare la piattaforma e passare a Premium quando sei pronto.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingFive">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive">
+                            <strong>Come funziona il pagamento annuale?</strong>
+                        </button>
+                    </h2>
+                    <div id="collapseFive" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Con il piano annuale paghi 59€ all'anno (invece di 83,88€ con il piano mensile), risparmiando il 25%. Il pagamento viene effettuato una volta all'anno.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Bottom -->
+    <div class="row mt-5">
+        <div class="col-md-8 offset-md-2 text-center">
+            <div class="card bg-light">
+                <div class="card-body py-5">
+                    <h4 class="mb-3">Pronto a sbloccare tutto?</h4>
+                    <p class="text-muted mb-4">Unisciti agli utenti Premium e massimizza le tue opportunità di scambio</p>
+                    {% if user.is_authenticated and not user.userprofile.is_premium %}
+                        <a href="{% url 'premium_checkout' %}" class="btn btn-warning btn-lg">
+                            <i class="fas fa-crown me-2"></i>Passa a Premium Ora
+                        </a>
+                    {% elif not user.is_authenticated %}
+                        <a href="{% url 'register' %}" class="btn btn-warning btn-lg">
+                            <i class="fas fa-user-plus me-2"></i>Inizia Gratis
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 10px rgba(255, 193, 7, 0);
+    }
+}
+
+.pulse-button {
+    animation: pulse 2s infinite;
+}
+</style>
+{% endblock %}
