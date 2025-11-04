@@ -13,6 +13,7 @@ import hmac
 import os
 from . import matching
 from .debug_views import debug_basso  # Debug temporaneo
+from .debug_views_2 import debug_view_catene  # Debug temporaneo 2
 
 def test_matching(request):
     """Vista per testare l'algoritmo di matching con debug dettagliato"""

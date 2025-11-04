@@ -94,6 +94,7 @@ urlpatterns = [
 
     # Debug views (TEMPORANEE - RIMUOVERE)
     path('debug/basso/', views.debug_basso, name='debug_basso'),
+    path('debug/view-catene/', views.debug_view_catene, name='debug_view_catene'),
 
     # Sistema Premium
     path('pricing/', views.pricing, name='pricing'),
