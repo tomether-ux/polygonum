@@ -204,11 +204,22 @@ def attiva_annuncio(request, annuncio_id):
 
     # Controlla i limiti prima di attivare
     profilo, created = UserProfile.objects.get_or_create(user=request.user)
-    puo_creare, messaggio_errore = profilo.puo_creare_annuncio(annuncio.tipo)
 
-    if not puo_creare:
-        messages.error(request, f'Non puoi riattivare questo annuncio: {messaggio_errore}')
-        return redirect('profilo_utente', username=request.user.username)
+    # IMPORTANTE: Quando riattivi, devi contare come se l'annuncio fosse già attivo
+    # perché puo_creare_annuncio conta solo annunci attivi, ma questo è ancora inattivo
+    if not profilo.is_premium:
+        limite = profilo.get_limite_annunci(annuncio.tipo)
+        count_attivi = profilo.get_count_annunci(annuncio.tipo)
+
+        # Conta anche l'annuncio che stiamo per riattivare
+        if count_attivi >= limite:
+            tipo_display = "offro" if annuncio.tipo == "offro" else "cerco"
+            messages.error(
+                request,
+                f'Non puoi riattivare questo annuncio: hai raggiunto il limite di {limite} annunci "{tipo_display}". '
+                f'Passa a Premium per annunci illimitati!'
+            )
+            return redirect('profilo_utente', username=request.user.username)
 
     annuncio.attivo = True
     annuncio.save()
