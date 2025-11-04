@@ -1013,24 +1013,20 @@ class CycleFinder:
     def _utente_compatibile_con_annuncio(self, utente, annuncio):
         """
         Verifica se un utente ha annunci compatibili con l'annuncio dato
-
-        MODIFICA: Ora accetta TUTTI i tipi di match per il calcolo incrementale
         """
         if annuncio.tipo == 'offro':
             # L'annuncio offre qualcosa, cerchiamo chi lo cerca
             richieste_utente = Annuncio.objects.filter(utente=utente, tipo='cerco', attivo=True)
             for richiesta in richieste_utente:
                 compatible, tipo_match = oggetti_compatibili_con_tipo(annuncio, richiesta)
-                # MODIFICA: Accetta TUTTI i match
-                if compatible:
+                if compatible and tipo_match in ['specifico', 'parziale']:
                     return True
         else:
             # L'annuncio cerca qualcosa, cerchiamo chi lo offre
             offerte_utente = Annuncio.objects.filter(utente=utente, tipo='offro', attivo=True)
             for offerta in offerte_utente:
                 compatible, tipo_match = oggetti_compatibili_con_tipo(offerta, annuncio)
-                # MODIFICA: Accetta TUTTI i match
-                if compatible:
+                if compatible and tipo_match in ['specifico', 'parziale']:
                     return True
 
         return False
@@ -1127,10 +1123,6 @@ class CycleFinder:
         """
         Verifica se due utenti possono scambiare direttamente.
         Usa solo matching titoli (senza considerare prezzo/distanza) per costruire il grafo.
-
-        MODIFICA: Ora accetta TUTTI i tipi di match (incluso categoria/generico)
-        per garantire che TUTTI i cicli possibili vengano trovati.
-        Il filtro qualità nella view si occuperà di nascondere quelli di bassa qualità.
         """
         offerte_a = Annuncio.objects.filter(utente=utente_a, tipo='offro', attivo=True)
         richieste_b = Annuncio.objects.filter(utente=utente_b, tipo='cerco', attivo=True)
@@ -1139,9 +1131,8 @@ class CycleFinder:
             for richiesta in richieste_b:
                 # Usa solo compatibilità titoli (non algoritmo avanzato)
                 compatible, tipo_match = oggetti_compatibili_con_tipo(offerta, richiesta)
-                # MODIFICA: Accetta TUTTI i match (incluso categoria/generico)
-                # Il filtro nella view si occuperà di nascondere quelli di bassa qualità
-                if compatible:
+                # Accetta match specifico, parziale o sinonimo (non categoria o generico)
+                if compatible and tipo_match in ['specifico', 'parziale', 'sinonimo']:
                     return True
         return False
 
