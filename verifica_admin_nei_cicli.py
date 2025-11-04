@@ -49,7 +49,7 @@ for ciclo in cicli_validi:
         cicli_dettagli.append({
             'id': ciclo.id,
             'users': ciclo.users,
-            'created': ciclo.created_at
+            'calcolato': ciclo.calcolato_at
         })
 
 print(f"🎯 Cicli che includono admin (ID {admin.id}): {cicli_con_admin}")
@@ -74,15 +74,14 @@ else:
     for ciclo_info in cicli_dettagli[:5]:
         print(f"      - Ciclo ID {ciclo_info['id']}")
         print(f"        Users: {ciclo_info['users']}")
-        print(f"        Created: {ciclo_info['created']}")
+        print(f"        Calcolato: {ciclo_info['calcolato']}")
 
 # Verifica quando sono stati calcolati i cicli
 if cicli_validi.exists():
-    ciclo_recente = cicli_validi.order_by('-created_at').first()
+    ciclo_recente = cicli_validi.order_by('-calcolato_at').first()
     print(f"\n📅 Ciclo più recente:")
     print(f"   ID: {ciclo_recente.id}")
-    print(f"   Creato: {ciclo_recente.created_at}")
-    print(f"   Aggiornato: {ciclo_recente.updated_at}")
+    print(f"   Calcolato: {ciclo_recente.calcolato_at}")
 
 # Verifica annunci admin più recenti
 if annunci_admin.exists():
@@ -94,7 +93,7 @@ if annunci_admin.exists():
 
     # Confronta date
     if cicli_validi.exists():
-        if annuncio_recente.data_creazione > ciclo_recente.created_at:
+        if annuncio_recente.data_creazione > ciclo_recente.calcolato_at:
             print(f"\n   ⚠️  L'annuncio è PIÙ RECENTE del ciclo più recente!")
             print(f"   I cicli sono OBSOLETI e vanno ricalcolati!")
 
