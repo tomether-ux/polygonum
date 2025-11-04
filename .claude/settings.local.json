@@ -7,7 +7,8 @@
       "Bash(git push:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Read(//Users/tommasocus/Documents/POLYGONUM WEBSITE/cycle_calculator_repo/scambi/**)"
     ],
     "deny": [],
     "ask": []
