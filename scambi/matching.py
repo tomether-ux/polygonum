@@ -1394,9 +1394,10 @@ def get_cicli_precalcolati():
 
     print(f"📦 Trovati {len(annunci_ids)} annunci unici coinvolti nei cicli")
 
-    # Carica TUTTI gli annunci in UNA SOLA QUERY
+    # Carica TUTTI gli annunci in UNA SOLA QUERY (inclusi inattivi per il filtro)
+    # NOTA: Carichiamo anche inattivi perché il filtro successivo li gestisce
     annunci_dict = {a.id: a for a in Annuncio.objects.filter(id__in=annunci_ids)}
-    print(f"✅ Pre-caricati {len(annunci_dict)} annunci in memoria")
+    print(f"✅ Pre-caricati {len(annunci_dict)} annunci in memoria (attivi + inattivi per filtro)")
     # ===== FINE OTTIMIZZAZIONE =====
 
     scambi_diretti = []
