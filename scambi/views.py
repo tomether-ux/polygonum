@@ -297,22 +297,28 @@ def catene_scambio(request):
                                     messages.warning(request, 'Ricerca parziale completata (timeout raggiunto). Mostrando solo scambi diretti.')
                                     tutte_catene = scambi_diretti
                                 else:
-                                    # Calcola qualità per tutte le catene (senza filtrare)
+                                    # Filtra SOLO catene con match sui titoli (specifico/parziale)
+                                    catene_specifiche = []  # Match sui titoli (specifico/parziale)
+
                                     for c in catene:
+                                        # Calcola qualità e determina se ha match sui titoli
                                         punteggio, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
                                         c['punteggio_qualita'] = punteggio
-                                        c['ha_match_titoli'] = ha_match_titoli
 
-                                    # Filtra tutto per l'utente attuale (TUTTE le catene, non solo specifiche)
+                                        # Includi SOLO se ha match sui titoli
+                                        if ha_match_titoli:
+                                            catene_specifiche.append(c)
+
+                                    # Filtra tutto per l'utente attuale (solo catene specifiche)
                                     scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente_ottimizzato(
-                                        scambi_diretti, catene, request.user
+                                        scambi_diretti, catene_specifiche, request.user
                                     )
 
                                     # Ricomponi le catene filtrate
                                     tutte_catene = scambi_diretti_utente + catene_lunghe_utente
 
                                     elapsed = time.time() - start_time
-                                    messages.success(request, f'Ricerca completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} catene di scambio!')
+                                    messages.success(request, f'Ricerca completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} catene con parole in comune nei titoli!')
                             except Exception as e:
                                 print(f"Errore durante ricerca catene lunghe: {e}")
                                 tutte_catene = scambi_diretti
@@ -356,23 +362,13 @@ def catene_scambio(request):
     # Import della funzione per calcolare tipo di match
     from .matching import calcola_qualita_ciclo
 
-    # UNIFICATO: Mostra TUTTE le catene, separate per qualità
-    # Separa catene di alta qualità (match titoli) da quelle generiche (match categoria)
-    catene_alta_qualita = []
-    catene_generiche = []
-
+    # UNIFICATO: Tratta tutte le catene allo stesso modo (scambi diretti = catene a 2)
+    # Filtra SOLO per match sui titoli (specifico/parziale/sinonimo)
+    catene_specifiche = []
     for c in catene_uniche:
-        punteggio, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
-        c['punteggio_qualita'] = punteggio
-        c['ha_match_titoli'] = ha_match_titoli
-
+        _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
         if ha_match_titoli:
-            catene_alta_qualita.append(c)
-        else:
-            catene_generiche.append(c)
-
-    # Combina tutte le catene (prima alta qualità, poi generiche)
-    catene_specifiche = catene_alta_qualita + catene_generiche
+            catene_specifiche.append(c)
 
 
     # Filtra per annuncio specifico se richiesto
