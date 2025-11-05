@@ -276,16 +276,16 @@ def debug_cyclefinder_basso(request):
     """
     Testa direttamente il CycleFinder per vedere se 'basso' entra nel grafo
     """
-    from .matching import CycleFinder
-    from django.contrib.auth.models import User
-
     output = []
     output.append("=" * 80)
     output.append("🔍 TEST CYCLEFINDER: 'basso' entra nel grafo?")
     output.append("=" * 80)
 
-    # Trova basso
     try:
+        from .matching import CycleFinder
+        from django.contrib.auth.models import User
+
+        # Trova basso
         basso = Annuncio.objects.get(titolo__iexact='basso', attivo=True)
         basso_user = basso.utente
         output.append(f"\n✅ 'basso' trovato:")
@@ -293,80 +293,85 @@ def debug_cyclefinder_basso(request):
         output.append(f"   Utente: {basso_user.username} (ID: {basso_user.id})")
         output.append(f"   Tipo: {basso.tipo}")
         output.append(f"   Categoria: {basso.categoria}")
-    except Annuncio.DoesNotExist:
-        output.append("\n❌ 'basso' non è attivo")
-        return HttpResponse("\n".join(output), content_type="text/plain; charset=utf-8")
 
-    # Costruisci il grafo
-    output.append("\n" + "=" * 80)
-    output.append("COSTRUZIONE GRAFO")
-    output.append("=" * 80)
+        # Costruisci il grafo
+        output.append("\n" + "=" * 80)
+        output.append("COSTRUZIONE GRAFO")
+        output.append("=" * 80)
 
-    finder = CycleFinder()
-    finder.costruisci_grafo()
+        finder = CycleFinder()
+        finder.costruisci_grafo()
 
-    output.append(f"\n📊 Grafo costruito:")
-    output.append(f"   Nodi totali: {len(finder.grafo)}")
-    output.append(f"   Collegamenti totali: {sum(len(v) for v in finder.grafo.values())}")
+        output.append(f"\n📊 Grafo costruito:")
+        output.append(f"   Nodi totali: {len(finder.grafo)}")
+        output.append(f"   Collegamenti totali: {sum(len(v) for v in finder.grafo.values())}")
 
-    # Verifica se basso_user è nel grafo
-    if basso_user.id in finder.grafo:
-        output.append(f"\n✅ {basso_user.username} È NEL GRAFO!")
-        collegamenti = finder.grafo[basso_user.id]
-        output.append(f"   Collegamenti: {len(collegamenti)}")
+        # Verifica se basso_user è nel grafo
+        if basso_user.id in finder.grafo:
+            output.append(f"\n✅ {basso_user.username} È NEL GRAFO!")
+            collegamenti = finder.grafo[basso_user.id]
+            output.append(f"   Collegamenti: {len(collegamenti)}")
 
-        if collegamenti:
-            output.append(f"\n   Può scambiare con:")
-            for user_id in collegamenti[:10]:  # Max 10
+            if collegamenti:
+                output.append(f"\n   Può scambiare con:")
+                for user_id in collegamenti[:10]:  # Max 10
+                    try:
+                        user = User.objects.get(id=user_id)
+                        output.append(f"      - {user.username}")
+                    except:
+                        pass
+                if len(collegamenti) > 10:
+                    output.append(f"      ... e altri {len(collegamenti) - 10}")
+        else:
+            output.append(f"\n❌ {basso_user.username} NON è nel grafo")
+            output.append(f"   Questo è CORRETTO se 'basso' ha solo match categoria")
+
+        # Verifica collegamenti IN ENTRATA (altri utenti che puntano a basso_user)
+        collegamenti_in_entrata = []
+        for user_id, targets in finder.grafo.items():
+            if basso_user.id in targets:
+                collegamenti_in_entrata.append(user_id)
+
+        if collegamenti_in_entrata:
+            output.append(f"\n📥 Collegamenti IN ENTRATA a {basso_user.username}: {len(collegamenti_in_entrata)}")
+            for user_id in collegamenti_in_entrata[:10]:
                 try:
                     user = User.objects.get(id=user_id)
                     output.append(f"      - {user.username}")
                 except:
                     pass
-            if len(collegamenti) > 10:
-                output.append(f"      ... e altri {len(collegamenti) - 10}")
-    else:
-        output.append(f"\n❌ {basso_user.username} NON è nel grafo")
-        output.append(f"   Questo è CORRETTO se 'basso' ha solo match categoria")
+        else:
+            output.append(f"\n📥 Nessun collegamento IN ENTRATA a {basso_user.username}")
 
-    # Verifica collegamenti IN ENTRATA (altri utenti che puntano a basso_user)
-    collegamenti_in_entrata = []
-    for user_id, targets in finder.grafo.items():
-        if basso_user.id in targets:
-            collegamenti_in_entrata.append(user_id)
+        # Trova cicli
+        output.append("\n" + "=" * 80)
+        output.append("RICERCA CICLI")
+        output.append("=" * 80)
 
-    if collegamenti_in_entrata:
-        output.append(f"\n📥 Collegamenti IN ENTRATA a {basso_user.username}: {len(collegamenti_in_entrata)}")
-        for user_id in collegamenti_in_entrata[:10]:
-            try:
-                user = User.objects.get(id=user_id)
-                output.append(f"      - {user.username}")
-            except:
-                pass
-    else:
-        output.append(f"\n📥 Nessun collegamento IN ENTRATA a {basso_user.username}")
+        cicli = finder.trova_tutti_cicli(max_length=6)
+        output.append(f"\nCicli trovati: {len(cicli)}")
 
-    # Trova cicli
-    output.append("\n" + "=" * 80)
-    output.append("RICERCA CICLI")
-    output.append("=" * 80)
+        # Filtra cicli che coinvolgono basso_user
+        cicli_con_basso = [c for c in cicli if basso_user.id in [u['user'].id for u in c['utenti']]]
 
-    cicli = finder.trova_tutti_cicli(max_length=6)
-    output.append(f"\nCicli trovati: {len(cicli)}")
+        output.append(f"Cicli che coinvolgono {basso_user.username}: {len(cicli_con_basso)}")
 
-    # Filtra cicli che coinvolgono basso_user
-    cicli_con_basso = [c for c in cicli if basso_user.id in [u['user'].id for u in c['utenti']]]
+        if cicli_con_basso:
+            output.append(f"\n❗ PROBLEMA: 'basso' È nei cicli!")
+            output.append(f"\n   Primi 3 cicli:")
+            for i, ciclo in enumerate(cicli_con_basso[:3], 1):
+                utenti_names = [u['user'].username for u in ciclo['utenti']]
+                output.append(f"      {i}. {' → '.join(utenti_names)}")
+        else:
+            output.append(f"\n✅ CORRETTO: 'basso' NON è nei cicli")
 
-    output.append(f"Cicli che coinvolgono {basso_user.username}: {len(cicli_con_basso)}")
-
-    if cicli_con_basso:
-        output.append(f"\n❗ PROBLEMA: 'basso' È nei cicli!")
-        output.append(f"\n   Primi 3 cicli:")
-        for i, ciclo in enumerate(cicli_con_basso[:3], 1):
-            utenti_names = [u['user'].username for u in ciclo['utenti']]
-            output.append(f"      {i}. {' → '.join(utenti_names)}")
-    else:
-        output.append(f"\n✅ CORRETTO: 'basso' NON è nei cicli")
+    except Annuncio.DoesNotExist:
+        output.append("\n❌ 'basso' non è attivo")
+    except Exception as e:
+        output.append(f"\n❌ ERRORE: {type(e).__name__}: {e}")
+        import traceback
+        output.append("\nTraceback:")
+        output.append(traceback.format_exc())
 
     output.append("\n" + "=" * 80)
     return HttpResponse("\n".join(output), content_type="text/plain; charset=utf-8")
