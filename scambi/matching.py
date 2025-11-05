@@ -1127,13 +1127,36 @@ class CycleFinder:
         offerte_a = Annuncio.objects.filter(utente=utente_a, tipo='offro', attivo=True)
         richieste_b = Annuncio.objects.filter(utente=utente_b, tipo='cerco', attivo=True)
 
+        # DEBUG: Log dettagliato per annunci 'basso'
+        debug_basso = False
+        for off in offerte_a:
+            if off.titolo.lower() == 'basso':
+                debug_basso = True
+                break
+        for rich in richieste_b:
+            if rich.titolo.lower() == 'basso':
+                debug_basso = True
+                break
+
         for offerta in offerte_a:
             for richiesta in richieste_b:
                 # Usa solo compatibilità titoli (non algoritmo avanzato)
                 compatible, tipo_match = oggetti_compatibili_con_tipo(offerta, richiesta)
+
+                # DEBUG: Log quando 'basso' è coinvolto
+                if debug_basso:
+                    print(f"🔍 DEBUG BASSO: {utente_a.username} offre '{offerta.titolo}' → {utente_b.username} cerca '{richiesta.titolo}': compatible={compatible}, tipo_match={tipo_match}")
+
                 # Accetta match specifico, parziale o sinonimo (non categoria o generico)
                 if compatible and tipo_match in ['specifico', 'parziale', 'sinonimo']:
+                    if debug_basso:
+                        print(f"✅ MATCH ACCETTATO per 'basso'!")
                     return True
+                elif compatible and debug_basso:
+                    print(f"❌ Match rifiutato (tipo: {tipo_match})")
+
+        if debug_basso:
+            print(f"🚫 Nessun match valido per 'basso' tra {utente_a.username} e {utente_b.username}")
         return False
 
     def trova_tutti_cicli(self, max_length=6):
