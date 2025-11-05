@@ -280,6 +280,7 @@ def catene_scambio(request):
                     if not annuncio_filtro_id:
                         # Esegui ricerca con limitazioni per evitare timeout
                         print("⚡ Caricamento scambi diretti da database...")
+                        scambi_diretti = []  # Inizializza prima per evitare UnboundLocalError
                         scambi_diretti = trova_scambi_diretti_ottimizzato()
 
                         if time.time() - start_time > timeout_seconds:
@@ -351,23 +352,18 @@ def catene_scambio(request):
                                 print(f"❌ Errore durante ricerca catene lunghe: {type(e).__name__}: {e}")
                                 import traceback
                                 traceback.print_exc()
-                                # IMPORTANTE: Filtra scambi diretti anche in caso di errore (se esistono)
+                                # IMPORTANTE: Filtra scambi diretti anche in caso di errore
                                 from .matching import calcola_qualita_ciclo, filtra_catene_per_utente_ottimizzato
                                 scambi_diretti_specifici = []
-                                # Usa scambi_diretti solo se è stato definito
-                                if 'scambi_diretti' in locals():
-                                    for c in scambi_diretti:
-                                        _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
-                                        if ha_match_titoli:
-                                            scambi_diretti_specifici.append(c)
-                                    scambi_diretti_utente, _ = filtra_catene_per_utente_ottimizzato(
-                                        scambi_diretti_specifici, [], request.user
-                                    )
-                                    tutte_catene = scambi_diretti_utente
-                                    messages.warning(request, f'Errore nella ricerca catene lunghe: {type(e).__name__}. Mostrando solo scambi diretti.')
-                                else:
-                                    tutte_catene = []
-                                    messages.error(request, f'Errore durante la ricerca: {type(e).__name__}. Riprova più tardi.')
+                                for c in scambi_diretti:
+                                    _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
+                                    if ha_match_titoli:
+                                        scambi_diretti_specifici.append(c)
+                                scambi_diretti_utente, _ = filtra_catene_per_utente_ottimizzato(
+                                    scambi_diretti_specifici, [], request.user
+                                )
+                                tutte_catene = scambi_diretti_utente
+                                messages.warning(request, f'Errore nella ricerca catene lunghe: {type(e).__name__}. Mostrando solo scambi diretti.')
                 else:
                     tutte_catene = []
                     messages.warning(request, 'Non hai annunci attivi! Pubblica un annuncio per partecipare agli scambi.')
