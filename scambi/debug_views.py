@@ -294,6 +294,16 @@ def debug_cyclefinder_basso(request):
         output.append(f"   Tipo: {basso.tipo}")
         output.append(f"   Categoria: {basso.categoria}")
 
+        # Mostra TUTTI gli annunci di questo utente
+        output.append(f"\n📋 TUTTI gli annunci di {basso_user.username}:")
+        tutti_annunci = Annuncio.objects.filter(utente=basso_user, attivo=True)
+        for ann in tutti_annunci:
+            output.append(f"   - {ann.tipo}: '{ann.titolo}' (categoria: {ann.categoria})")
+
+        if tutti_annunci.count() > 1:
+            output.append(f"\n⚠️  {basso_user.username} ha {tutti_annunci.count()} annunci attivi!")
+            output.append(f"   I collegamenti nel grafo potrebbero essere dovuti agli altri annunci!")
+
         # Costruisci il grafo
         output.append("\n" + "=" * 80)
         output.append("COSTRUZIONE GRAFO")
