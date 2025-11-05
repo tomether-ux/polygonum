@@ -345,9 +345,48 @@ def catene_scambio(request):
             messages.error(request, 'Errore durante la ricerca delle catene. Riprova più tardi.')
             tutte_catene = []
     else:
-        # Se non è stata richiesta ricerca, mostra risultati vuoti o cached
-        print("📋 Visualizzazione catene senza ricerca")
-        tutte_catene = []
+        # Se non è stata richiesta ricerca, carica catene dal DB
+        print("📋 Caricamento catene dal database (senza ricalcolo)")
+
+        if request.user.is_authenticated:
+            # Controlla se l'utente ha annunci attivi
+            annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
+            if annunci_utente.exists():
+                try:
+                    # Carica cicli pre-calcolati dal DB
+                    from .matching import (
+                        get_cicli_precalcolati,
+                        filtra_catene_per_utente_ottimizzato,
+                        calcola_qualita_ciclo
+                    )
+
+                    risultato = get_cicli_precalcolati()
+                    scambi_diretti = risultato['scambi_diretti']
+                    catene = risultato['catene']
+
+                    # Filtra per match titoli
+                    catene_specifiche_temp = []
+                    for c in catene:
+                        _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
+                        if ha_match_titoli:
+                            catene_specifiche_temp.append(c)
+
+                    # Filtra per utente
+                    scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente_ottimizzato(
+                        scambi_diretti, catene_specifiche_temp, request.user
+                    )
+
+                    tutte_catene = scambi_diretti_utente + catene_lunghe_utente
+
+                    print(f"✅ Caricate {len(tutte_catene)} catene dal DB per {request.user.username}")
+
+                except Exception as e:
+                    print(f"❌ Errore caricamento catene dal DB: {e}")
+                    tutte_catene = []
+            else:
+                tutte_catene = []
+        else:
+            tutte_catene = []
 
     # Rimuovi duplicati
     catene_uniche = []
