@@ -399,16 +399,9 @@ def catene_scambio(request):
             combinazioni_viste.add(utenti_ids)
             catene_uniche.append(catena)
 
-    # Import della funzione per calcolare tipo di match
-    from .matching import calcola_qualita_ciclo
-
-    # UNIFICATO: Tratta tutte le catene allo stesso modo (scambi diretti = catene a 2)
-    # Filtra SOLO per match sui titoli (specifico/parziale/sinonimo)
-    catene_specifiche = []
-    for c in catene_uniche:
-        _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
-        if ha_match_titoli:
-            catene_specifiche.append(c)
+    # Le catene sono già state filtrate per qualità e utente
+    # Non serve ri-filtrare
+    catene_specifiche = catene_uniche
 
 
     # Filtra per annuncio specifico se richiesto
