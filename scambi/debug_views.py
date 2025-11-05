@@ -188,28 +188,57 @@ def debug_view_catene(request):
     catene_uniche = scambi_diretti + catene
     output.append(f"\nCatene uniche totali: {len(catene_uniche)}")
 
-    # STEP 3: Filtra per qualità
+    # STEP 3: Filtra per qualità (SEPARATAMENTE per scambi diretti e catene)
     output.append("\n" + "=" * 80)
     output.append("STEP 3: Filtra per qualità (ha_match_titoli)")
     output.append("=" * 80)
 
+    # Filtra scambi diretti
+    scambi_diretti_specifici = []
+    catene_elim_sd = []
+    for c in scambi_diretti:
+        try:
+            _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
+            if ha_match_titoli:
+                scambi_diretti_specifici.append(c)
+            else:
+                # Registra quali sono stati eliminati
+                utenti_names = [u['user'].username for u in c['utenti']]
+                catene_elim_sd.append(f"{' ↔ '.join(utenti_names)}")
+        except Exception as e:
+            output.append(f"   ⚠️  Errore su scambio diretto: {e}")
+
+    # Filtra catene lunghe
     catene_specifiche = []
-    for c in catene_uniche:
+    catene_elim_lunghe = []
+    for c in catene:
         try:
             _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
             if ha_match_titoli:
                 catene_specifiche.append(c)
+            else:
+                utenti_names = [u['user'].username for u in c['utenti']]
+                catene_elim_lunghe.append(f"{' → '.join(utenti_names)}")
         except Exception as e:
-            output.append(f"   ⚠️  Errore su ciclo: {e}")
+            output.append(f"   ⚠️  Errore su catena: {e}")
 
-    output.append(f"\nCatene dopo filtro qualità: {len(catene_specifiche)}")
-    output.append(f"Catene eliminate (solo categoria): {len(catene_uniche) - len(catene_specifiche)}")
+    output.append(f"\n📊 Risultati filtro qualità:")
+    output.append(f"   Scambi diretti: {len(scambi_diretti)} → {len(scambi_diretti_specifici)} (eliminati {len(catene_elim_sd)})")
+    output.append(f"   Catene lunghe: {len(catene)} → {len(catene_specifiche)} (eliminati {len(catene_elim_lunghe)})")
 
-    if len(catene_specifiche) == 0 and len(catene_uniche) > 0:
-        output.append(f"\n❌ PROBLEMA: Tutte le catene filtrate!")
-        output.append(f"\n   CAUSA: I cicli nel DB sono OBSOLETI")
-        output.append(f"   Sono stati calcolati con annunci diversi/vecchi")
-        output.append(f"\n   SOLUZIONE: Ricalcola i cicli!")
+    if catene_elim_sd:
+        output.append(f"\n   ❌ Scambi diretti eliminati (solo categoria):")
+        for e in catene_elim_sd[:5]:
+            output.append(f"      - {e}")
+        if len(catene_elim_sd) > 5:
+            output.append(f"      ... e altri {len(catene_elim_sd) - 5}")
+
+    if catene_elim_lunghe:
+        output.append(f"\n   ❌ Catene lunghe eliminate (solo categoria):")
+        for e in catene_elim_lunghe[:5]:
+            output.append(f"      - {e}")
+        if len(catene_elim_lunghe) > 5:
+            output.append(f"      ... e altri {len(catene_elim_lunghe) - 5}")
 
     # STEP 4: Filtra per utente
     output.append("\n" + "=" * 80)
@@ -218,7 +247,7 @@ def debug_view_catene(request):
 
     try:
         scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente_ottimizzato(
-            scambi_diretti, catene_specifiche, user
+            scambi_diretti_specifici, catene_specifiche, user
         )
 
         output.append(f"\n✅ Dopo filtro utente:")
@@ -227,6 +256,13 @@ def debug_view_catene(request):
 
         totale_visualizzabile = len(scambi_diretti_utente) + len(catene_lunghe_utente)
         output.append(f"\n📊 TOTALE VISUALIZZABILE: {totale_visualizzabile}")
+
+        # Mostra dettagli delle catene visualizzabili
+        if totale_visualizzabile > 0:
+            output.append(f"\n   Dettagli catene visualizzabili:")
+            for c in (scambi_diretti_utente + catene_lunghe_utente)[:5]:
+                utenti_names = [u['user'].username for u in c['utenti']]
+                output.append(f"      - {' → '.join(utenti_names)}")
 
     except Exception as e:
         output.append(f"\n❌ ERRORE nel filtro utente: {e}")
