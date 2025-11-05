@@ -284,7 +284,17 @@ def catene_scambio(request):
 
                         if time.time() - start_time > timeout_seconds:
                             messages.error(request, 'Ricerca interrotta per timeout. Troppi dati da elaborare.')
-                            tutte_catene = scambi_diretti
+                            # IMPORTANTE: Filtra scambi diretti anche in caso di timeout
+                            from .matching import calcola_qualita_ciclo, filtra_catene_per_utente_ottimizzato
+                            scambi_diretti_specifici = []
+                            for c in scambi_diretti:
+                                _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
+                                if ha_match_titoli:
+                                    scambi_diretti_specifici.append(c)
+                            scambi_diretti_utente, _ = filtra_catene_per_utente_ottimizzato(
+                                scambi_diretti_specifici, [], request.user
+                            )
+                            tutte_catene = scambi_diretti_utente
                         else:
                             print("⏰ Inizio ricerca catene lunghe...")
                             try:
@@ -296,7 +306,16 @@ def catene_scambio(request):
 
                                 if time.time() - start_time > timeout_seconds:
                                     messages.warning(request, 'Ricerca parziale completata (timeout raggiunto). Mostrando solo scambi diretti.')
-                                    tutte_catene = scambi_diretti
+                                    # IMPORTANTE: Filtra scambi diretti anche in caso di timeout parziale
+                                    scambi_diretti_specifici = []
+                                    for c in scambi_diretti:
+                                        _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
+                                        if ha_match_titoli:
+                                            scambi_diretti_specifici.append(c)
+                                    scambi_diretti_utente, _ = filtra_catene_per_utente_ottimizzato(
+                                        scambi_diretti_specifici, [], request.user
+                                    )
+                                    tutte_catene = scambi_diretti_utente
                                 else:
                                     # Filtra SOLO catene con match sui titoli (specifico/parziale)
                                     # Prima filtriamo gli scambi diretti
@@ -330,7 +349,17 @@ def catene_scambio(request):
                                     messages.success(request, f'Ricerca completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} catene con parole in comune nei titoli!')
                             except Exception as e:
                                 print(f"Errore durante ricerca catene lunghe: {e}")
-                                tutte_catene = scambi_diretti
+                                # IMPORTANTE: Filtra scambi diretti anche in caso di errore
+                                from .matching import calcola_qualita_ciclo, filtra_catene_per_utente_ottimizzato
+                                scambi_diretti_specifici = []
+                                for c in scambi_diretti:
+                                    _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
+                                    if ha_match_titoli:
+                                        scambi_diretti_specifici.append(c)
+                                scambi_diretti_utente, _ = filtra_catene_per_utente_ottimizzato(
+                                    scambi_diretti_specifici, [], request.user
+                                )
+                                tutte_catene = scambi_diretti_utente
                                 messages.warning(request, 'Errore nella ricerca catene lunghe. Mostrando solo scambi diretti.')
                 else:
                     tutte_catene = []
