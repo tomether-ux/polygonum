@@ -351,8 +351,8 @@ def debug_cyclefinder_basso(request):
         cicli = finder.trova_tutti_cicli(max_length=6)
         output.append(f"\nCicli trovati: {len(cicli)}")
 
-        # Filtra cicli che coinvolgono basso_user
-        cicli_con_basso = [c for c in cicli if basso_user.id in [u['user'].id for u in c['utenti']]]
+        # Filtra cicli che coinvolgono basso_user (la chiave corretta è 'users', non 'utenti')
+        cicli_con_basso = [c for c in cicli if basso_user.id in c['users']]
 
         output.append(f"Cicli che coinvolgono {basso_user.username}: {len(cicli_con_basso)}")
 
@@ -360,7 +360,15 @@ def debug_cyclefinder_basso(request):
             output.append(f"\n❗ PROBLEMA: 'basso' È nei cicli!")
             output.append(f"\n   Primi 3 cicli:")
             for i, ciclo in enumerate(cicli_con_basso[:3], 1):
-                utenti_names = [u['user'].username for u in ciclo['utenti']]
+                # Carica i nomi utente dagli ID
+                utenti_names = []
+                for user_id in ciclo['users']:
+                    try:
+                        from django.contrib.auth.models import User
+                        u = User.objects.get(id=user_id)
+                        utenti_names.append(u.username)
+                    except:
+                        utenti_names.append(f"ID:{user_id}")
                 output.append(f"      {i}. {' → '.join(utenti_names)}")
         else:
             output.append(f"\n✅ CORRETTO: 'basso' NON è nei cicli")
