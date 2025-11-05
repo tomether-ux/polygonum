@@ -12,7 +12,7 @@ import hashlib
 import hmac
 import os
 from . import matching
-from .debug_views import debug_basso, debug_view_catene  # Debug temporaneo
+from .debug_views import debug_basso, debug_view_catene, debug_cyclefinder_basso  # Debug temporaneo
 
 def test_matching(request):
     """Vista per testare l'algoritmo di matching con debug dettagliato"""
