@@ -299,8 +299,16 @@ def catene_scambio(request):
                                     tutte_catene = scambi_diretti
                                 else:
                                     # Filtra SOLO catene con match sui titoli (specifico/parziale)
-                                    catene_specifiche = []  # Match sui titoli (specifico/parziale)
+                                    # Prima filtriamo gli scambi diretti
+                                    scambi_diretti_specifici = []
+                                    for c in scambi_diretti:
+                                        punteggio, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
+                                        c['punteggio_qualita'] = punteggio
+                                        if ha_match_titoli:
+                                            scambi_diretti_specifici.append(c)
 
+                                    # Poi filtriamo le catene lunghe
+                                    catene_specifiche = []
                                     for c in catene:
                                         # Calcola qualità e determina se ha match sui titoli
                                         punteggio, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
@@ -312,7 +320,7 @@ def catene_scambio(request):
 
                                     # Filtra tutto per l'utente attuale (solo catene specifiche)
                                     scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente_ottimizzato(
-                                        scambi_diretti, catene_specifiche, request.user
+                                        scambi_diretti_specifici, catene_specifiche, request.user
                                     )
 
                                     # Ricomponi le catene filtrate
@@ -364,7 +372,13 @@ def catene_scambio(request):
                     scambi_diretti = risultato['scambi_diretti']
                     catene = risultato['catene']
 
-                    # Filtra per match titoli
+                    # Filtra TUTTI i cicli (scambi diretti + catene) per match titoli
+                    scambi_diretti_specifici = []
+                    for c in scambi_diretti:
+                        _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
+                        if ha_match_titoli:
+                            scambi_diretti_specifici.append(c)
+
                     catene_specifiche_temp = []
                     for c in catene:
                         _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
@@ -373,7 +387,7 @@ def catene_scambio(request):
 
                     # Filtra per utente
                     scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente_ottimizzato(
-                        scambi_diretti, catene_specifiche_temp, request.user
+                        scambi_diretti_specifici, catene_specifiche_temp, request.user
                     )
 
                     tutte_catene = scambi_diretti_utente + catene_lunghe_utente
