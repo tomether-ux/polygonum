@@ -127,3 +127,109 @@ def debug_basso(request):
     output.append("\n" + "=" * 80)
 
     return HttpResponse("\n".join(output), content_type="text/plain; charset=utf-8")
+
+
+@require_http_methods(["GET"])
+def debug_view_catene(request):
+    """
+    Simula il flusso della view catene_scambio per vedere dove si blocca
+    """
+    from .matching import (
+        get_cicli_precalcolati,
+        filtra_catene_per_utente_ottimizzato,
+        calcola_qualita_ciclo
+    )
+    from django.contrib.auth.models import User
+
+    output = []
+    output.append("=" * 80)
+    output.append("🔍 DEBUG VIEW CATENE-SCAMBIO")
+    output.append("=" * 80)
+
+    # Trova 'basso'
+    try:
+        basso = Annuncio.objects.get(titolo__iexact='basso', attivo=True)
+        output.append(f"\n⚠️  'basso' è ATTIVO (ID: {basso.id}, utente: {basso.utente.username})")
+    except Annuncio.DoesNotExist:
+        output.append(f"\n✅ 'basso' non è attivo")
+
+    # Utente da testare
+    username = request.GET.get('user', 'admin')
+    try:
+        user = User.objects.get(username=username)
+        output.append(f"\n👤 Test per utente: {user.username} (ID: {user.id})")
+    except User.DoesNotExist:
+        output.append(f"\n❌ Utente '{username}' non trovato")
+        return HttpResponse("\n".join(output), content_type="text/plain; charset=utf-8")
+
+    # STEP 1: Carica cicli dal DB
+    output.append("\n" + "=" * 80)
+    output.append("STEP 1: get_cicli_precalcolati()")
+    output.append("=" * 80)
+
+    try:
+        risultato = get_cicli_precalcolati()
+        scambi_diretti = risultato['scambi_diretti']
+        catene = risultato['catene']
+
+        output.append(f"\n✅ Caricati dal DB:")
+        output.append(f"   Scambi diretti: {len(scambi_diretti)}")
+        output.append(f"   Catene lunghe: {len(catene)}")
+        output.append(f"   Totale: {risultato['totale']}")
+    except Exception as e:
+        output.append(f"\n❌ ERRORE: {e}")
+        return HttpResponse("\n".join(output), content_type="text/plain; charset=utf-8")
+
+    # STEP 2: Unifica catene
+    output.append("\n" + "=" * 80)
+    output.append("STEP 2: Unifica scambi diretti + catene")
+    output.append("=" * 80)
+
+    catene_uniche = scambi_diretti + catene
+    output.append(f"\nCatene uniche totali: {len(catene_uniche)}")
+
+    # STEP 3: Filtra per qualità
+    output.append("\n" + "=" * 80)
+    output.append("STEP 3: Filtra per qualità (ha_match_titoli)")
+    output.append("=" * 80)
+
+    catene_specifiche = []
+    for c in catene_uniche:
+        try:
+            _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
+            if ha_match_titoli:
+                catene_specifiche.append(c)
+        except Exception as e:
+            output.append(f"   ⚠️  Errore su ciclo: {e}")
+
+    output.append(f"\nCatene dopo filtro qualità: {len(catene_specifiche)}")
+    output.append(f"Catene eliminate (solo categoria): {len(catene_uniche) - len(catene_specifiche)}")
+
+    if len(catene_specifiche) == 0 and len(catene_uniche) > 0:
+        output.append(f"\n❌ PROBLEMA: Tutte le catene filtrate!")
+        output.append(f"\n   CAUSA: I cicli nel DB sono OBSOLETI")
+        output.append(f"   Sono stati calcolati con annunci diversi/vecchi")
+        output.append(f"\n   SOLUZIONE: Ricalcola i cicli!")
+
+    # STEP 4: Filtra per utente
+    output.append("\n" + "=" * 80)
+    output.append(f"STEP 4: Filtra per utente {user.username}")
+    output.append("=" * 80)
+
+    try:
+        scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente_ottimizzato(
+            scambi_diretti, catene_specifiche, user
+        )
+
+        output.append(f"\n✅ Dopo filtro utente:")
+        output.append(f"   Scambi diretti: {len(scambi_diretti_utente)}")
+        output.append(f"   Catene lunghe: {len(catene_lunghe_utente)}")
+
+        totale_visualizzabile = len(scambi_diretti_utente) + len(catene_lunghe_utente)
+        output.append(f"\n📊 TOTALE VISUALIZZABILE: {totale_visualizzabile}")
+
+    except Exception as e:
+        output.append(f"\n❌ ERRORE nel filtro utente: {e}")
+
+    output.append("\n" + "=" * 80)
+    return HttpResponse("\n".join(output), content_type="text/plain; charset=utf-8")
