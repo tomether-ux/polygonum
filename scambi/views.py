@@ -348,7 +348,9 @@ def catene_scambio(request):
                                     elapsed = time.time() - start_time
                                     messages.success(request, f'Ricerca completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} catene con parole in comune nei titoli!')
                             except Exception as e:
-                                print(f"Errore durante ricerca catene lunghe: {e}")
+                                print(f"❌ Errore durante ricerca catene lunghe: {type(e).__name__}: {e}")
+                                import traceback
+                                traceback.print_exc()
                                 # IMPORTANTE: Filtra scambi diretti anche in caso di errore
                                 from .matching import calcola_qualita_ciclo, filtra_catene_per_utente_ottimizzato
                                 scambi_diretti_specifici = []
@@ -360,7 +362,7 @@ def catene_scambio(request):
                                     scambi_diretti_specifici, [], request.user
                                 )
                                 tutte_catene = scambi_diretti_utente
-                                messages.warning(request, 'Errore nella ricerca catene lunghe. Mostrando solo scambi diretti.')
+                                messages.warning(request, f'Errore nella ricerca catene lunghe: {type(e).__name__}. Mostrando solo scambi diretti.')
                 else:
                     tutte_catene = []
                     messages.warning(request, 'Non hai annunci attivi! Pubblica un annuncio per partecipare agli scambi.')
