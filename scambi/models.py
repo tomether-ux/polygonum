@@ -56,6 +56,12 @@ class Annuncio(models.Model):
     )
 
     attivo = models.BooleanField(default=True)
+    disattivato_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Data disattivazione",
+        help_text="Timestamp di quando l'annuncio è stato disattivato (per calcolo catene)"
+    )
     data_creazione = models.DateTimeField(auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True, verbose_name="Ultima modifica")
 

@@ -958,6 +958,7 @@ class CycleFinder:
     def get_annunci_modificati(self, timestamp_ultimo_calcolo):
         """
         Trova gli annunci modificati dall'ultimo calcolo
+        Include annunci attivi + disattivati da meno di 3 minuti
 
         Args:
             timestamp_ultimo_calcolo: DateTime dell'ultimo calcolo completo
@@ -966,11 +967,18 @@ class CycleFinder:
             QuerySet di Annuncio modificati
         """
         from .models import Annuncio
+        from django.db.models import Q
+        from django.utils import timezone
+        from datetime import timedelta
+
+        tre_minuti_fa = timezone.now() - timedelta(minutes=3)
+
+        # Filtro per annunci validi
+        filtro_validi = Q(attivo=True) | Q(attivo=False, disattivato_at__isnull=False, disattivato_at__gte=tre_minuti_fa)
 
         annunci_modificati = Annuncio.objects.filter(
-            last_modified__gt=timestamp_ultimo_calcolo,
-            attivo=True
-        )
+            last_modified__gt=timestamp_ultimo_calcolo
+        ).filter(filtro_validi)
 
         print(f"[{datetime.now()}] 📋 Trovati {annunci_modificati.count()} annunci modificati dal {timestamp_ultimo_calcolo}")
         return annunci_modificati
@@ -996,8 +1004,16 @@ class CycleFinder:
 
         # 2. Utenti che potrebbero scambiare con questi annunci
         # (annunci compatibili)
+        from django.db.models import Q
+        from django.utils import timezone
+        from datetime import timedelta
+
+        tre_minuti_fa = timezone.now() - timedelta(minutes=3)
+        filtro_validi = Q(attivo=True) | Q(attivo=False, disattivato_at__isnull=False, disattivato_at__gte=tre_minuti_fa)
+
         for annuncio_mod in annunci_modificati:
-            utenti_tutti = User.objects.filter(annuncio__attivo=True).distinct()
+            annunci_tutti_validi = Annuncio.objects.filter(filtro_validi)
+            utenti_tutti = User.objects.filter(annuncio__in=annunci_tutti_validi).distinct()
 
             for utente in utenti_tutti:
                 if utente.id == annuncio_mod.utente.id:
@@ -1013,17 +1029,25 @@ class CycleFinder:
     def _utente_compatibile_con_annuncio(self, utente, annuncio):
         """
         Verifica se un utente ha annunci compatibili con l'annuncio dato
+        Include annunci disattivati da meno di 3 minuti
         """
+        from django.db.models import Q
+        from django.utils import timezone
+        from datetime import timedelta
+
+        tre_minuti_fa = timezone.now() - timedelta(minutes=3)
+        filtro_validi = Q(attivo=True) | Q(attivo=False, disattivato_at__isnull=False, disattivato_at__gte=tre_minuti_fa)
+
         if annuncio.tipo == 'offro':
             # L'annuncio offre qualcosa, cerchiamo chi lo cerca
-            richieste_utente = Annuncio.objects.filter(utente=utente, tipo='cerco', attivo=True)
+            richieste_utente = Annuncio.objects.filter(utente=utente, tipo='cerco').filter(filtro_validi)
             for richiesta in richieste_utente:
                 compatible, tipo_match = oggetti_compatibili_con_tipo(annuncio, richiesta)
                 if compatible and tipo_match in ['specifico', 'parziale']:
                     return True
         else:
             # L'annuncio cerca qualcosa, cerchiamo chi lo offre
-            offerte_utente = Annuncio.objects.filter(utente=utente, tipo='offro', attivo=True)
+            offerte_utente = Annuncio.objects.filter(utente=utente, tipo='offro').filter(filtro_validi)
             for offerta in offerte_utente:
                 compatible, tipo_match = oggetti_compatibili_con_tipo(offerta, annuncio)
                 if compatible and tipo_match in ['specifico', 'parziale']:
@@ -1097,11 +1121,27 @@ class CycleFinder:
     def costruisci_grafo(self):
         """
         Costruisce il grafo delle compatibilità dagli annunci attivi
+        + annunci disattivati da meno di 3 minuti
         """
-        print(f"[{datetime.now()}] 🔨 Costruzione grafo compatibilità...")
+        from django.db.models import Q
+        from django.utils import timezone
+        from datetime import timedelta
+
+        print(f"[{datetime.now()}] 🔨 Costruzione grafo compatibilità (inclusi recenti disattivati)...")
 
         self.grafo.clear()
-        utenti = User.objects.filter(annuncio__attivo=True).distinct()
+
+        # Includi annunci attivi + disattivati da meno di 3 minuti
+        tre_minuti_fa = timezone.now() - timedelta(minutes=3)
+
+        annunci_validi = Annuncio.objects.filter(
+            Q(attivo=True) |
+            Q(attivo=False, disattivato_at__isnull=False, disattivato_at__gte=tre_minuti_fa)
+        )
+
+        utenti = User.objects.filter(annuncio__in=annunci_validi).distinct()
+
+        print(f"[{datetime.now()}] 📊 Annunci validi: {annunci_validi.count()} (inclusi disattivati <3 min)")
 
         for utente_a in utenti:
             if utente_a.id not in self.grafo:
@@ -1123,9 +1163,19 @@ class CycleFinder:
         """
         Verifica se due utenti possono scambiare direttamente.
         Usa solo matching titoli (senza considerare prezzo/distanza) per costruire il grafo.
+        Include annunci disattivati da meno di 3 minuti.
         """
-        offerte_a = Annuncio.objects.filter(utente=utente_a, tipo='offro', attivo=True)
-        richieste_b = Annuncio.objects.filter(utente=utente_b, tipo='cerco', attivo=True)
+        from django.db.models import Q
+        from django.utils import timezone
+        from datetime import timedelta
+
+        tre_minuti_fa = timezone.now() - timedelta(minutes=3)
+
+        # Filtro per annunci validi (attivi + disattivati da <3 min)
+        filtro_validi = Q(attivo=True) | Q(attivo=False, disattivato_at__isnull=False, disattivato_at__gte=tre_minuti_fa)
+
+        offerte_a = Annuncio.objects.filter(utente=utente_a, tipo='offro').filter(filtro_validi)
+        richieste_b = Annuncio.objects.filter(utente=utente_b, tipo='cerco').filter(filtro_validi)
 
         # DEBUG: Log dettagliato per annunci 'basso'
         debug_basso = False

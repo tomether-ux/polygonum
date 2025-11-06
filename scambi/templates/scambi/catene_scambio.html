@@ -285,9 +285,9 @@
                     </div>
                 </div>
 
-                <button id="searchButton" onclick="startSearch()" class="btn btn-primary btn-lg">
-                    <i class="fas fa-search me-2"></i>
-                    <span id="buttonText">{% if personalizzato %}Cerca I Miei Scambi{% else %}Cerca Catene di Scambio{% endif %}</span>
+                <button id="searchButton" onclick="ricalcolaCatene()" class="btn btn-primary btn-lg">
+                    <i class="fas fa-sync-alt me-2"></i>
+                    <span id="buttonText">🔄 Aggiorna le Mie Catene</span>
                 </button>
                 {% if personalizzato %}
                 <a href="{% url 'le_mie_catene' %}" class="btn btn-outline-secondary ms-2">
@@ -498,30 +498,33 @@ function toggleGroup(groupId) {
     }
 }
 
-function startSearch() {
+// NUOVA FUNZIONE: Ricalcola catene solo per l'utente corrente
+function ricalcolaCatene() {
     // Nascondi il contenuto principale e mostra la schermata di loading
     document.getElementById('mainContent').style.display = 'none';
     document.getElementById('loadingScreen').style.display = 'block';
 
-    // Simula il progresso dell'elaborazione
+    // Simula il progresso dell'elaborazione (animazione poligoni)
     animateProgress();
 
-    // Avvia la ricerca effettiva
+    // Avvia il ricalcolo parziale
     const currentUrl = new URL(window.location);
-    currentUrl.searchParams.set('cerca', 'true');
+    currentUrl.searchParams.set('ricalcola', 'true');
 
-    // Aggiungi filtro per annuncio se selezionato
-    const annuncioFiltro = document.getElementById('annuncioFiltro');
-    if (annuncioFiltro && annuncioFiltro.value) {
-        currentUrl.searchParams.set('annuncio_id', annuncioFiltro.value);
-    } else {
-        currentUrl.searchParams.delete('annuncio_id');
-    }
+    // Rimuovi parametri vecchi
+    currentUrl.searchParams.delete('cerca');
+    currentUrl.searchParams.delete('annuncio_id');
 
-    // Delay minimo per mostrare l'animazione
+    // Delay minimo per mostrare l'animazione (ridotto a 2s per ricalcolo più veloce)
     setTimeout(() => {
         window.location.href = currentUrl.toString();
-    }, 3000); // 3 secondi di animazione prima del redirect
+    }, 2000);
+}
+
+// Funzione legacy mantenuta per compatibilità (non più usata)
+function startSearch() {
+    // Redirect alla nuova funzione
+    ricalcolaCatene();
 }
 
 function animateProgress() {
@@ -632,25 +635,51 @@ function aggiornaContatori() {
     });
 }
 
-// Se la pagina viene caricata con cerca=true, mostra subito il risultato senza loading
+// Filtra catene per annuncio specifico (dropdown)
+function filtraCatenePerAnnuncio() {
+    const annuncioId = document.getElementById('annuncioFiltro')?.value;
+    const catene = document.querySelectorAll('.modern-chain-card');
+
+    catene.forEach(catena => {
+        if (!annuncioId || annuncioId === '') {
+            // Nessun filtro: mostra tutte
+            catena.style.display = '';
+        } else {
+            // Controlla se la catena coinvolge questo annuncio
+            const annunciCoinvolti = catena.dataset.annunciIds?.split(',') || [];
+            if (annunciCoinvolti.includes(annuncioId)) {
+                catena.style.display = '';
+            } else {
+                catena.style.display = 'none';
+            }
+        }
+    });
+
+    aggiornaContatori();
+}
+
+// Inizializzazione al caricamento pagina
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('cerca') === 'true') {
-        // La ricerca è stata già eseguita, mostra i risultati
+
+    // Mostra risultati se c'è stato un ricalcolo
+    if (urlParams.get('ricalcola') === 'true' || urlParams.get('cerca') === 'true') {
         document.getElementById('mainContent').style.display = 'block';
         document.getElementById('loadingScreen').style.display = 'none';
-
-        // I gruppi rimangono chiusi - l'utente deve aprirli manualmente
     }
 
     // Aggiungi listener per il toggle sinonimi
     const toggleSinonimi = document.getElementById('includiSinonimi');
     if (toggleSinonimi) {
         toggleSinonimi.addEventListener('change', filtraCateneSinonimi);
-
-        // SEMPRE nascondi le catene con sinonimi al caricamento (checkbox disattivato di default)
-        // Applica il filtro indipendentemente dal parametro cerca=true
+        // Applica filtro iniziale (nascondi sinonimi di default)
         filtraCateneSinonimi();
+    }
+
+    // Aggiungi listener per il dropdown annuncio
+    const annuncioFiltro = document.getElementById('annuncioFiltro');
+    if (annuncioFiltro) {
+        annuncioFiltro.addEventListener('change', filtraCatenePerAnnuncio);
     }
 
     // Gestione dei click sulle stelle dei preferiti

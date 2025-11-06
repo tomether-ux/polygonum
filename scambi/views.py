@@ -237,13 +237,97 @@ def disattiva_annuncio(request, annuncio_id):
     return redirect('profilo_utente', username=request.user.username)
 
 def catene_scambio(request):
-    """Mostra le catene di scambio divise per qualità"""
-    # Controlla se è stata richiesta una nuova ricerca
-    cerca_nuove = request.GET.get('cerca') == 'true'
-    # Filtro per annuncio specifico
-    annuncio_filtro_id = request.GET.get('annuncio_id')
+    """
+    Mostra le catene di scambio pre-calcolate dalla GitHub Action.
+    NUOVA LOGICA (2025):
+    - Carica TUTTE le catene dal DB (inclusi sinonimi, annunci disattivati <3min)
+    - NO filtri server-side (troppo lenti, causavano timeout)
+    - Filtri applicati lato client in JavaScript (istantanei)
+    - RICALCOLO PARZIALE: ?ricalcola=true → calcola solo cicli per utente corrente
+    """
+    # Check se richiesto ricalcolo parziale
+    ricalcola_per_utente = request.GET.get('ricalcola') == 'true'
 
-    if cerca_nuove:
+    if ricalcola_per_utente and request.user.is_authenticated:
+        # RICALCOLO PARZIALE: invalida cicli utente e ricalcola
+        print(f"🔄 Ricalcolo parziale richiesto per utente: {request.user.username}")
+
+        import time
+        start_time = time.time()
+
+        try:
+            from .matching import CycleFinder, get_cicli_precalcolati, calcola_qualita_ciclo, filtra_catene_per_utente_ottimizzato
+            from .models import CicloScambio
+
+            # Controlla se l'utente ha annunci attivi
+            annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
+            if not annunci_utente.exists():
+                tutte_catene = []
+                messages.warning(request, 'Non hai annunci attivi! Pubblica un annuncio per partecipare agli scambi.')
+            else:
+                # Step 1: Invalida cicli vecchi per questo utente
+                print(f"   ❌ Invalidando cicli vecchi per utente {request.user.id}...")
+                finder = CycleFinder()
+                invalidati = finder.invalida_cicli_con_utenti([request.user.id])
+                print(f"   Invalidati {invalidati} cicli")
+
+                # Step 2: Costruisci grafo e ricalcola
+                print(f"   🔨 Costruendo grafo...")
+                finder.costruisci_grafo()
+
+                print(f"   🔍 Cercando nuovi cicli...")
+                cicli_raw = finder.trova_cicli_per_utenti([request.user.id], max_length=6)
+                print(f"   Trovati {len(cicli_raw)} cicli raw")
+
+                # Step 3: Salva cicli nel DB
+                print(f"   💾 Salvando cicli nel DB...")
+                from .management.commands.calcola_cicli import Command as CalcolaCicliCommand
+                cmd = CalcolaCicliCommand()
+
+                salvati = 0
+                for ciclo_raw in cicli_raw:
+                    # Crea oggetto CicloScambio
+                    CicloScambio.objects.create(
+                        users=ciclo_raw['users'],
+                        lunghezza=ciclo_raw['lunghezza'],
+                        dettagli=ciclo_raw['dettagli'],
+                        hash_ciclo=ciclo_raw['hash_ciclo'],
+                        valido=True
+                    )
+                    salvati += 1
+
+                print(f"   ✅ Salvati {salvati} cicli nel DB")
+
+                # Step 4: Ricarica con funzione esistente
+                risultato = get_cicli_precalcolati()
+                scambi_diretti = risultato['scambi_diretti']
+                catene_lunghe = risultato['catene']
+
+                # Aggiungi punteggi qualità
+                for c in scambi_diretti:
+                    c['punteggio_qualita'] = calcola_qualita_ciclo(c)
+                for c in catene_lunghe:
+                    c['punteggio_qualita'] = calcola_qualita_ciclo(c)
+
+                # Filtra solo catene per questo utente
+                scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente_ottimizzato(
+                    scambi_diretti, catene_lunghe, request.user
+                )
+
+                tutte_catene = scambi_diretti_utente + catene_lunghe_utente
+
+                elapsed = time.time() - start_time
+                print(f"✅ Ricalcolo completato in {elapsed:.2f}s - Trovate {len(tutte_catene)} catene per l'utente")
+                messages.success(request, f'🔄 Catene aggiornate! Trovate {len(tutte_catene)} catene in {elapsed:.1f} secondi.')
+
+        except Exception as e:
+            print(f"❌ Errore durante ricalcolo parziale: {e}")
+            import traceback
+            traceback.print_exc()
+            tutte_catene = []
+            messages.error(request, f'Errore durante il ricalcolo: {str(e)}')
+
+    elif False:  # Blocco legacy disabilitato (era if cerca_nuove:)
         import time
 
         print("🔍 RICERCA CATENE ATTIVATA MANUALMENTE")
@@ -385,15 +469,13 @@ def catene_scambio(request):
             messages.error(request, 'Errore durante la ricerca delle catene. Riprova più tardi.')
             tutte_catene = []
     else:
-        # Se non è stata richiesta ricerca, carica catene dal DB
-        print("📋 Caricamento catene dal database (senza ricalcolo)")
-
+        # Carica TUTTE le catene pre-calcolate dal DB (nessun filtro server-side)
         if request.user.is_authenticated:
             # Controlla se l'utente ha annunci attivi
             annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
             if annunci_utente.exists():
                 try:
-                    # Carica cicli pre-calcolati dal DB
+                    # Carica TUTTI i cicli pre-calcolati (inclusi sinonimi, recenti disattivati)
                     from .matching import (
                         get_cicli_precalcolati,
                         filtra_catene_per_utente_ottimizzato,
@@ -402,37 +484,50 @@ def catene_scambio(request):
 
                     risultato = get_cicli_precalcolati()
                     scambi_diretti = risultato['scambi_diretti']
-                    catene = risultato['catene']
+                    catene_lunghe = risultato['catene']
 
-                    # Filtra TUTTI i cicli (scambi diretti + catene) per match titoli
-                    scambi_diretti_specifici = []
+                    # Aggiungi punteggi qualità (per ordinamento/display)
                     for c in scambi_diretti:
-                        _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
-                        if ha_match_titoli:
-                            scambi_diretti_specifici.append(c)
+                        c['punteggio_qualita'] = calcola_qualita_ciclo(c)
+                    for c in catene_lunghe:
+                        c['punteggio_qualita'] = calcola_qualita_ciclo(c)
 
-                    catene_specifiche_temp = []
-                    for c in catene:
-                        _, ha_match_titoli = calcola_qualita_ciclo(c, return_tipo_match=True)
-                        if ha_match_titoli:
-                            catene_specifiche_temp.append(c)
-
-                    # Filtra per utente
+                    # FILTRO: Solo catene che coinvolgono l'utente corrente
                     scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente_ottimizzato(
-                        scambi_diretti_specifici, catene_specifiche_temp, request.user
+                        scambi_diretti, catene_lunghe, request.user
                     )
 
                     tutte_catene = scambi_diretti_utente + catene_lunghe_utente
 
-                    print(f"✅ Caricate {len(tutte_catene)} catene dal DB per {request.user.username}")
+                    print(f"✅ Caricate {len(tutte_catene)} catene totali per {request.user.username}")
+                    print(f"   (Include: sinonimi, match categoria, annunci disattivati <3 min)")
 
                 except Exception as e:
                     print(f"❌ Errore caricamento catene dal DB: {e}")
+                    import traceback
+                    traceback.print_exc()
                     tutte_catene = []
+                    messages.error(request, 'Errore durante il caricamento delle catene. Riprova più tardi.')
             else:
                 tutte_catene = []
+                messages.warning(request, 'Non hai annunci attivi! Pubblica un annuncio per partecipare agli scambi.')
         else:
-            tutte_catene = []
+            # Utente non autenticato: mostra tutte le catene (per preview)
+            try:
+                from .matching import get_cicli_precalcolati, calcola_qualita_ciclo
+
+                risultato = get_cicli_precalcolati()
+                tutte_catene = risultato['scambi_diretti'] + risultato['catene']
+
+                # Aggiungi punteggi qualità
+                for c in tutte_catene:
+                    c['punteggio_qualita'] = calcola_qualita_ciclo(c)
+
+                print(f"✅ Caricate {len(tutte_catene)} catene per utente non autenticato")
+
+            except Exception as e:
+                print(f"❌ Errore: {e}")
+                tutte_catene = []
 
     # Rimuovi duplicati
     catene_uniche = []
@@ -450,18 +545,7 @@ def catene_scambio(request):
     catene_specifiche = catene_uniche
 
 
-    # Filtra per annuncio specifico se richiesto
-    if annuncio_filtro_id and request.user.is_authenticated:
-        try:
-            annuncio_filtro = Annuncio.objects.get(id=annuncio_filtro_id, utente=request.user, attivo=True)
-
-            # Filtra solo catene che coinvolgono questo annuncio
-            catene_specifiche = [c for c in catene_specifiche if any(
-                item.get('annuncio', {}).id == int(annuncio_filtro_id) if hasattr(item.get('annuncio', {}), 'id')
-                else False for item in c.get('annunci_coinvolti', [])
-            )]
-        except Annuncio.DoesNotExist:
-            pass  # Ignora se l'annuncio non esiste
+    # Filtro per annuncio specifico: ORA fatto in JavaScript (lato client)
 
     # Ordina per lunghezza e punteggio
     catene_specifiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
@@ -477,16 +561,10 @@ def catene_scambio(request):
             # Converti la catena in JSON string per il template
             catena['json_data'] = json.dumps(catena, default=str)
 
-    # Aggiungi annunci utente per dropdown filtro
+    # Passa annunci utente per filtro JavaScript
     miei_annunci = []
-    annuncio_selezionato = None
     if request.user.is_authenticated:
         miei_annunci = Annuncio.objects.filter(utente=request.user, attivo=True).order_by('-data_creazione')
-        if annuncio_filtro_id:
-            try:
-                annuncio_selezionato = Annuncio.objects.get(id=annuncio_filtro_id, utente=request.user, attivo=True)
-            except Annuncio.DoesNotExist:
-                pass
 
     # UNIFICATO: Raggruppa TUTTE le catene (2-6) per numero di partecipanti
     catene_2 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 2]
@@ -505,10 +583,7 @@ def catene_scambio(request):
         'totale_catene': len(catene_specifiche),
         'totale_scambi_diretti': len(catene_2),
         'totale_catene_lunghe': len(catene_specifiche) - len(catene_2),
-        'ricerca_eseguita': cerca_nuove,
-        'user_filtered': request.user.is_authenticated and cerca_nuove,
         'miei_annunci': miei_annunci,
-        'annuncio_selezionato': annuncio_selezionato
     })
 
 # La funzione test_matching rimane uguale...
