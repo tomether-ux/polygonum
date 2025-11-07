@@ -244,7 +244,32 @@ def catene_scambio(request):
     - NO filtri server-side (troppo lenti, causavano timeout)
     - Filtri applicati lato client in JavaScript (istantanei)
     - RICALCOLO PARZIALE: ?ricalcola=true → calcola solo cicli per utente corrente
+    - CARICAMENTO LAZY: ?load=true → carica catene dal DB, altrimenti pagina vuota
     """
+    # Check se richiesto caricamento catene
+    load_chains = request.GET.get('load') == 'true'
+
+    # Se non richiesto caricamento, mostra pagina vuota con solo il bottone
+    if not load_chains:
+        # Passa annunci utente per il filtro JavaScript (anche se non ci sono catene)
+        miei_annunci = []
+        if request.user.is_authenticated:
+            miei_annunci = Annuncio.objects.filter(utente=request.user, attivo=True).order_by('-data_creazione')
+
+        return render(request, 'scambi/catene_scambio.html', {
+            'catene_specifiche': [],
+            'catene_2': [],
+            'catene_3': [],
+            'catene_4': [],
+            'catene_5': [],
+            'catene_6': [],
+            'totale_catene': 0,
+            'totale_scambi_diretti': 0,
+            'totale_catene_lunghe': 0,
+            'miei_annunci': miei_annunci,
+            'empty_state': True,  # Flag per mostrare stato vuoto
+        })
+
     # Check se richiesto ricalcolo parziale
     ricalcola_per_utente = request.GET.get('ricalcola') == 'true'
 
