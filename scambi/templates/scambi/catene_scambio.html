@@ -286,8 +286,8 @@
                 </div>
 
                 <button id="searchButton" onclick="ricalcolaCatene()" class="btn btn-primary btn-lg">
-                    <i class="fas fa-sync-alt me-2"></i>
-                    <span id="buttonText">🔄 Aggiorna le Mie Catene</span>
+                    <i class="fas fa-search me-2"></i>
+                    <span id="buttonText">🔍 Cerca Catene</span>
                 </button>
                 {% if personalizzato %}
                 <a href="{% url 'le_mie_catene' %}" class="btn btn-outline-secondary ms-2">
@@ -470,8 +470,8 @@
         </div>
         {% else %}
         <div class="alert alert-light text-center">
-            <h4><i class="fas fa-clock me-2"></i>In attesa di ricerca</h4>
-            <p>{% if personalizzato %}Clicca su "Cerca I Miei Scambi" per trovare opportunità personalizzate.{% else %}Clicca su "Cerca Catene di Scambio" per analizzare gli annunci disponibili.{% endif %}</p>
+            <h4><i class="fas fa-clock me-2"></i>Pronto per cercare le catene</h4>
+            <p>{% if personalizzato %}Clicca su "Aggiorna le Mie Catene" sopra per caricare le opportunità di scambio personalizzate.{% else %}Clicca su "Aggiorna Catene" sopra per vedere le catene di scambio disponibili.{% endif %}</p>
         </div>
         {% endif %}
     {% endif %}
@@ -498,7 +498,7 @@ function toggleGroup(groupId) {
     }
 }
 
-// NUOVA FUNZIONE: Ricalcola catene solo per l'utente corrente
+// NUOVA FUNZIONE: Carica catene dal DB per l'utente corrente
 function ricalcolaCatene() {
     // Nascondi il contenuto principale e mostra la schermata di loading
     document.getElementById('mainContent').style.display = 'none';
@@ -507,13 +507,14 @@ function ricalcolaCatene() {
     // Simula il progresso dell'elaborazione (animazione poligoni)
     animateProgress();
 
-    // Ricarica la pagina mostrando le catene dal DB (veloce)
+    // Carica la pagina con le catene dal DB
     const currentUrl = new URL(window.location);
 
-    // Rimuovi parametri per ricaricare la vista base
+    // Rimuovi vecchi parametri e aggiungi load=true
     currentUrl.searchParams.delete('ricalcola');
     currentUrl.searchParams.delete('cerca');
     currentUrl.searchParams.delete('annuncio_id');
+    currentUrl.searchParams.set('load', 'true');
 
     // Delay minimo per mostrare l'animazione (1s per caricamento veloce dal DB)
     setTimeout(() => {
