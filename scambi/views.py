@@ -249,6 +249,15 @@ def catene_scambio(request):
     # Check se richiesto caricamento catene
     load_chains = request.GET.get('load') == 'true'
 
+    # Controlla se è stato richiesto un filtro per annuncio specifico
+    annuncio_id = request.GET.get('annuncio_id')
+    annuncio_selezionato = None
+    if annuncio_id and request.user.is_authenticated:
+        try:
+            annuncio_selezionato = Annuncio.objects.get(id=annuncio_id, utente=request.user, attivo=True)
+        except Annuncio.DoesNotExist:
+            pass
+
     # Se non richiesto caricamento, mostra pagina vuota con solo il bottone
     if not load_chains:
         # Passa annunci utente per il filtro JavaScript (anche se non ci sono catene)
@@ -267,6 +276,7 @@ def catene_scambio(request):
             'totale_scambi_diretti': 0,
             'totale_catene_lunghe': 0,
             'miei_annunci': miei_annunci,
+            'annuncio_selezionato': annuncio_selezionato,
             'empty_state': True,  # Flag per mostrare stato vuoto
         })
 
@@ -615,6 +625,7 @@ def catene_scambio(request):
         'totale_scambi_diretti': len(catene_2),
         'totale_catene_lunghe': len(catene_specifiche) - len(catene_2),
         'miei_annunci': miei_annunci,
+        'annuncio_selezionato': annuncio_selezionato,
     })
 
 # La funzione test_matching rimane uguale...
