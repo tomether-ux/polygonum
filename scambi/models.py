@@ -27,10 +27,15 @@ class Annuncio(models.Model):
     ]
 
     utente = models.ForeignKey(User, on_delete=models.CASCADE)
-    titolo = models.CharField(max_length=200)
+    titolo = models.CharField(max_length=200, blank=True)
     descrizione = models.TextField()
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
+    cerca_per_categoria = models.BooleanField(
+        default=False,
+        verbose_name="Cerco qualsiasi cosa in questa categoria",
+        help_text="Se attivato, cerca qualsiasi oggetto nella categoria selezionata (solo per annunci 'cerco')"
+    )
     immagine = models.ImageField(upload_to='annunci/', blank=True, null=True)
 
     # Nuovi campi per prezzo e modalità di scambio

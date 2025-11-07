@@ -99,6 +99,16 @@
                                 <label class="form-label">{{ form.titolo.label_tag }}</label>
                                 {{ form.titolo }}
                                 <small class="form-text text-muted">Es: "Chitarra elettrica Fender" o "Bicicletta da corsa"</small>
+
+                                <!-- Checkbox cerca per categoria (solo per annunci "cerco") -->
+                                <div class="form-check mt-2" id="cerca-per-categoria-container" style="display: none;">
+                                    <input type="checkbox" class="form-check-input" id="id_cerca_per_categoria" name="cerca_per_categoria">
+                                    <label class="form-check-label" for="id_cerca_per_categoria">
+                                        <i class="fas fa-list-ul me-1"></i>
+                                        Cerco qualsiasi cosa in questa categoria
+                                        <small class="text-muted d-block">Attiva per cercare qualsiasi oggetto della categoria selezionata senza specificare un titolo</small>
+                                    </label>
+                                </div>
                             </div>
 
                             <div class="mb-3">
@@ -225,6 +235,46 @@ document.addEventListener('DOMContentLoaded', function() {
 
     metodoScambio.addEventListener('change', toggleDistanceField);
     toggleDistanceField(); // Esegui al caricamento
+
+    // Gestione checkbox "Cerca per categoria" (solo per annunci cerco)
+    const tipoAnnuncio = document.getElementById('id_tipo');
+    const cercaPerCategoriaContainer = document.getElementById('cerca-per-categoria-container');
+    const cercaPerCategoriaCheckbox = document.getElementById('id_cerca_per_categoria');
+    const titoloField = document.getElementById('id_titolo');
+
+    function toggleCercaPerCategoria() {
+        // Mostra il checkbox solo se tipo='cerco'
+        if (tipoAnnuncio.value === 'cerco') {
+            cercaPerCategoriaContainer.style.display = 'block';
+        } else {
+            cercaPerCategoriaContainer.style.display = 'none';
+            cercaPerCategoriaCheckbox.checked = false;
+            titoloField.disabled = false;
+            titoloField.required = true;
+        }
+    }
+
+    function toggleTitoloField() {
+        if (cercaPerCategoriaCheckbox.checked) {
+            // Checkbox attivato: disabilita titolo
+            titoloField.disabled = true;
+            titoloField.required = false;
+            titoloField.value = '';  // Svuota il campo
+            titoloField.style.backgroundColor = '#e9ecef';  // Grigio chiaro
+        } else {
+            // Checkbox disattivato: riabilita titolo
+            titoloField.disabled = false;
+            titoloField.required = true;
+            titoloField.style.backgroundColor = '';  // Reset colore
+        }
+    }
+
+    tipoAnnuncio.addEventListener('change', toggleCercaPerCategoria);
+    cercaPerCategoriaCheckbox.addEventListener('change', toggleTitoloField);
+
+    // Esegui al caricamento
+    toggleCercaPerCategoria();
+    toggleTitoloField();
 });
 </script>
 {% endblock %}
