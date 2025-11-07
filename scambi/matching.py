@@ -656,79 +656,49 @@ def estrai_parole_chiave(testo):
 def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
     """Matching avanzato che restituisce anche il tipo di match"""
 
-    print(f"\n🔍 DEBUG: === CONTROLLO COMPATIBILITÀ ===")
-    print(f"🔍 Offerto - Titolo: '{annuncio_offerto.titolo}', Descrizione: '{annuncio_offerto.descrizione or 'VUOTA'}'")
-    print(f"🔍 Cercato - Titolo: '{annuncio_cercato.titolo}', Descrizione: '{annuncio_cercato.descrizione or 'VUOTA'}'")
-    print(f"🔍 Categorie - Offerto: '{annuncio_offerto.categoria}', Cercato: '{annuncio_cercato.categoria}'")
+    # 0. MATCH PER CATEGORIA se cerca_per_categoria è attivo
+    # Se l'annuncio "cerco" ha il flag cerca_per_categoria=True, accetta qualsiasi cosa della categoria
+    if hasattr(annuncio_cercato, 'cerca_per_categoria') and annuncio_cercato.cerca_per_categoria:
+        if annuncio_offerto.categoria == annuncio_cercato.categoria:
+            return True, "categoria"
 
     # 1. MATCH SPECIFICO OTTIMIZZATO: Usa solo i titoli per velocità
     testo_offerto = annuncio_offerto.titolo
     testo_cercato = annuncio_cercato.titolo
 
-    print(f"🔍 Testo offerto (solo titolo): '{testo_offerto}'")
-    print(f"🔍 Testo cercato (solo titolo): '{testo_cercato}'")
-
     parole_offerto = estrai_parole_chiave(testo_offerto)
     parole_cercato = estrai_parole_chiave(testo_cercato)
-
-    print(f"🔍 Parole chiave offerto: {parole_offerto}")
-    print(f"🔍 Parole chiave cercato: {parole_cercato}")
 
     # NUOVA LOGICA: L'offerta deve contenere TUTTE le parole richieste
     # Questo permette ricerche specifiche ("iPhone 12 Pro") o generiche ("telefono")
     parole_mancanti = parole_cercato - parole_offerto
-    print(f"🔍 Parole richieste: {parole_cercato}")
-    print(f"🔍 Parole nell'offerta: {parole_offerto}")
-    print(f"🔍 Parole mancanti nell'offerta: {parole_mancanti}")
 
     if not parole_mancanti:  # Tutte le parole richieste sono presenti nell'offerta
-        print(f"✅ MATCH SPECIFICO: '{annuncio_offerto.titolo}' contiene tutte le parole richieste: {parole_cercato}")
         return True, "specifico"
 
     # 2. MATCH PARZIALE: Alcune parole dell'offerta sono contenute nella ricerca
-    print(f"🔍 Controllo match parziale...")
     for parola_offerta in parole_offerto:
         for parola_cercata in parole_cercato:
-            print(f"🔍 Confronto parziale: '{parola_offerta}' vs '{parola_cercata}'")
             if ((parola_offerta in parola_cercata or parola_cercata in parola_offerta) and
                 len(parola_offerta) > 3 and len(parola_cercata) > 3):
-                print(f"✅ MATCH PARZIALE: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (parole simili: {parola_offerta} ~ {parola_cercata})")
                 return True, "parziale"
 
     # 2.5 MATCH CON SINONIMI: Priorità ALTA - Prima della categoria
     # I sinonimi sono match semantici forti, devono avere priorità sulla categoria
-    print(f"🔍 Controllo match con sinonimi...")
     try:
         from .synonym_matcher import check_synonym_match
         compatibile_sinonimo, tipo = check_synonym_match(parole_offerto, parole_cercato)
         if compatibile_sinonimo:
-            print(f"✅ MATCH SINONIMO: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' (via WordNet)")
             return True, "sinonimo"  # Marcato come 'sinonimo' per consentire filtraggio
     except Exception as e:
-        print(f"⚠️ Errore check sinonimi: {e}")
         pass  # Se fallisce, continua con gli altri controlli
 
-    # 3. MATCH PER CATEGORIA: Stessa categoria (priorità più bassa dei sinonimi)
-    print(f"🔍 Controllo match per categoria...")
-    print(f"🔍 Categoria offerto: '{annuncio_offerto.categoria}' (ID: {annuncio_offerto.categoria.id if annuncio_offerto.categoria else 'None'})")
-    print(f"🔍 Categoria cercato: '{annuncio_cercato.categoria}' (ID: {annuncio_cercato.categoria.id if annuncio_cercato.categoria else 'None'})")
+    # 3. MATCH PER CATEGORIA: DISABILITATO per match non espliciti
+    # (rimosso match categoria automatico - serve flag cerca_per_categoria)
 
-    if annuncio_offerto.categoria == annuncio_cercato.categoria:
-        print(f"✅ MATCH CATEGORIA: '{annuncio_offerto.titolo}' → '{annuncio_cercato.titolo}' ({annuncio_offerto.categoria.nome})")
-        return True, "categoria"
+    # 4. MATCH GENERICO: DISABILITATO
+    # (rimosso match generico - serve flag cerca_per_categoria)
 
-    # 4. MATCH GENERICO: Cerco "qualsiasi cosa" di una categoria
-    print(f"🔍 Controllo match generico...")
-    parole_generiche = {'qualsiasi', 'qualunque', 'qualcosa', 'oggetto', 'cosa', 'tutto', 'roba'}
-    parole_generiche_trovate = parole_generiche & parole_cercato
-    print(f"🔍 Parole generiche nel cercato: {parole_generiche_trovate}")
-
-    if (parole_generiche_trovate and
-        annuncio_offerto.categoria == annuncio_cercato.categoria):
-        print(f"✅ MATCH GENERICO: '{annuncio_offerto.titolo}' → qualsiasi {annuncio_cercato.categoria.nome}")
-        return True, "generico"
-
-    print(f"❌ NESSUN MATCH trovato")
     return False, None
 
 def verifica_compatibilita_prezzo(annuncio_offerto, annuncio_cercato, tolleranza_percentuale=30):
@@ -1182,8 +1152,8 @@ class CycleFinder:
                 # Usa solo compatibilità titoli (non algoritmo avanzato)
                 compatible, tipo_match = oggetti_compatibili_con_tipo(offerta, richiesta)
 
-                # Accetta solo match specifico, parziale o sinonimo (NON categoria o generico)
-                if compatible and tipo_match in ['specifico', 'parziale', 'sinonimo']:
+                # Accetta match specifico, parziale, sinonimo o categoria (se flag attivo)
+                if compatible and tipo_match in ['specifico', 'parziale', 'sinonimo', 'categoria']:
                     return True
 
         return False
@@ -1325,7 +1295,7 @@ class CycleFinder:
     def _trova_oggetto_scambiato(self, user_id_da, user_id_a):
         """
         Trova TUTTI gli oggetti che user_da può dare a user_a
-        Esclude match generici/categoria, mostra solo match specifici/sinonimi/parziali
+        Include categoria solo se flag cerca_per_categoria è attivo
         """
         try:
             utente_da = User.objects.get(id=user_id_da)
@@ -1355,7 +1325,7 @@ class CycleFinder:
             except:
                 distanza_km = 50
 
-            # Trova TUTTI i match validi (esclusi categoria/generico)
+            # Trova TUTTI i match validi
             tutti_oggetti = []
 
             for offerta in offerte_da:
@@ -1363,8 +1333,8 @@ class CycleFinder:
                     # Controlla il tipo di match
                     compatible, tipo_match = oggetti_compatibili_con_tipo(offerta, richiesta)
 
-                    # Accetta solo match specifici/sinonimi/parziali (NON categoria/generico)
-                    if compatible and tipo_match in ['specifico', 'sinonimo', 'parziale']:
+                    # Accetta specifici/sinonimi/parziali + categoria (se flag attivo)
+                    if compatible and tipo_match in ['specifico', 'sinonimo', 'parziale', 'categoria']:
                         tutti_oggetti.append({
                             'offerto': {
                                 'id': offerta.id,
