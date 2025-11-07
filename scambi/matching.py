@@ -658,7 +658,7 @@ def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
 
     # 0. MATCH PER CATEGORIA se cerca_per_categoria è attivo
     # IMPORTANTE: Questo flag può essere SOLO su annunci "cerco", MAI su annunci "offro"
-    # Se l'annuncio "cerco" ha il flag cerca_per_categoria=True, accetta qualsiasi cosa della stessa categoria
+    # Se l'annuncio "cerco" ha il flag cerca_per_categoria=True, accetta SOLO match per categoria
     if hasattr(annuncio_cercato, 'cerca_per_categoria') and annuncio_cercato.cerca_per_categoria:
         # Verifica che annuncio_cercato sia tipo="cerco" (il flag dovrebbe essere solo lì)
         if hasattr(annuncio_cercato, 'tipo') and annuncio_cercato.tipo == 'cerco':
@@ -668,6 +668,9 @@ def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
                 annuncio_offerto.categoria and annuncio_cercato.categoria and
                 annuncio_offerto.categoria == annuncio_cercato.categoria):
                 return True, "categoria"
+            # Se il flag è attivo ma le categorie non matchano, ritorna subito False
+            # Non continuare con altri tipi di match (titolo, sinonimi, etc)
+            return False, None
 
     # 1. MATCH SPECIFICO OTTIMIZZATO: Usa solo i titoli per velocità
     testo_offerto = annuncio_offerto.titolo
