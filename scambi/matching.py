@@ -1177,36 +1177,15 @@ class CycleFinder:
         offerte_a = Annuncio.objects.filter(utente=utente_a, tipo='offro').filter(filtro_validi)
         richieste_b = Annuncio.objects.filter(utente=utente_b, tipo='cerco').filter(filtro_validi)
 
-        # DEBUG: Log dettagliato per annunci 'basso'
-        debug_basso = False
-        for off in offerte_a:
-            if off.titolo.lower() == 'basso':
-                debug_basso = True
-                break
-        for rich in richieste_b:
-            if rich.titolo.lower() == 'basso':
-                debug_basso = True
-                break
-
         for offerta in offerte_a:
             for richiesta in richieste_b:
                 # Usa solo compatibilità titoli (non algoritmo avanzato)
                 compatible, tipo_match = oggetti_compatibili_con_tipo(offerta, richiesta)
 
-                # DEBUG: Log quando 'basso' è coinvolto
-                if debug_basso:
-                    print(f"🔍 DEBUG BASSO: {utente_a.username} offre '{offerta.titolo}' → {utente_b.username} cerca '{richiesta.titolo}': compatible={compatible}, tipo_match={tipo_match}")
-
-                # Accetta match specifico, parziale o sinonimo (non categoria o generico)
+                # Accetta solo match specifico, parziale o sinonimo (NON categoria o generico)
                 if compatible and tipo_match in ['specifico', 'parziale', 'sinonimo']:
-                    if debug_basso:
-                        print(f"✅ MATCH ACCETTATO per 'basso'!")
                     return True
-                elif compatible and debug_basso:
-                    print(f"❌ Match rifiutato (tipo: {tipo_match})")
 
-        if debug_basso:
-            print(f"🚫 Nessun match valido per 'basso' tra {utente_a.username} e {utente_b.username}")
         return False
 
     def trova_tutti_cicli(self, max_length=6):
@@ -1345,8 +1324,8 @@ class CycleFinder:
 
     def _trova_oggetto_scambiato(self, user_id_da, user_id_a):
         """
-        Trova quale oggetto user_da dà a user_a
-        Ritorna il MIGLIOR match (punteggio più alto) invece del primo match
+        Trova TUTTI gli oggetti che user_da può dare a user_a
+        Esclude match generici/categoria, mostra solo match specifici/sinonimi/parziali
         """
         try:
             utente_da = User.objects.get(id=user_id_da)
@@ -1376,36 +1355,39 @@ class CycleFinder:
             except:
                 distanza_km = 50
 
-            # Trova il MIGLIOR match invece del primo match
-            miglior_match = None
-            punteggio_migliore = 20  # Soglia minima di qualità
+            # Trova TUTTI i match validi (esclusi categoria/generico)
+            tutti_oggetti = []
 
             for offerta in offerte_da:
                 for richiesta in richieste_a:
-                    # Usa logica avanzata con soglia di qualità
-                    compatible, punteggio, _ = oggetti_compatibili_avanzato(offerta, richiesta, distanza_km)
-                    if compatible and punteggio > punteggio_migliore:
-                        punteggio_migliore = punteggio
-                        miglior_match = {
-                            'da_user': user_id_da,
-                            'a_user': user_id_a,
-                            'oggetti': [
-                                {
-                                    'offerto': {
-                                        'id': offerta.id,
-                                        'titolo': offerta.titolo,
-                                        'categoria': offerta.categoria.nome
-                                    },
-                                    'richiesto': {
-                                        'id': richiesta.id,
-                                        'titolo': richiesta.titolo,
-                                        'categoria': richiesta.categoria.nome
-                                    }
-                                }
-                            ]
-                        }
+                    # Controlla il tipo di match
+                    compatible, tipo_match = oggetti_compatibili_con_tipo(offerta, richiesta)
 
-            return miglior_match
+                    # Accetta solo match specifici/sinonimi/parziali (NON categoria/generico)
+                    if compatible and tipo_match in ['specifico', 'sinonimo', 'parziale']:
+                        tutti_oggetti.append({
+                            'offerto': {
+                                'id': offerta.id,
+                                'titolo': offerta.titolo,
+                                'categoria': offerta.categoria.nome
+                            },
+                            'richiesto': {
+                                'id': richiesta.id,
+                                'titolo': richiesta.titolo,
+                                'categoria': richiesta.categoria.nome
+                            },
+                            'tipo_match': tipo_match  # Per info aggiuntiva
+                        })
+
+            # Se ci sono match validi, ritorna tutti
+            if tutti_oggetti:
+                return {
+                    'da_user': user_id_da,
+                    'a_user': user_id_a,
+                    'oggetti': tutti_oggetti
+                }
+
+            return None
         except User.DoesNotExist:
             pass
 
