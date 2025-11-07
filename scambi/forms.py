@@ -85,13 +85,14 @@ class CustomUserCreationForm(UserCreationForm):
 class AnnuncioForm(forms.ModelForm):
     class Meta:
         model = Annuncio
-        fields = ['titolo', 'descrizione', 'categoria', 'tipo', 'immagine',
+        fields = ['titolo', 'descrizione', 'categoria', 'tipo', 'cerca_per_categoria', 'immagine',
                  'prezzo_stimato', 'metodo_scambio', 'distanza_massima_km']
         widgets = {
             'titolo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Es: Chitarra elettrica Fender'}),
             'descrizione': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Descrivi il tuo annuncio...'}),
             'categoria': forms.Select(attrs={'class': 'form-control'}),
             'tipo': forms.Select(attrs={'class': 'form-control'}),
+            'cerca_per_categoria': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'immagine': forms.FileInput(attrs={
                 'class': 'form-control',
                 'accept': 'image/*',
@@ -116,11 +117,32 @@ class AnnuncioForm(forms.ModelForm):
             'descrizione': 'Descrizione',
             'categoria': 'Categoria',
             'tipo': 'Tipo annuncio',
+            'cerca_per_categoria': 'Cerco qualsiasi cosa in questa categoria',
             'immagine': 'Foto dell\'oggetto (opzionale)',
             'prezzo_stimato': 'Valore stimato (€)',
             'metodo_scambio': 'Come preferisci scambiare?',
             'distanza_massima_km': 'Distanza massima per incontro (km)'
         }
+
+    def clean(self):
+        """Validazione personalizzata del form"""
+        cleaned_data = super().clean()
+        tipo = cleaned_data.get('tipo')
+        cerca_per_categoria = cleaned_data.get('cerca_per_categoria')
+        titolo = cleaned_data.get('titolo')
+
+        # Il flag cerca_per_categoria può essere usato SOLO su annunci "cerco"
+        if cerca_per_categoria and tipo != 'cerco':
+            raise forms.ValidationError(
+                "L'opzione 'Cerca per categoria' è disponibile solo per annunci di tipo 'Cerco'."
+            )
+
+        # Se cerca_per_categoria è attivo, il titolo è opzionale
+        # Altrimenti, il titolo è obbligatorio
+        if not cerca_per_categoria and not titolo:
+            self.add_error('titolo', 'Il titolo è obbligatorio.')
+
+        return cleaned_data
 
 class UserProfileForm(forms.ModelForm):
     # Definisci esplicitamente il campo citta_obj con queryset
