@@ -285,18 +285,24 @@ def catene_scambio(request):
                 cmd = CalcolaCicliCommand()
 
                 salvati = 0
+                aggiornati = 0
                 for ciclo_raw in cicli_raw:
-                    # Crea oggetto CicloScambio
-                    CicloScambio.objects.create(
-                        users=ciclo_raw['users'],
-                        lunghezza=ciclo_raw['lunghezza'],
-                        dettagli=ciclo_raw['dettagli'],
+                    # Usa update_or_create per gestire duplicati (hash_ciclo è UNIQUE)
+                    ciclo, created = CicloScambio.objects.update_or_create(
                         hash_ciclo=ciclo_raw['hash_ciclo'],
-                        valido=True
+                        defaults={
+                            'users': ciclo_raw['users'],
+                            'lunghezza': ciclo_raw['lunghezza'],
+                            'dettagli': ciclo_raw['dettagli'],
+                            'valido': True
+                        }
                     )
-                    salvati += 1
+                    if created:
+                        salvati += 1
+                    else:
+                        aggiornati += 1
 
-                print(f"   ✅ Salvati {salvati} cicli nel DB")
+                print(f"   ✅ Salvati {salvati} nuovi cicli, aggiornati {aggiornati} cicli nel DB")
 
                 # Step 4: Ricarica con funzione esistente
                 risultato = get_cicli_precalcolati()
