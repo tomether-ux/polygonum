@@ -516,6 +516,12 @@ function ricalcolaCatene() {
     currentUrl.searchParams.delete('annuncio_id');
     currentUrl.searchParams.set('load', 'true');
 
+    // Preserva il filtro annuncio se selezionato
+    const annuncioFiltro = document.getElementById('annuncioFiltro');
+    if (annuncioFiltro && annuncioFiltro.value) {
+        currentUrl.searchParams.set('annuncio_id', annuncioFiltro.value);
+    }
+
     // Delay minimo per mostrare l'animazione (1s per caricamento veloce dal DB)
     setTimeout(() => {
         window.location.href = currentUrl.toString();
@@ -680,6 +686,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Aggiungi listener per il dropdown annuncio
     const annuncioFiltro = document.getElementById('annuncioFiltro');
     if (annuncioFiltro) {
+        // Ripristina il valore dall'URL se presente
+        const annuncioIdFromUrl = urlParams.get('annuncio_id');
+        if (annuncioIdFromUrl) {
+            annuncioFiltro.value = annuncioIdFromUrl;
+            // Applica il filtro immediatamente
+            filtraCatenePerAnnuncio();
+        }
+
         annuncioFiltro.addEventListener('change', filtraCatenePerAnnuncio);
     }
 
