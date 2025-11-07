@@ -1346,6 +1346,7 @@ class CycleFinder:
     def _trova_oggetto_scambiato(self, user_id_da, user_id_a):
         """
         Trova quale oggetto user_da dà a user_a
+        Ritorna il MIGLIOR match (punteggio più alto) invece del primo match
         """
         try:
             utente_da = User.objects.get(id=user_id_da)
@@ -1375,12 +1376,17 @@ class CycleFinder:
             except:
                 distanza_km = 50
 
+            # Trova il MIGLIOR match invece del primo match
+            miglior_match = None
+            punteggio_migliore = 20  # Soglia minima di qualità
+
             for offerta in offerte_da:
                 for richiesta in richieste_a:
                     # Usa logica avanzata con soglia di qualità
                     compatible, punteggio, _ = oggetti_compatibili_avanzato(offerta, richiesta, distanza_km)
-                    if compatible and punteggio >= 20:  # Soglia minima di qualità (ridotta)
-                        return {
+                    if compatible and punteggio > punteggio_migliore:
+                        punteggio_migliore = punteggio
+                        miglior_match = {
                             'da_user': user_id_da,
                             'a_user': user_id_a,
                             'oggetti': [
@@ -1398,6 +1404,8 @@ class CycleFinder:
                                 }
                             ]
                         }
+
+            return miglior_match
         except User.DoesNotExist:
             pass
 
