@@ -507,18 +507,18 @@ function ricalcolaCatene() {
     // Simula il progresso dell'elaborazione (animazione poligoni)
     animateProgress();
 
-    // Avvia il ricalcolo parziale
+    // Ricarica la pagina mostrando le catene dal DB (veloce)
     const currentUrl = new URL(window.location);
-    currentUrl.searchParams.set('ricalcola', 'true');
 
-    // Rimuovi parametri vecchi
+    // Rimuovi parametri per ricaricare la vista base
+    currentUrl.searchParams.delete('ricalcola');
     currentUrl.searchParams.delete('cerca');
     currentUrl.searchParams.delete('annuncio_id');
 
-    // Delay minimo per mostrare l'animazione (ridotto a 2s per ricalcolo più veloce)
+    // Delay minimo per mostrare l'animazione (1s per caricamento veloce dal DB)
     setTimeout(() => {
         window.location.href = currentUrl.toString();
-    }, 2000);
+    }, 1000);
 }
 
 // Funzione legacy mantenuta per compatibilità (non più usata)
