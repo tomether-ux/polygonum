@@ -243,7 +243,8 @@
             </div>
             {% endif %}
 
-            <!-- Bottone di ricerca -->
+            <!-- Bottone di ricerca (solo utenti autenticati) -->
+            {% if user.is_authenticated %}
             <div class="mb-4">
                 {% if ricerca_eseguita %}
                     <div class="alert alert-success d-flex align-items-center py-2 px-3 mb-3" style="font-size: 0.9rem;">
@@ -257,8 +258,8 @@
                     </div>
                 {% endif %}
 
-                <!-- Filtro per annuncio specifico (solo per utenti autenticati) -->
-                {% if user.is_authenticated and miei_annunci %}
+                <!-- Filtro per annuncio specifico -->
+                {% if miei_annunci %}
                 <div class="mb-3">
                     <label for="annuncioFiltro" class="form-label">
                         <i class="fas fa-filter me-1"></i>Cerca catene per un tuo annuncio specifico (opzionale):
@@ -299,6 +300,7 @@
                 </a>
                 {% endif %}
             </div>
+            {% endif %}
         </div>
 
             {% if personalizzato and nessun_annuncio %}
@@ -457,7 +459,23 @@
             </div>
         </div>
     {% else %}
-        {% if personalizzato and not ha_annunci %}
+        {% if not_authenticated %}
+        <!-- Avviso per utenti non autenticati -->
+        <div class="alert alert-warning text-center py-5">
+            <h3><i class="fas fa-lock me-2"></i>Accesso Richiesto</h3>
+            <p class="lead">Le catene di scambio sono visibili solo agli utenti registrati.</p>
+            <p>Accedi o registrati per scoprire le opportunità di scambio personalizzate per te!</p>
+
+            <div class="mt-4">
+                <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-primary btn-lg me-2">
+                    <i class="fas fa-sign-in-alt me-1"></i>Accedi
+                </a>
+                <a href="{% url 'register' %}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-user-plus me-1"></i>Registrati
+                </a>
+            </div>
+        </div>
+        {% elif personalizzato and not ha_annunci %}
         <div class="alert alert-info text-center">
             <h4><i class="fas fa-info-circle me-2"></i>Crea il Tuo Primo Annuncio</h4>
             <p>Devi avere almeno un annuncio attivo per vedere le opportunità di scambio personalizzate.</p>
