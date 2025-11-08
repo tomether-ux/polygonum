@@ -245,14 +245,32 @@ def catene_scambio(request):
     - Filtri applicati lato client in JavaScript (istantanei)
     - RICALCOLO PARZIALE: ?ricalcola=true → calcola solo cicli per utente corrente
     - CARICAMENTO LAZY: ?load=true → carica catene dal DB, altrimenti pagina vuota
+    - SOLO UTENTI AUTENTICATI: utenti non loggati vedono solo avviso di login
     """
+    # BLOCCA utenti non autenticati
+    if not request.user.is_authenticated:
+        return render(request, 'scambi/catene_scambio.html', {
+            'catene_specifiche': [],
+            'catene_2': [],
+            'catene_3': [],
+            'catene_4': [],
+            'catene_5': [],
+            'catene_6': [],
+            'totale_catene': 0,
+            'totale_scambi_diretti': 0,
+            'totale_catene_lunghe': 0,
+            'miei_annunci': [],
+            'annuncio_selezionato': None,
+            'not_authenticated': True,  # Flag per mostrare avviso login
+        })
+
     # Check se richiesto caricamento catene
     load_chains = request.GET.get('load') == 'true'
 
     # Controlla se è stato richiesto un filtro per annuncio specifico
     annuncio_id = request.GET.get('annuncio_id')
     annuncio_selezionato = None
-    if annuncio_id and request.user.is_authenticated:
+    if annuncio_id:
         try:
             annuncio_selezionato = Annuncio.objects.get(id=annuncio_id, utente=request.user, attivo=True)
         except Annuncio.DoesNotExist:
@@ -552,23 +570,6 @@ def catene_scambio(request):
             else:
                 tutte_catene = []
                 messages.warning(request, 'Non hai annunci attivi! Pubblica un annuncio per partecipare agli scambi.')
-        else:
-            # Utente non autenticato: mostra tutte le catene (per preview)
-            try:
-                from .matching import get_cicli_precalcolati, calcola_qualita_ciclo
-
-                risultato = get_cicli_precalcolati()
-                tutte_catene = risultato['scambi_diretti'] + risultato['catene']
-
-                # Aggiungi punteggi qualità
-                for c in tutte_catene:
-                    c['punteggio_qualita'] = calcola_qualita_ciclo(c)
-
-                print(f"✅ Caricate {len(tutte_catene)} catene per utente non autenticato")
-
-            except Exception as e:
-                print(f"❌ Errore: {e}")
-                tutte_catene = []
 
     # Rimuovi duplicati
     catene_uniche = []
