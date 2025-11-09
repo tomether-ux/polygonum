@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+import cloudinary
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -125,6 +126,25 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET', ''),
 }
 
+# Inizializza esplicitamente il modulo cloudinary base
+cloudinary.config(
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
+    api_key=os.environ.get('CLOUDINARY_API_KEY', ''),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET', ''),
+    secure=True
+)
+
+# DEBUG: Verifica variabili ambiente Cloudinary
+print("=" * 60)
+print("DEBUG - Cloudinary Environment Variables:")
+print(f"  CLOUDINARY_CLOUD_NAME: {os.environ.get('CLOUDINARY_CLOUD_NAME', 'NOT SET')}")
+print(f"  CLOUDINARY_API_KEY: {'***' + os.environ.get('CLOUDINARY_API_KEY', 'NOT SET')[-4:] if os.environ.get('CLOUDINARY_API_KEY') else 'NOT SET'}")
+print(f"  CLOUDINARY_API_SECRET: {'SET' if os.environ.get('CLOUDINARY_API_SECRET') else 'NOT SET'}")
+print(f"  RENDER env var: {os.environ.get('RENDER', 'NOT SET')}")
+print(f"  CLOUDINARY_STORAGE dict: {CLOUDINARY_STORAGE}")
+print(f"  cloudinary.config() chiamato: ✓")
+print("=" * 60)
+
 # Media files (uploaded by users)
 # In produzione usa Cloudinary, in locale usa filesystem
 if os.environ.get('RENDER') or os.environ.get('CLOUDINARY_CLOUD_NAME'):
@@ -133,11 +153,13 @@ if os.environ.get('RENDER') or os.environ.get('CLOUDINARY_CLOUD_NAME'):
     # IMPORTANTE: NON impostare MEDIA_URL quando usi Cloudinary!
     # Cloudinary genera automaticamente i suoi URL completi
     print("☁️  Using Cloudinary for media storage")
+    print(f"☁️  DEFAULT_FILE_STORAGE = {DEFAULT_FILE_STORAGE}")
 else:
     # Sviluppo locale: usa filesystem
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
     print("💾 Using local filesystem for media storage")
+    print(f"💾 MEDIA_ROOT = {MEDIA_ROOT}")
 
 # Dimensioni massime per upload
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
