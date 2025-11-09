@@ -1,12 +1,20 @@
 <div class="modern-chain-card high-quality mb-4" id="ciclo-{{ catena.id_ciclo }}" data-ciclo-id="{{ catena.id_ciclo }}" data-usa-sinonimi="{{ catena.usa_sinonimi|default:'false'|lower }}" data-annunci-ids="{% for utente in catena.utenti %}{% if utente.richiede %}{{ utente.richiede.id }}{% endif %}{% if utente.offerta %}{% if utente.richiede %},{% endif %}{{ utente.offerta.id }}{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}">
     <div class="chain-card-header">
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex justify-content-between align-items-start flex-column flex-md-row">
             <div class="chain-title">
                 <span class="chain-icon">🔗</span>
-                <span class="chain-number">#{{ forloop.counter }}</span>
-                <span class="chain-people">{{ catena.utenti|length }} Persone</span>
+                <!-- Desktop: mostra #numero + "X Persone" -->
+                <span class="chain-number d-none d-md-inline">#{{ forloop.counter }}</span>
+                <span class="chain-people d-none d-md-inline">{{ catena.utenti|length }} Persone</span>
+
+                <!-- Mobile: mostra nome poligono + numero -->
+                <span class="chain-polygon-name d-inline d-md-none">
+                    {% if catena.utenti|length == 2 %}Line{% elif catena.utenti|length == 3 %}Triangle{% elif catena.utenti|length == 4 %}Square{% elif catena.utenti|length == 5 %}Pentagon{% elif catena.utenti|length == 6 %}Hexagon{% endif %} {{ forloop.counter }}
+                </span>
             </div>
-            <div class="d-flex align-items-center gap-2">
+
+            <!-- Desktop: score + badges + bottone inline -->
+            <div class="d-none d-md-flex align-items-center gap-2">
                 <div class="chain-score">
                     <i class="fas fa-star"></i>
                     <span>{{ catena.punteggio_qualita }}</span>
@@ -25,6 +33,19 @@
                     </button>
                 {% endif %}
             </div>
+
+            <!-- Mobile: badge + bottone sotto al titolo, sempre visibili -->
+            {% if user.is_authenticated and catena.id_ciclo %}
+            <div class="d-flex d-md-none align-items-center gap-2 mt-2 w-100 mobile-interest-section">
+                <span class="badge-interessati-mobile">
+                    <i class="fas fa-users me-1"></i>
+                    <span class="count-text-mobile">0/{{ catena.utenti|length }}</span>
+                </span>
+                <button class="btn-mi-interessa-mobile" onclick="proponiCatena({{ catena.id_ciclo }})">
+                    <i class="fas fa-heart me-1"></i>Mi interessa
+                </button>
+            </div>
+            {% endif %}
         </div>
     </div>
 
