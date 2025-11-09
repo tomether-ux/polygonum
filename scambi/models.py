@@ -96,7 +96,8 @@ class Annuncio(models.Model):
         """Restituisce l'URL dell'immagine o un'immagine placeholder"""
         if self.immagine and hasattr(self.immagine, 'url'):
             return self.immagine.url
-        return '/static/images/no-image.png'  # Placeholder per annunci senza foto
+        # Placeholder online per annunci senza foto
+        return 'https://via.placeholder.com/400x300/667eea/ffffff?text=Nessuna+Immagine'
 
     class Meta:
         verbose_name_plural = "Annunci"
