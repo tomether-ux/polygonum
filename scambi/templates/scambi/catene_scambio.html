@@ -1606,20 +1606,53 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /* Responsive */
 @media (max-width: 768px) {
+    /* Titoli più piccoli */
     .modern-section-title {
+        font-size: 1.3rem;
+        gap: 8px;
+    }
+
+    .modern-section-title .title-icon {
         font-size: 1.5rem;
     }
 
+    /* Card più compatte */
+    .modern-chain-card {
+        border-radius: 12px;
+        margin-bottom: 15px !important;
+    }
+
     .chain-card-header {
-        padding: 15px;
+        padding: 12px 15px;
     }
 
     .chain-card-body {
-        padding: 20px 15px;
+        padding: 15px 12px;
     }
 
+    .chain-title {
+        font-size: 1rem;
+        gap: 8px;
+    }
+
+    .chain-icon {
+        font-size: 1.2rem;
+    }
+
+    .chain-people {
+        font-size: 0.85rem;
+    }
+
+    /* Header più compatto */
+    .chain-score {
+        font-size: 0.85rem;
+    }
+
+    /* Layout verticale invece di affiancato */
     .aligned-exchange-row {
         flex-direction: column;
+        gap: 0;
+        margin-bottom: 10px;
     }
 
     .user-column {
@@ -1627,29 +1660,95 @@ document.addEventListener('DOMContentLoaded', function() {
         width: 100%;
     }
 
+    /* NASCONDI le card grandi degli annunci su mobile */
     .announcements-column {
-        flex: 1;
-        width: 100%;
+        display: none !important;
     }
 
+    /* Avatar e info utente più compatti */
     .modern-exchange-step {
         flex-direction: row;
+        gap: 10px;
     }
 
-    .modern-announcement-card {
-        flex-direction: row;
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
     }
 
-    .announcement-meta {
-        justify-content: flex-start;
+    .user-exchange-info {
+        padding: 10px 12px;
+        border-radius: 10px;
     }
 
-    .btn-mi-interessa {
+    .user-name {
+        font-size: 0.9rem;
+        margin-bottom: 6px;
+    }
+
+    .exchange-detail {
+        font-size: 0.85rem;
+        padding: 4px 8px;
+        margin: 4px 0;
+    }
+
+    .exchange-detail i {
+        font-size: 0.9rem;
+    }
+
+    /* Frecce più piccole */
+    .modern-exchange-arrow {
+        margin: 8px 0;
+        font-size: 1rem;
+    }
+
+    /* Partecipanti più compatti */
+    .participants-section {
+        margin-bottom: 15px !important;
+    }
+
+    .section-label {
+        font-size: 0.85rem;
+        margin-bottom: 10px;
+    }
+
+    .participant-badge {
         font-size: 0.8rem;
-        padding: 6px 14px;
+        padding: 6px 12px;
+        gap: 6px;
     }
 
-    .badge-interessati {
+    .participant-badge i {
+        font-size: 0.95rem;
+    }
+
+    /* Bottoni più compatti */
+    .btn-mi-interessa {
+        font-size: 0.75rem;
+        padding: 6px 12px;
+    }
+
+    .badge-interessati,
+    .badge-scadenza {
+        font-size: 0.7rem;
+        padding: 4px 8px;
+    }
+
+    /* Gruppi collapsibili più compatti */
+    .chain-group-header {
+        padding: 15px 18px;
+    }
+
+    .group-name {
+        font-size: 1rem;
+    }
+
+    .group-description {
+        font-size: 0.8rem;
+    }
+
+    .group-count-badge {
         font-size: 0.75rem;
         padding: 4px 10px;
     }
