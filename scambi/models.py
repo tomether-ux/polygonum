@@ -3,6 +3,7 @@ from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
+from cloudinary.models import CloudinaryField
 
 class Categoria(models.Model):
     nome = models.CharField(max_length=100)
@@ -36,7 +37,8 @@ class Annuncio(models.Model):
         verbose_name="Cerco qualsiasi cosa in questa categoria",
         help_text="Se attivato, cerca qualsiasi oggetto nella categoria selezionata (solo per annunci 'cerco')"
     )
-    immagine = models.ImageField(upload_to='annunci/', blank=True, null=True)
+    # Usa CloudinaryField per storage automatico su Cloudinary
+    immagine = CloudinaryField('image', blank=True, null=True, folder='annunci')
 
     # Nuovi campi per prezzo e modalità di scambio
     prezzo_stimato = models.DecimalField(
