@@ -1805,52 +1805,53 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     .badge-interessati-mobile {
-        display: inline-flex;
+        display: inline-flex !important;
         align-items: center;
         gap: 4px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 0.7rem;
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 0.75rem;
         font-weight: 600;
         box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
     }
 
     .btn-mi-interessa-mobile {
-        display: inline-flex;
+        display: inline-flex !important;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
         background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
         color: white;
         border: none;
-        padding: 5px 12px;
-        border-radius: 12px;
-        font-size: 0.75rem;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.8rem;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
-        box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+        box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
         flex: 1;
         justify-content: center;
+        white-space: nowrap;
     }
 
-    .btn-mi-interessa-mobile:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+    .btn-mi-interessa-mobile:active {
+        transform: translateY(1px);
+        box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
     }
 
     .btn-mi-interessa-mobile i {
-        font-size: 0.8rem;
+        font-size: 0.85rem;
     }
 
     .btn-mi-interessa-mobile.interested {
         background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
-        box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+        box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
     }
 
-    .btn-mi-interessa-mobile.interested:hover {
-        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+    .btn-mi-interessa-mobile.interested:active {
+        box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
     }
 }
 
