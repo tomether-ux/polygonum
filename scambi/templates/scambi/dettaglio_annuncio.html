@@ -20,9 +20,8 @@
     <div class="row">
         <!-- Immagine -->
         <div class="col-lg-6 mb-4">
-            {% if annuncio.immagine %}
                 <div class="position-relative">
-                    <img src="{{ annuncio.immagine.url }}" alt="{{ annuncio.titolo }}"
+                    <img src="{{ annuncio.get_image_url }}" alt="{{ annuncio.titolo }}"
                          class="img-fluid rounded-3 shadow-sm w-100" style="height: 400px; object-fit: cover;">
 
                     <!-- Badge tipo -->
@@ -47,32 +46,6 @@
                     </div>
                     {% endif %}
                 </div>
-            {% else %}
-                <!-- Placeholder -->
-                <div class="d-flex align-items-center justify-content-center bg-light rounded-3 shadow-sm"
-                     style="height: 400px;">
-                    <div class="text-center">
-                        {% if annuncio.tipo == 'offro' %}
-                            <i class="fas fa-gift fa-5x text-success mb-3"></i>
-                            <div class="badge bg-success px-4 py-3 fs-6">
-                                <i class="fas fa-gift me-2"></i>Offro
-                            </div>
-                        {% else %}
-                            <i class="fas fa-search fa-5x text-info mb-3"></i>
-                            <div class="badge bg-info px-4 py-3 fs-6">
-                                <i class="fas fa-search me-2"></i>Cerco
-                            </div>
-                        {% endif %}
-                        {% if annuncio.prezzo_stimato %}
-                        <div class="mt-3">
-                            <span class="badge bg-dark px-4 py-3 fs-5">
-                                €{{ annuncio.prezzo_stimato }}
-                            </span>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            {% endif %}
         </div>
 
         <!-- Dettagli -->
