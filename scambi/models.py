@@ -97,8 +97,17 @@ class Annuncio(models.Model):
 
     def get_image_url(self):
         """Restituisce l'URL dell'immagine o un'immagine placeholder"""
-        if self.immagine and hasattr(self.immagine, 'url'):
-            return self.immagine.url
+        # CloudinaryField può essere None o avere un valore vuoto
+        if self.immagine:
+            try:
+                # Prova ad accedere all'URL
+                url = str(self.immagine.url) if hasattr(self.immagine, 'url') else str(self.immagine)
+                if url and url.strip():
+                    return url
+            except (ValueError, AttributeError):
+                # Se c'è un errore nell'accesso all'URL, usa il placeholder
+                pass
+
         # Placeholder online per annunci senza foto
         return 'https://via.placeholder.com/400x300/667eea/ffffff?text=Nessuna+Immagine'
 
