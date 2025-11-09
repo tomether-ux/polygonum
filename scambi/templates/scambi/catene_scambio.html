@@ -821,34 +821,25 @@ function proponiCatena(cicloId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Aggiorna il badge interessati (desktop)
-            const badge = card.querySelector('.badge-interessati');
-            const countText = badge.querySelector('.count-text');
-            countText.textContent = `${data.count_interessati}/${data.count_totale}`;
-            badge.style.display = 'inline-flex';
+            // Aggiorna tutti i badge interessati nella card (desktop e mobile)
+            const badges = card.querySelectorAll('.badge-interessati');
+            badges.forEach(badge => {
+                const countText = badge.querySelector('.count-text');
+                if (countText) {
+                    countText.textContent = `${data.count_interessati}/${data.count_totale}`;
+                }
+                badge.style.display = 'inline-flex';
+            });
 
-            // Aggiorna anche il badge mobile
-            const badgeMobile = card.querySelector('.badge-interessati-mobile');
-            const countTextMobile = badgeMobile?.querySelector('.count-text-mobile');
-            if (countTextMobile) {
-                countTextMobile.textContent = `${data.count_interessati}/${data.count_totale}`;
-            }
-
-            // Aggiorna il pulsante in base all'azione (added/removed)
-            button.disabled = false; // Riabilita per permettere toggle
-
-            // Trova anche il bottone mobile
-            const buttonMobile = card.querySelector('.btn-mi-interessa-mobile');
+            // Aggiorna tutti i pulsanti nella card (desktop e mobile)
+            const buttons = card.querySelectorAll('.btn-mi-interessa');
 
             if (data.action === 'added') {
-                button.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
-                button.classList.add('interested');
-
-                // Aggiorna anche bottone mobile
-                if (buttonMobile) {
-                    buttonMobile.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
-                    buttonMobile.classList.add('interested');
-                }
+                buttons.forEach(btn => {
+                    btn.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
+                    btn.classList.add('interested');
+                    btn.disabled = false;
+                });
 
                 if (data.tutti_interessati) {
                     // Se la chat è stata creata, aggiorna il badge della chat
@@ -881,26 +872,26 @@ function proponiCatena(cicloId) {
                     alert(`✅ Interesse registrato! ${data.count_interessati}/${data.count_totale} utenti interessati.`);
                 }
             } else if (data.action === 'removed') {
-                button.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
-                button.classList.remove('interested');
-
-                // Aggiorna anche bottone mobile
-                if (buttonMobile) {
-                    buttonMobile.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
-                    buttonMobile.classList.remove('interested');
-                }
+                buttons.forEach(btn => {
+                    btn.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
+                    btn.classList.remove('interested');
+                    btn.disabled = false;
+                });
 
                 alert(`❌ Interesse rimosso. ${data.count_interessati}/${data.count_totale} utenti interessati.`);
             }
         } else {
             alert('Errore: ' + data.error);
-            button.disabled = false;
             // Ripristina stato precedente in caso di errore
-            if (wasInterested) {
-                button.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
-            } else {
-                button.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
-            }
+            const buttons = card.querySelectorAll('.btn-mi-interessa');
+            buttons.forEach(btn => {
+                btn.disabled = false;
+                if (wasInterested) {
+                    btn.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
+                } else {
+                    btn.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
+                }
+            });
         }
     })
     .catch(error => {
@@ -926,33 +917,26 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.has_proposta) {
-                const badge = card.querySelector('.badge-interessati');
-                const countText = badge.querySelector('.count-text');
-                const button = card.querySelector('.btn-mi-interessa');
+                // Aggiorna tutti i badge e bottoni nella card (desktop e mobile)
+                const badges = card.querySelectorAll('.badge-interessati');
+                const buttons = card.querySelectorAll('.btn-mi-interessa');
 
-                // Aggiorna anche mobile
-                const badgeMobile = card.querySelector('.badge-interessati-mobile');
-                const countTextMobile = badgeMobile?.querySelector('.count-text-mobile');
-                const buttonMobile = card.querySelector('.btn-mi-interessa-mobile');
-
-                if (badge && countText && button) {
-                    countText.textContent = `${data.count_interessati}/${data.count_totale}`;
-                    badge.style.display = 'inline-flex';
-
-                    // Aggiorna badge mobile
-                    if (countTextMobile) {
-                        countTextMobile.textContent = `${data.count_interessati}/${data.count_totale}`;
-                    }
-
-                    if (data.mia_risposta === 'interessato') {
-                        button.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
-                        button.classList.add('interested');
-
-                        // Aggiorna anche bottone mobile
-                        if (buttonMobile) {
-                            buttonMobile.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
-                            buttonMobile.classList.add('interested');
+                if (badges.length > 0 && buttons.length > 0) {
+                    // Aggiorna tutti i badge
+                    badges.forEach(badge => {
+                        const countText = badge.querySelector('.count-text');
+                        if (countText) {
+                            countText.textContent = `${data.count_interessati}/${data.count_totale}`;
                         }
+                        badge.style.display = 'inline-flex';
+                    });
+
+                    // Aggiorna tutti i bottoni se l'utente è interessato
+                    if (data.mia_risposta === 'interessato') {
+                        buttons.forEach(btn => {
+                            btn.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
+                            btn.classList.add('interested');
+                        });
                         // Button rimane cliccabile per permettere toggle
                     }
 
@@ -1804,55 +1788,6 @@ document.addEventListener('DOMContentLoaded', function() {
         justify-content: flex-start;
     }
 
-    .badge-interessati-mobile {
-        display: inline-flex !important;
-        align-items: center;
-        gap: 4px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 5px 12px;
-        border-radius: 15px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-    }
-
-    .btn-mi-interessa-mobile {
-        display: inline-flex !important;
-        align-items: center;
-        gap: 6px;
-        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
-        flex: 1;
-        justify-content: center;
-        white-space: nowrap;
-    }
-
-    .btn-mi-interessa-mobile:active {
-        transform: translateY(1px);
-        box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
-    }
-
-    .btn-mi-interessa-mobile i {
-        font-size: 0.85rem;
-    }
-
-    .btn-mi-interessa-mobile.interested {
-        background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
-        box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
-    }
-
-    .btn-mi-interessa-mobile.interested:active {
-        box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
-    }
 }
 
 /* ========== COLLAPSIBLE CHAIN GROUPS ========== */
