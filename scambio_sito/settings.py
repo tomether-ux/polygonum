@@ -130,7 +130,8 @@ CLOUDINARY_STORAGE = {
 if os.environ.get('RENDER') or os.environ.get('CLOUDINARY_CLOUD_NAME'):
     # Produzione: usa Cloudinary
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-    MEDIA_URL = '/media/'  # Cloudinary gestirà il percorso completo
+    # IMPORTANTE: NON impostare MEDIA_URL quando usi Cloudinary!
+    # Cloudinary genera automaticamente i suoi URL completi
     print("☁️  Using Cloudinary for media storage")
 else:
     # Sviluppo locale: usa filesystem
