@@ -74,21 +74,22 @@ class Annuncio(models.Model):
         return f"{self.utente.username} - {self.tipo}: {self.titolo}"
 
     def save(self, *args, **kwargs):
-        """Override save per ottimizzare automaticamente le immagini"""
-        # Se c'è un'immagine caricata, ottimizzala
-        if self.immagine:
-            from .image_utils import optimize_image
-            try:
-                # Ottimizza l'immagine (max 1200x1200, qualità 85%)
-                self.immagine = optimize_image(
-                    self.immagine,
-                    max_width=1200,
-                    max_height=1200,
-                    quality=85
-                )
-            except Exception as e:
-                # Se l'ottimizzazione fallisce, log l'errore ma continua
-                print(f"Errore nell'ottimizzazione immagine: {e}")
+        """Override save - ottimizzazione immagini disabilitata per compatibilità Cloudinary"""
+        # NOTA: Ottimizzazione immagini temporaneamente disabilitata
+        # L'ottimizzazione causava problemi con l'upload su Cloudinary
+        # TODO: Implementare ottimizzazione compatibile con Cloudinary
+
+        # if self.immagine:
+        #     from .image_utils import optimize_image
+        #     try:
+        #         self.immagine = optimize_image(
+        #             self.immagine,
+        #             max_width=1200,
+        #             max_height=1200,
+        #             quality=85
+        #         )
+        #     except Exception as e:
+        #         print(f"Errore nell'ottimizzazione immagine: {e}")
 
         super().save(*args, **kwargs)
 
