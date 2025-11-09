@@ -8,9 +8,5 @@ pip install -r requirements.txt
 # Collect static files
 python manage.py collectstatic --no-input
 
-# Run migrations
+# Run migrations (include la migrazione 0020 che pulisce le immagini vecchie)
 python manage.py migrate
-
-# One-time cleanup: Delete old broken images
-echo "🧹 Cleaning old broken images..."
-python manage.py cancella_immagini_vecchie || echo "⚠️  No images to clean or cleanup skipped"
