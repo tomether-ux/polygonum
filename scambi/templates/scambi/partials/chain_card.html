@@ -37,11 +37,11 @@
             <!-- Mobile: badge + bottone sotto al titolo, sempre visibili -->
             {% if user.is_authenticated and catena.id_ciclo %}
             <div class="d-flex d-md-none align-items-center gap-2 mt-2 w-100 mobile-interest-section">
-                <span class="badge-interessati-mobile">
+                <span class="badge-interessati">
                     <i class="fas fa-users me-1"></i>
-                    <span class="count-text-mobile">0/{{ catena.utenti|length }}</span>
+                    <span class="count-text">0/{{ catena.utenti|length }}</span>
                 </span>
-                <button class="btn-mi-interessa-mobile" onclick="proponiCatena({{ catena.id_ciclo }})">
+                <button class="btn-mi-interessa" onclick="proponiCatena({{ catena.id_ciclo }})">
                     <i class="fas fa-heart me-1"></i>Mi interessa
                 </button>
             </div>
