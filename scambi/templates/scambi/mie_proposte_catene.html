@@ -339,22 +339,100 @@
 
 /* Mobile responsive */
 @media (max-width: 768px) {
+    /* Header catena - layout verticale su mobile */
+    .catena-header .d-flex.justify-content-between {
+        flex-direction: column !important;
+        gap: 12px;
+    }
+
+    .catena-header .d-flex.align-items-center.gap-3 {
+        width: 100%;
+        justify-content: space-between !important;
+        gap: 10px !important;
+    }
+
+    /* Riduci spacing header */
+    .catena-header {
+        padding: 12px 15px !important;
+    }
+
+    .catena-header h6 {
+        font-size: 0.95rem !important;
+        margin-bottom: 3px !important;
+    }
+
+    .catena-header small {
+        font-size: 0.75rem !important;
+    }
+
+    /* Barra progresso più leggibile su mobile */
+    .progress-3d-container {
+        width: 100px !important;
+    }
+
+    .progress-3d {
+        height: 20px !important;
+    }
+
+    .progress-text {
+        font-size: 0.75rem !important;
+    }
+
+    /* Badge più compatto */
+    .catena-header .badge {
+        font-size: 0.75rem !important;
+        padding: 4px 8px !important;
+    }
+
+    /* Scambi - layout verticale */
     .exchange-circle-item {
         flex-direction: column;
-        gap: 20px;
+        gap: 15px;
+        padding: 15px;
     }
 
     .exchange-arrow {
         transform: rotate(90deg);
     }
 
-    .progress-3d-container {
-        width: 80px !important;
+    /* Avatar più piccoli */
+    .user-avatar {
+        width: 50px !important;
+        height: 50px !important;
+        font-size: 20px !important;
     }
 
-    .catena-header small {
-        display: block;
-        margin-top: 5px;
+    .user-name {
+        font-size: 0.85rem !important;
+    }
+
+    /* Exchange items più compatti */
+    .exchange-item {
+        font-size: 0.75rem !important;
+        padding: 6px 12px !important;
+        max-width: 100% !important;
+    }
+
+    /* Container scambi più compatto */
+    .exchange-circle-container {
+        padding: 15px !important;
+        gap: 15px !important;
+    }
+
+    /* Card body padding ridotto */
+    .card-body {
+        padding: 15px !important;
+    }
+
+    /* Riduci icona collapse */
+    .collapse-icon {
+        font-size: 0.9rem !important;
+    }
+
+    /* Alert scadenza più compatto */
+    .card-body .alert {
+        font-size: 0.85rem !important;
+        padding: 8px 12px !important;
     }
 }
 </style>
