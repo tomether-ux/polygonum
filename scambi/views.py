@@ -173,7 +173,7 @@ def modifica_annuncio(request, annuncio_id):
     annuncio = get_object_or_404(Annuncio, id=annuncio_id, utente=request.user)
 
     if request.method == 'POST':
-        form = AnnuncioForm(request.POST, instance=annuncio)
+        form = AnnuncioForm(request.POST, request.FILES, instance=annuncio)
         if form.is_valid():
             form.save()
             messages.success(request, 'Annuncio modificato con successo!')

@@ -108,8 +108,8 @@ class Annuncio(models.Model):
                 # Se c'è un errore nell'accesso all'URL, usa il placeholder
                 pass
 
-        # Placeholder SVG inline (non dipende da servizi esterni)
-        return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect width="400" height="300" fill="%23667eea"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="%23ffffff"%3ENessuna Immagine%3C/text%3E%3C/svg%3E'
+        # Placeholder SVG inline (sfondo bianco, testo blu)
+        return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect width="400" height="300" fill="%23ffffff" stroke="%23667eea" stroke-width="2"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="%23667eea"%3ENessuna Immagine%3C/text%3E%3C/svg%3E'
 
     class Meta:
         verbose_name_plural = "Annunci"
