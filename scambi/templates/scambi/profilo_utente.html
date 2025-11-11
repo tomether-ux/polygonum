@@ -122,20 +122,6 @@
     </div>
 
     {% if totale_annunci > 0 %}
-    <!-- Legenda colori -->
-    <div class="alert alert-light mt-3">
-        <h6><i class="fas fa-info-circle me-2"></i>Legenda Colori</h6>
-        <div class="row">
-            <div class="col-md-6">
-                <span class="badge bg-success me-2">Verde</span>
-                <small>Annunci che <strong>offri</strong> in scambio</small>
-            </div>
-            <div class="col-md-6">
-                <span class="badge bg-info me-2">Blu</span>
-                <small>Annunci dove <strong>cerchi</strong> qualcosa</small>
-            </div>
-        </div>
-    </div>
     {% endif %}
 
     <!-- Annunci che Offre -->
@@ -505,19 +491,16 @@
     {% endif %}
 
     <!-- Azioni -->
-    <div class="row mt-4 mb-4">
+    <div class="row mt-5 mb-4">
         <div class="col-12 text-center">
             {% if not is_own_profile and user.is_authenticated %}
-            <div class="alert alert-light">
-                <p class="mb-2">Interessato agli annunci di {{ utente.username }}?</p>
-                <a href="{% url 'catene_scambio' %}" class="btn btn-primary">
-                    <i class="fas fa-search me-1"></i>Cerca Scambi Possibili
-                </a>
-            </div>
+            <a href="{% url 'catene_scambio' %}" class="btn btn-primary btn-lg me-2 mb-2">
+                <i class="fas fa-link me-2"></i>Cerca Scambi con {{ utente.username }}
+            </a>
             {% endif %}
 
-            <a href="{% url 'lista_annunci' %}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left me-1"></i>Torna agli Annunci
+            <a href="{% url 'lista_annunci' %}" class="btn btn-outline-secondary btn-lg mb-2">
+                <i class="fas fa-arrow-left me-2"></i>Torna agli Annunci
             </a>
         </div>
     </div>

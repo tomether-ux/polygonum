@@ -181,11 +181,11 @@
 
                                             <div class="card-body d-flex flex-column">
                                                 <div class="d-flex justify-content-between align-items-start mb-2">
-                                                    <span class="badge bg-{% if annuncio.tipo == 'offro' %}success{% else %}warning{% endif %}">
+                                                    <span class="badge bg-{% if annuncio.tipo == 'offro' %}success{% else %}primary{% endif %}">
                                                         {% if annuncio.tipo == 'offro' %}
-                                                            <i class="fas fa-hand-holding me-1"></i>Offro
+                                                            Offro
                                                         {% else %}
-                                                            <i class="fas fa-search me-1"></i>Cerco
+                                                            Cerco
                                                         {% endif %}
                                                     </span>
                                                     <small class="text-muted">{{ annuncio.categoria.nome }}</small>
