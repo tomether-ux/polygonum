@@ -134,6 +134,14 @@ cloudinary.config(
     secure=True
 )
 
+# Cloudinary Content Moderation
+# Attiva moderazione automatica con AWS Rekognition
+CLOUDINARY_MODERATION_ENABLED = os.environ.get('CLOUDINARY_MODERATION_ENABLED', 'True') == 'True'
+CLOUDINARY_MODERATION_KIND = 'aws_rek'  # AWS Rekognition per content moderation
+
+# Site URL per webhook (necessario per notification_url di Cloudinary)
+SITE_URL = os.environ.get('SITE_URL', 'https://polygonum.onrender.com')
+
 # DEBUG: Verifica variabili ambiente Cloudinary
 print("=" * 60)
 print("DEBUG - Cloudinary Environment Variables:")

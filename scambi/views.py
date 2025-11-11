@@ -2744,3 +2744,73 @@ def premium_cancel(request):
     """Callback di cancellazione da PayPal"""
     messages.warning(request, 'Upgrade a Premium cancellato. Puoi riprovare quando vuoi!')
     return redirect('pricing')
+
+# ======================
+# WEBHOOK CLOUDINARY MODERATION
+# ======================
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponse
+import json
+
+@csrf_exempt
+def cloudinary_moderation_webhook(request):
+    """
+    Webhook per ricevere risultati di moderazione da Cloudinary
+    Chiamato automaticamente da Cloudinary quando completa l'analisi
+    """
+    if request.method != 'POST':
+        return HttpResponse(status=405)  # Method not allowed
+
+    try:
+        # Parse il payload JSON
+        payload = json.loads(request.body)
+
+        print("=" * 60)
+        print("📥 Webhook Cloudinary Moderation ricevuto:")
+        print(json.dumps(payload, indent=2))
+        print("=" * 60)
+
+        # Estrai informazioni necessarie
+        public_id = payload.get('public_id')
+        moderation_status = payload.get('moderation_status')
+        moderation_response = payload.get('moderation')
+
+        if not public_id:
+            print("✗ public_id mancante nel payload")
+            return JsonResponse({'error': 'public_id missing'}, status=400)
+
+        # Trova l'annuncio corrispondente
+        # Il public_id dovrebbe essere del tipo: annunci/filename
+        try:
+            # Cerca l'annuncio che ha quell'immagine
+            annuncio = Annuncio.objects.filter(
+                immagine__contains=public_id.split('/')[-1]
+            ).first()
+
+            if not annuncio:
+                print(f"✗ Annuncio non trovato per public_id: {public_id}")
+                return JsonResponse({'error': 'annuncio not found'}, status=404)
+
+            # Gestisci il risultato della moderazione
+            annuncio.handle_moderation_result(payload)
+
+            print(f"✓ Moderazione processata per annuncio #{annuncio.id}")
+            return JsonResponse({
+                'status': 'success',
+                'annuncio_id': annuncio.id,
+                'moderation_status': annuncio.moderation_status
+            })
+
+        except Annuncio.DoesNotExist:
+            print(f"✗ Annuncio non trovato per public_id: {public_id}")
+            return JsonResponse({'error': 'annuncio not found'}, status=404)
+
+    except json.JSONDecodeError as e:
+        print(f"✗ Errore parsing JSON: {e}")
+        return JsonResponse({'error': 'invalid JSON'}, status=400)
+    except Exception as e:
+        print(f"✗ Errore nel webhook: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)

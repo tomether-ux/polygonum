@@ -92,6 +92,9 @@ urlpatterns = [
     # Webhook per calcolo cicli (alternativa gratuita al cron job)
     path('webhook/calcola-cicli/', views.webhook_calcola_cicli, name='webhook_calcola_cicli'),
 
+    # Webhook per moderazione contenuti Cloudinary
+    path('webhook/cloudinary-moderation/', views.cloudinary_moderation_webhook, name='cloudinary_moderation_webhook'),
+
     # Debug views (TEMPORANEE - RIMUOVERE)
     path('debug/basso/', views.debug_basso, name='debug_basso'),
     path('debug/view-catene/', views.debug_view_catene, name='debug_view_catene'),

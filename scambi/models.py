@@ -69,6 +69,39 @@ class Annuncio(models.Model):
         verbose_name="Data disattivazione",
         help_text="Timestamp di quando l'annuncio è stato disattivato (per calcolo catene)"
     )
+
+    # Campi moderazione contenuto
+    MODERATION_STATUS_CHOICES = [
+        ('pending', 'In revisione'),
+        ('approved', 'Approvato'),
+        ('rejected', 'Rifiutato'),
+    ]
+    moderation_status = models.CharField(
+        max_length=20,
+        choices=MODERATION_STATUS_CHOICES,
+        default='pending',
+        verbose_name="Stato moderazione",
+        help_text="Stato della revisione automatica del contenuto"
+    )
+    moderation_response = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name="Risultati moderazione",
+        help_text="Dati completi dalla moderazione Cloudinary"
+    )
+    moderation_labels = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name="Etichette rilevate",
+        help_text="Categorie problematiche rilevate (nudity, violence, etc)"
+    )
+    moderated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Data moderazione",
+        help_text="Quando è stata completata la moderazione automatica"
+    )
+
     data_creazione = models.DateTimeField(auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True, verbose_name="Ultima modifica")
 
@@ -93,7 +126,16 @@ class Annuncio(models.Model):
         #     except Exception as e:
         #         print(f"Errore nell'ottimizzazione immagine: {e}")
 
+        # Verifica se è un nuovo annuncio o se l'immagine è cambiata
+        is_new = self.pk is None
+        old_image = None if is_new else Annuncio.objects.filter(pk=self.pk).first().immagine if Annuncio.objects.filter(pk=self.pk).exists() else None
+        image_changed = is_new or (old_image != self.immagine)
+
         super().save(*args, **kwargs)
+
+        # Triggera moderazione contenuto se c'è un'immagine nuova/modificata
+        if image_changed and self.immagine:
+            self.trigger_moderation()
 
     def _get_optimized_url(self, width=800, quality='auto'):
         """
@@ -144,6 +186,113 @@ class Annuncio(models.Model):
         if url:
             return url
         return self.get_image_url()  # Fallback al placeholder
+
+    def trigger_moderation(self):
+        """
+        Richiede moderazione contenuto dell'immagine tramite Cloudinary
+        """
+        from django.conf import settings
+        import cloudinary.api
+
+        if not self.immagine or not settings.CLOUDINARY_MODERATION_ENABLED:
+            # Nessuna immagine o moderazione disabilitata, approva automaticamente
+            self.moderation_status = 'approved'
+            self.save(update_fields=['moderation_status'])
+            return
+
+        try:
+            # Estrai public_id dall'URL Cloudinary
+            public_id = str(self.immagine)
+
+            # Richiedi moderazione asincrona
+            # I risultati arriveranno tramite webhook
+            result = cloudinary.api.update(
+                public_id,
+                moderation=settings.CLOUDINARY_MODERATION_KIND,
+                notification_url=f"{settings.SITE_URL}/webhook/cloudinary-moderation/"
+            )
+
+            print(f"✓ Moderazione richiesta per annuncio #{self.id} - public_id: {public_id}")
+            return result
+        except Exception as e:
+            print(f"✗ Errore nella richiesta di moderazione per annuncio #{self.id}: {e}")
+            # In caso di errore, approva per non bloccare l'utente
+            self.moderation_status = 'approved'
+            self.save(update_fields=['moderation_status'])
+
+    def handle_moderation_result(self, moderation_data):
+        """
+        Gestisce il risultato della moderazione ricevuto dal webhook
+
+        Args:
+            moderation_data: Dati JSON dalla risposta Cloudinary
+        """
+        from django.utils import timezone
+
+        self.moderation_response = moderation_data
+        self.moderated_at = timezone.now()
+
+        # Analizza i risultati
+        # AWS Rekognition restituisce: Explicit Nudity, Suggestive, Violence, Visually Disturbing, etc.
+        try:
+            moderation_labels = moderation_data.get('moderation', [])
+
+            # Estrai labels problematiche
+            problematic_labels = []
+            for item in moderation_labels:
+                if isinstance(item, dict):
+                    label = item.get('label', '')
+                    confidence = item.get('confidence', 0)
+
+                    # Soglie di confidenza
+                    if confidence > 0.7:  # 70% confidenza
+                        if label.lower() in ['explicit nudity', 'nudity', 'violence', 'graphic violence', 'drugs', 'weapons']:
+                            problematic_labels.append({
+                                'label': label,
+                                'confidence': confidence
+                            })
+
+            self.moderation_labels = problematic_labels
+
+            # Decidi: approved o rejected
+            if problematic_labels:
+                self.moderation_status = 'rejected'
+                self.attivo = False  # Disattiva annuncio automaticamente
+
+                # Applica strike all'utente
+                profile = self.utente.userprofile
+                profile.content_strikes += 1
+
+                # Sistema strike progressivo
+                if profile.content_strikes == 1:
+                    # Prima violazione: warning
+                    ban_reason = "Prima violazione: contenuto inappropriato rilevato"
+                elif profile.content_strikes == 2:
+                    # Seconda violazione: sospensione 7 giorni
+                    from datetime import timedelta
+                    profile.suspension_until = timezone.now() + timedelta(days=7)
+                    ban_reason = "Seconda violazione: sospensione 7 giorni"
+                else:
+                    # Terza violazione: ban permanente
+                    profile.is_banned = True
+                    profile.banned_at = timezone.now()
+                    ban_reason = "Terza violazione: ban permanente"
+
+                profile.ban_reason = ban_reason
+                profile.save()
+
+                print(f"✗ Annuncio #{self.id} REJECTED - Strike {profile.content_strikes} per {self.utente.username}")
+            else:
+                self.moderation_status = 'approved'
+                print(f"✓ Annuncio #{self.id} APPROVED")
+
+            self.save()
+
+        except Exception as e:
+            print(f"✗ Errore nell'analisi risultati moderazione per annuncio #{self.id}: {e}")
+            # In caso di errore nell'analisi, approva per sicurezza
+            self.moderation_status = 'approved'
+            self.save()
 
     class Meta:
         verbose_name_plural = "Annunci"
@@ -231,6 +380,33 @@ class UserProfile(models.Model):
     # Premium membership
     is_premium = models.BooleanField(default=False, verbose_name="Utente Premium")
     premium_scadenza = models.DateTimeField(null=True, blank=True, verbose_name="Scadenza Premium")
+
+    # Sistema strike e ban per violazioni
+    content_strikes = models.IntegerField(
+        default=0,
+        verbose_name="Strike contenuto",
+        help_text="Numero di violazioni per contenuto inappropriato"
+    )
+    is_banned = models.BooleanField(
+        default=False,
+        verbose_name="Utente bannato"
+    )
+    banned_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Data ban"
+    )
+    ban_reason = models.TextField(
+        blank=True,
+        verbose_name="Motivo ban",
+        help_text="Descrizione del motivo del ban"
+    )
+    suspension_until = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Sospeso fino a",
+        help_text="Data di fine sospensione temporanea"
+    )
 
     @property
     def citta(self):
