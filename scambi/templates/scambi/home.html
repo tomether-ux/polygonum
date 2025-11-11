@@ -15,11 +15,11 @@
                     Scambia oggetti con altri utenti senza usare denaro. Il nostro algoritmo intelligente trova automaticamente catene di scambio che soddisfano tutti!
                 </p>
                 <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
-                    <a class="btn btn-light btn-lg px-5 py-3" href="{% url 'crea_annuncio' %}">
-                        Crea il tuo primo annuncio
+                    <a class="btn btn-light btn-lg px-4 py-3" href="{% url 'crea_annuncio' %}">
+                        <i class="fas fa-plus me-2"></i>Crea il tuo primo annuncio
                     </a>
-                    <a class="btn btn-outline-light btn-lg px-5 py-3" href="{% url 'lista_annunci' %}">
-                        Esplora annunci
+                    <a class="btn btn-outline-light btn-lg px-4 py-3" href="{% url 'lista_annunci' %}">
+                        <i class="fas fa-search me-2"></i>Esplora annunci
                     </a>
                 </div>
             </div>
@@ -93,11 +93,11 @@
                                 <div class="d-flex justify-content-between align-items-start mb-3">
                                     {% if annuncio.tipo == 'offro' %}
                                         <span class="badge bg-success px-3 py-2">
-                                            Offro
+                                            <i class="fas fa-gift me-1"></i>Offro
                                         </span>
                                     {% else %}
-                                        <span class="badge bg-primary px-3 py-2">
-                                            Cerco
+                                        <span class="badge bg-info px-3 py-2">
+                                            <i class="fas fa-search me-1"></i>Cerco
                                         </span>
                                     {% endif %}
                                     {% if annuncio.prezzo_stimato %}
