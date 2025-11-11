@@ -14,6 +14,14 @@
   --polygonum-secondary-light: #D4E7F0;
 }
 
+/* Global Font Family - Inter Professional */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: -0.011em;
+}
+
 /* === NAVBAR CUSTOM === */
 .navbar-polygonum {
   background: linear-gradient(135deg, var(--polygonum-primary) 0%, var(--polygonum-primary-dark) 100%);
@@ -22,13 +30,13 @@
 }
 
 .navbar-brand {
-  font-family: 'Roboto', sans-serif;
-  font-weight: 500;
-  font-size: 1.8rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 1.5rem;
   color: white !important;
   text-decoration: none;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  text-transform: none;
   display: flex;
   align-items: center;
 }
@@ -272,35 +280,37 @@ a.btn-create-ad-minimal:hover,
 
 /* === BUTTONS === */
 .btn-primary {
-  background: linear-gradient(135deg, var(--polygonum-primary) 0%, var(--polygonum-primary-dark) 100%);
+  background: var(--polygonum-primary);
   border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  padding: 0.7rem 1.5rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(var(--polygonum-primary-rgb), 0.3);
+  border-radius: 6px;
+  font-weight: 500;
+  padding: 0.625rem 1.25rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  font-size: 0.9375rem;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--polygonum-primary-dark) 0%, var(--polygonum-primary) 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(var(--polygonum-primary-rgb), 0.4);
+  background: var(--polygonum-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .btn-outline-primary {
   border-color: var(--polygonum-primary);
   color: var(--polygonum-primary);
-  border-width: 2px;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 0.3s ease;
+  border-width: 1px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  font-size: 0.9375rem;
 }
 
 .btn-outline-primary:hover {
   background-color: var(--polygonum-primary);
   border-color: var(--polygonum-primary);
   transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(var(--polygonum-primary-rgb), 0.3);
+  box-shadow: 0 2px 6px rgba(var(--polygonum-primary-rgb), 0.2);
 }
 
 .btn-secondary {
@@ -319,45 +329,47 @@ a.btn-create-ad-minimal:hover,
 
 /* === CARDS === */
 .card {
-  border: none;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
   overflow: hidden;
 }
 
 .card:hover,
 .card-hover:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #d1d5db;
 }
 
 .card-hover {
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .card-header {
-  background: linear-gradient(135deg, var(--polygonum-secondary) 0%, var(--polygonum-secondary-light) 100%);
-  border-bottom: none;
-  font-weight: 600;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 500;
   color: var(--polygonum-primary);
+  padding: 1rem 1.25rem;
 }
 
 /* Card borders for ad types */
 .card.border-success {
-  border-left: 4px solid #28a745 !important;
+  border-left: 3px solid #10b981 !important;
 }
 
 .card.border-info {
-  border-left: 4px solid #17a2b8 !important;
+  border-left: 3px solid var(--polygonum-primary) !important;
 }
 
 .card.border-warning {
-  border-left: 4px solid #ffc107 !important;
+  border-left: 3px solid #f59e0b !important;
 }
 
 .card.border-primary {
-  border-left: 4px solid var(--polygonum-primary) !important;
+  border-left: 3px solid var(--polygonum-primary) !important;
 }
 
 /* === ALERTS === */
@@ -420,21 +432,32 @@ a.btn-create-ad-minimal:hover,
 }
 
 /* === BADGES === */
+.badge {
+  font-weight: 500;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 4px;
+  letter-spacing: 0.01em;
+}
+
 .badge.bg-success {
-  background-color: #28a745 !important;
+  background-color: #10b981 !important;
+  color: white !important;
 }
 
 .badge.bg-info {
-  background-color: #17a2b8 !important;
+  background-color: var(--polygonum-primary) !important;
+  color: white !important;
 }
 
 .badge.bg-primary {
   background-color: var(--polygonum-primary) !important;
+  color: white !important;
 }
 
 .badge.bg-secondary {
-  background-color: var(--polygonum-secondary-dark) !important;
-  color: var(--polygonum-primary) !important;
+  background-color: #6b7280 !important;
+  color: white !important;
 }
 
 /* === RESPONSIVE === */
@@ -469,6 +492,45 @@ a.btn-create-ad-minimal:hover,
 
 .bg-polygonum-secondary {
   background-color: var(--polygonum-secondary) !important;
+}
+
+/* === TYPOGRAPHY === */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin-bottom: 1rem;
+}
+
+h1 { font-size: 2.25rem; }
+h2 { font-size: 1.875rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.25rem; }
+h5 { font-size: 1.125rem; }
+h6 { font-size: 1rem; }
+
+p, .lead {
+  line-height: 1.625;
+  margin-bottom: 1.25rem;
+}
+
+small {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* === SPACING === */
+.card-body {
+  padding: 1.5rem;
+}
+
+section {
+  padding: 3rem 0;
+}
+
+.container {
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
 /* === TEXTURE BACKGROUNDS === */

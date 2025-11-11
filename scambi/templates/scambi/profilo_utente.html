@@ -12,12 +12,12 @@
                     <div class="row align-items-center">
                         <div class="col">
                             <h3 class="mb-0">
-                                <i class="fas fa-user me-2"></i>{{ utente.username }}
+                                {{ utente.username }}
                                 {% if profilo.is_premium %}
-                                    <span class="badge bg-warning text-dark ms-2"><i class="fas fa-crown"></i> Premium</span>
+                                    <span class="badge bg-warning text-dark ms-2">Premium</span>
                                 {% endif %}
                                 {% if profilo.email_verified %}
-                                    <span class="badge bg-success ms-2"><i class="fas fa-check-circle"></i> Verificato</span>
+                                    <span class="badge bg-success ms-2">Verificato</span>
                                 {% endif %}
                             </h3>
                         </div>
