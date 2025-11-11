@@ -95,21 +95,55 @@ class Annuncio(models.Model):
 
         super().save(*args, **kwargs)
 
-    def get_image_url(self):
-        """Restituisce l'URL dell'immagine o un'immagine placeholder"""
-        # CloudinaryField può essere None o avere un valore vuoto
+    def _get_optimized_url(self, width=800, quality='auto'):
+        """
+        Helper interno per ottenere URL ottimizzato
+
+        Args:
+            width: Larghezza massima in pixel
+            quality: Qualità immagine
+        """
         if self.immagine:
             try:
-                # Prova ad accedere all'URL
                 url = str(self.immagine.url) if hasattr(self.immagine, 'url') else str(self.immagine)
                 if url and url.strip():
+                    # Aggiungi trasformazioni Cloudinary
+                    upload_pos = url.find('/upload/')
+                    if upload_pos != -1:
+                        # f_auto: formato automatico (webp se supportato)
+                        # q_auto: qualità automatica ottimizzata
+                        # w_XXX: larghezza massima
+                        # c_limit: non ingrandisce se l'immagine è già più piccola
+                        # dpr_auto: supporto display retina
+                        transformations = f"f_auto,q_{quality},w_{width},c_limit,dpr_auto"
+                        optimized_url = url[:upload_pos + 8] + transformations + '/' + url[upload_pos + 8:]
+                        return optimized_url
                     return url
             except (ValueError, AttributeError):
-                # Se c'è un errore nell'accesso all'URL, usa il placeholder
                 pass
+        return None
 
+    def get_image_url(self):
+        """Restituisce URL ottimizzato per visualizzazione normale (800px)"""
+        url = self._get_optimized_url(width=800, quality='auto')
+        if url:
+            return url
         # Placeholder SVG inline (sfondo bianco, testo blu)
         return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect width="400" height="300" fill="%23ffffff" stroke="%23667eea" stroke-width="2"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="%23667eea"%3ENessuna Immagine%3C/text%3E%3C/svg%3E'
+
+    def get_thumbnail_url(self):
+        """Restituisce URL ottimizzato per thumbnail/card (400px, qualità eco)"""
+        url = self._get_optimized_url(width=400, quality='auto')
+        if url:
+            return url
+        return self.get_image_url()  # Fallback al placeholder
+
+    def get_large_image_url(self):
+        """Restituisce URL ottimizzato per visualizzazione grande (1200px, alta qualità)"""
+        url = self._get_optimized_url(width=1200, quality='auto')
+        if url:
+            return url
+        return self.get_image_url()  # Fallback al placeholder
 
     class Meta:
         verbose_name_plural = "Annunci"
