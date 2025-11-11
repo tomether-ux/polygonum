@@ -126,10 +126,14 @@ class AnnuncioForm(forms.ModelForm):
 
     def clean(self):
         """Validazione personalizzata del form"""
+        from .validators import valida_annuncio_contenuto
+        from django.core.exceptions import ValidationError
+
         cleaned_data = super().clean()
         tipo = cleaned_data.get('tipo')
         cerca_per_categoria = cleaned_data.get('cerca_per_categoria')
         titolo = cleaned_data.get('titolo')
+        descrizione = cleaned_data.get('descrizione')
 
         # Il flag cerca_per_categoria può essere usato SOLO su annunci "cerco"
         if cerca_per_categoria and tipo != 'cerco':
@@ -141,6 +145,13 @@ class AnnuncioForm(forms.ModelForm):
         # Altrimenti, il titolo è obbligatorio
         if not cerca_per_categoria and not titolo:
             self.add_error('titolo', 'Il titolo è obbligatorio.')
+
+        # Validazione contenuto testuale (parole vietate e pattern inappropriati)
+        if titolo or descrizione:
+            try:
+                valida_annuncio_contenuto(titolo or '', descrizione or '')
+            except ValidationError as e:
+                raise forms.ValidationError(e.message)
 
         return cleaned_data
 

@@ -3,6 +3,7 @@ from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from cloudinary.models import CloudinaryField
 
 class Categoria(models.Model):
@@ -107,6 +108,22 @@ class Annuncio(models.Model):
 
     def __str__(self):
         return f"{self.utente.username} - {self.tipo}: {self.titolo}"
+
+    def clean(self):
+        """
+        Validazione del contenuto testuale dell'annuncio.
+        Blocca parole vietate e pattern inappropriati.
+        """
+        from .validators import valida_annuncio_contenuto
+
+        super().clean()
+
+        # Valida titolo e descrizione
+        try:
+            valida_annuncio_contenuto(self.titolo, self.descrizione)
+        except ValidationError as e:
+            # Rilancia l'errore per il form
+            raise e
 
     def save(self, *args, **kwargs):
         """Override save - ottimizzazione immagini disabilitata per compatibilità Cloudinary"""
