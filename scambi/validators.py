@@ -17,6 +17,14 @@ PAROLE_VIETATE = [
     'masturbazione', 'orgasmo', 'scopare', 'troia', 'puttana', 'zoccola',
     'cazzo', 'fica', 'pompino', 'bocchino', 'rapporto sessuale', 'amplesso',
     'erotico', 'erotica', 'erotici', 'erotiche', 'sexy',
+    'tette', 'tetta', 'seno', 'seni', 'capezzoli', 'capezzolo',
+    'culo', 'culo nudo', 'sedere', 'natiche', 'chiappa', 'chiappe',
+    'fighe', 'patata', 'passera', 'vagina', 'vagine',
+    'coglioni', 'testicoli', 'palle', 'scroto', 'pene', 'pisello',
+    'sega', 'seghe', 'masturbare', 'chiavare', 'chiavata',
+    'scopata', 'scopate', 'inculare', 'inculata', 'anale',
+    'leccata', 'leccare', 'cunnilingus', 'fellatio', 'blowjob',
+    'venire', 'sborrata', 'sborrate', 'sperma', 'eiaculazione',
 
     # Prostituzione e servizi sessuali
     'escort', 'prostituta', 'prostituto', 'squillo', 'accompagnatrice',
