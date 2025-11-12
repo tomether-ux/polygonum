@@ -231,6 +231,7 @@ class Annuncio(models.Model):
     def _perform_moderation_sync(annuncio_id, public_id):
         """
         Esegue la moderazione in modo sincrono (chiamato in thread separato).
+        UNA SOLA chiamata API dopo 5 secondi per rispettare rate limit FREE.
         """
         from django.conf import settings
         import cloudinary.api
@@ -245,39 +246,39 @@ class Annuncio(models.Model):
                 moderation=settings.CLOUDINARY_MODERATION_KIND
             )
 
-            # Step 2: Attendi che la moderazione sia completata (polling)
-            max_attempts = 10  # Max 10 tentativi
-            for attempt in range(max_attempts):
-                time.sleep(1)  # Attendi 1 secondo tra i tentativi
+            # Step 2: Attendi 5 secondi (tempo AWS Rekognition per completare)
+            print(f"⏳ Attendo 5 secondi per completamento moderazione...")
+            time.sleep(5)
 
-                # Controlla lo stato della risorsa
-                resource = cloudinary.api.resource(
-                    public_id,
-                    moderation=True
-                )
+            # Step 3: Controlla UNA VOLTA il risultato (risparmio API calls)
+            resource = cloudinary.api.resource(
+                public_id,
+                moderation=True
+            )
 
-                # Verifica se la moderazione è completata
-                moderation_status = resource.get('moderation', [])
-                if moderation_status:
-                    # Trovato risultato moderazione
-                    for mod in moderation_status:
-                        if isinstance(mod, dict) and mod.get('kind') == settings.CLOUDINARY_MODERATION_KIND:
-                            status = mod.get('status', '')
+            # Verifica se la moderazione è completata
+            moderation_status = resource.get('moderation', [])
+            if moderation_status:
+                # Trovato risultato moderazione
+                for mod in moderation_status:
+                    if isinstance(mod, dict) and mod.get('kind') == settings.CLOUDINARY_MODERATION_KIND:
+                        status = mod.get('status', '')
 
-                            if status in ['approved', 'rejected']:
-                                # Moderazione completata
-                                print(f"✓ Moderazione completata per annuncio #{annuncio_id}: {status}")
+                        if status in ['approved', 'rejected']:
+                            # Moderazione completata
+                            print(f"✓ Moderazione completata per annuncio #{annuncio_id}: {status}")
 
-                                # Recupera l'annuncio e processa il risultato
-                                annuncio = Annuncio.objects.get(id=annuncio_id)
-                                annuncio.handle_moderation_result({
-                                    'moderation': mod.get('response', {}).get('moderation_labels', []),
-                                    'status': status
-                                })
-                                return
+                            # Recupera l'annuncio e processa il risultato
+                            annuncio = Annuncio.objects.get(id=annuncio_id)
+                            annuncio.handle_moderation_result({
+                                'moderation': mod.get('response', {}).get('moderation_labels', []),
+                                'status': status
+                            })
+                            return
 
-            # Timeout: approva per non bloccare l'annuncio
-            print(f"⏱️ Timeout moderazione per annuncio #{annuncio_id}, approvazione automatica")
+            # Se non ancora pronto o pending: approva automaticamente
+            # (meglio qualche falso negativo che bloccare utenti legittimi)
+            print(f"⏱️ Moderazione non completata dopo 5s per annuncio #{annuncio_id}, approvazione automatica")
             annuncio = Annuncio.objects.get(id=annuncio_id)
             annuncio.moderation_status = 'approved'
             annuncio.save(update_fields=['moderation_status'])
@@ -345,19 +346,49 @@ class Annuncio(models.Model):
                 if profile.content_strikes == 1:
                     # Prima violazione: warning
                     ban_reason = "Prima violazione: contenuto inappropriato rilevato"
+                    notifica_messaggio = (
+                        f"⚠️ Il tuo annuncio '{self.titolo}' è stato rimosso perché contiene contenuto inappropriato.\n\n"
+                        f"Hai ricevuto il tuo PRIMO strike. "
+                        f"Ti preghiamo di rispettare le linee guida della community.\n\n"
+                        f"⚠️ Attenzione: Al terzo strike riceverai un ban permanente."
+                    )
                 elif profile.content_strikes == 2:
                     # Seconda violazione: sospensione 7 giorni
                     from datetime import timedelta
                     profile.suspension_until = timezone.now() + timedelta(days=7)
                     ban_reason = "Seconda violazione: sospensione 7 giorni"
+                    notifica_messaggio = (
+                        f"🚫 Il tuo annuncio '{self.titolo}' è stato rimosso per contenuto inappropriato.\n\n"
+                        f"Hai ricevuto il SECONDO strike. Il tuo account è stato SOSPESO per 7 giorni.\n\n"
+                        f"⚠️ ULTIMO AVVISO: Al prossimo strike riceverai un ban permanente!"
+                    )
                 else:
                     # Terza violazione: ban permanente
                     profile.is_banned = True
                     profile.banned_at = timezone.now()
                     ban_reason = "Terza violazione: ban permanente"
+                    notifica_messaggio = (
+                        f"❌ Il tuo annuncio '{self.titolo}' è stato rimosso per contenuto inappropriato.\n\n"
+                        f"Hai ricevuto il TERZO strike. Il tuo account è stato BANNATO PERMANENTEMENTE.\n\n"
+                        f"Non potrai più pubblicare annunci o partecipare alla piattaforma."
+                    )
 
                 profile.ban_reason = ban_reason
                 profile.save()
+
+                # Crea notifica per informare l'utente
+                # Import lazy per evitare circular import
+                try:
+                    Notifica.objects.create(
+                        utente=self.utente,
+                        tipo='sistema',
+                        titolo=f'⚠️ Annuncio rimosso - Strike {profile.content_strikes}/3',
+                        messaggio=notifica_messaggio,
+                        letta=False
+                    )
+                    print(f"📬 Notifica inviata a {self.utente.username}")
+                except Exception as e:
+                    print(f"✗ Errore creazione notifica: {e}")
 
                 print(f"✗ Annuncio #{self.id} REJECTED - Strike {profile.content_strikes} per {self.utente.username}")
             else:
