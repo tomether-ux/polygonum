@@ -206,10 +206,11 @@ class Annuncio(models.Model):
 
     def trigger_moderation(self):
         """
-        Richiede moderazione contenuto dell'immagine tramite Cloudinary
+        Richiede moderazione contenuto dell'immagine tramite Cloudinary.
+        Esegue in background per non bloccare la pubblicazione.
         """
         from django.conf import settings
-        import cloudinary.api
+        import threading
 
         if not self.immagine or not settings.CLOUDINARY_MODERATION_ENABLED:
             # Nessuna immagine o moderazione disabilitata, approva automaticamente
@@ -217,32 +218,90 @@ class Annuncio(models.Model):
             self.save(update_fields=['moderation_status'])
             return
 
-        try:
-            # Estrai public_id dall'URL Cloudinary
-            public_id = str(self.immagine)
+        # Avvia moderazione in thread separato per non bloccare la pubblicazione
+        thread = threading.Thread(
+            target=self._perform_moderation_sync,
+            args=(self.id, str(self.immagine)),
+            daemon=True
+        )
+        thread.start()
+        print(f"🔄 Moderazione avviata in background per annuncio #{self.id}")
 
-            # Richiedi moderazione asincrona
-            # I risultati arriveranno tramite webhook
-            result = cloudinary.api.update(
+    @staticmethod
+    def _perform_moderation_sync(annuncio_id, public_id):
+        """
+        Esegue la moderazione in modo sincrono (chiamato in thread separato).
+        """
+        from django.conf import settings
+        import cloudinary.api
+        import time
+
+        try:
+            print(f"📤 Richiesta moderazione per annuncio #{annuncio_id} - public_id: {public_id}")
+
+            # Step 1: Richiedi moderazione a Cloudinary
+            cloudinary.api.update(
                 public_id,
-                moderation=settings.CLOUDINARY_MODERATION_KIND,
-                notification_url=f"{settings.SITE_URL}/webhook/cloudinary-moderation/"
+                moderation=settings.CLOUDINARY_MODERATION_KIND
             )
 
-            print(f"✓ Moderazione richiesta per annuncio #{self.id} - public_id: {public_id}")
-            return result
+            # Step 2: Attendi che la moderazione sia completata (polling)
+            max_attempts = 10  # Max 10 tentativi
+            for attempt in range(max_attempts):
+                time.sleep(1)  # Attendi 1 secondo tra i tentativi
+
+                # Controlla lo stato della risorsa
+                resource = cloudinary.api.resource(
+                    public_id,
+                    moderation=True
+                )
+
+                # Verifica se la moderazione è completata
+                moderation_status = resource.get('moderation', [])
+                if moderation_status:
+                    # Trovato risultato moderazione
+                    for mod in moderation_status:
+                        if isinstance(mod, dict) and mod.get('kind') == settings.CLOUDINARY_MODERATION_KIND:
+                            status = mod.get('status', '')
+
+                            if status in ['approved', 'rejected']:
+                                # Moderazione completata
+                                print(f"✓ Moderazione completata per annuncio #{annuncio_id}: {status}")
+
+                                # Recupera l'annuncio e processa il risultato
+                                annuncio = Annuncio.objects.get(id=annuncio_id)
+                                annuncio.handle_moderation_result({
+                                    'moderation': mod.get('response', {}).get('moderation_labels', []),
+                                    'status': status
+                                })
+                                return
+
+            # Timeout: approva per non bloccare l'annuncio
+            print(f"⏱️ Timeout moderazione per annuncio #{annuncio_id}, approvazione automatica")
+            annuncio = Annuncio.objects.get(id=annuncio_id)
+            annuncio.moderation_status = 'approved'
+            annuncio.save(update_fields=['moderation_status'])
+
         except Exception as e:
-            print(f"✗ Errore nella richiesta di moderazione per annuncio #{self.id}: {e}")
+            print(f"✗ Errore moderazione per annuncio #{annuncio_id}: {e}")
+            import traceback
+            traceback.print_exc()
+
             # In caso di errore, approva per non bloccare l'utente
-            self.moderation_status = 'approved'
-            self.save(update_fields=['moderation_status'])
+            try:
+                annuncio = Annuncio.objects.get(id=annuncio_id)
+                annuncio.moderation_status = 'approved'
+                annuncio.save(update_fields=['moderation_status'])
+            except Exception:
+                pass
 
     def handle_moderation_result(self, moderation_data):
         """
-        Gestisce il risultato della moderazione ricevuto dal webhook
+        Gestisce il risultato della moderazione (da API o webhook)
 
         Args:
             moderation_data: Dati JSON dalla risposta Cloudinary
+                             Formato: {'moderation': [...], 'status': 'approved/rejected'}
         """
         from django.utils import timezone
 
@@ -252,14 +311,15 @@ class Annuncio(models.Model):
         # Analizza i risultati
         # AWS Rekognition restituisce: Explicit Nudity, Suggestive, Violence, Visually Disturbing, etc.
         try:
+            status = moderation_data.get('status', '')
             moderation_labels = moderation_data.get('moderation', [])
 
             # Estrai labels problematiche
             problematic_labels = []
             for item in moderation_labels:
                 if isinstance(item, dict):
-                    label = item.get('label', '')
-                    confidence = item.get('confidence', 0)
+                    label = item.get('label', item.get('name', ''))
+                    confidence = item.get('confidence', item.get('value', 0))
 
                     # Soglie di confidenza
                     if confidence > 0.7:  # 70% confidenza
@@ -272,7 +332,8 @@ class Annuncio(models.Model):
             self.moderation_labels = problematic_labels
 
             # Decidi: approved o rejected
-            if problematic_labels:
+            # Priorità allo status se disponibile, altrimenti usa i labels
+            if status == 'rejected' or problematic_labels:
                 self.moderation_status = 'rejected'
                 self.attivo = False  # Disattiva annuncio automaticamente
 
