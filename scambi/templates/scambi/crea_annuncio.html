@@ -77,6 +77,17 @@
                     <form method="post" enctype="multipart/form-data">
                         {% csrf_token %}
 
+                        <!-- Errori generali del form -->
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Errore di Validazione
+                            </h6>
+                            {{ form.non_field_errors }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endif %}
+
                         <!-- Informazioni di base -->
                         <div class="mb-4">
                             <h5 class="border-bottom pb-2">
