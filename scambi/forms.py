@@ -151,7 +151,7 @@ class AnnuncioForm(forms.ModelForm):
             try:
                 valida_annuncio_contenuto(titolo or '', descrizione or '')
             except ValidationError as e:
-                raise forms.ValidationError(e.message)
+                raise forms.ValidationError(str(e))
 
         return cleaned_data
 
