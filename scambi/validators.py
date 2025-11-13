@@ -160,11 +160,16 @@ def valida_contenuto_testuale(testo, campo_nome="testo"):
     Raises:
         ValidationError: Se il testo contiene contenuti vietati
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
     if not testo:
         return  # Testo vuoto è OK
 
     testo_originale = testo
     testo_normalizzato = normalizza_testo(testo)
+
+    logger.info(f"🔍 Validando '{campo_nome}': original='{testo_originale}', normalized='{testo_normalizzato}'")
 
     # ===== CHECK 1: Parole vietate =====
     for parola_vietata in PAROLE_VIETATE:
@@ -174,10 +179,13 @@ def valida_contenuto_testuale(testo, campo_nome="testo"):
         pattern = r'\b' + re.escape(parola_norm) + r'\b'
 
         if re.search(pattern, testo_normalizzato, re.IGNORECASE):
+            logger.info(f"❌ BLOCCATO! Trovata parola vietata: '{parola_vietata}' (norm: '{parola_norm}') in '{testo_normalizzato}'")
             raise ValidationError(
                 f"Il {campo_nome} contiene contenuti non ammessi. "
                 f"Ti preghiamo di rimuovere termini inappropriati o illegali."
             )
+
+    logger.info(f"✅ Nessuna parola vietata trovata in '{testo_normalizzato}'")
 
     # ===== CHECK 2: Pattern sospetti =====
     for pattern in PATTERN_SOSPETTI:
