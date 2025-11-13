@@ -234,6 +234,7 @@ class Annuncio(models.Model):
         UNA SOLA chiamata API dopo 5 secondi per rispettare rate limit FREE.
         """
         from django.conf import settings
+        from django.db import close_old_connections
         import cloudinary.api
         import time
 
@@ -295,6 +296,10 @@ class Annuncio(models.Model):
                 annuncio.save(update_fields=['moderation_status'])
             except Exception:
                 pass
+
+        finally:
+            # CRITICO: Chiudi connessioni DB aperte dal thread per evitare esaurimento pool
+            close_old_connections()
 
     def handle_moderation_result(self, moderation_data):
         """
