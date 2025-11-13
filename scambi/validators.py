@@ -133,9 +133,6 @@ def normalizza_testo(testo):
     for simbolo, lettera in simboli.items():
         testo_norm = testo_norm.replace(simbolo, lettera)
 
-    # Rimuovi spazi tra lettere singole (S E S S O → SESSO)
-    testo_norm = re.sub(r'(\w)\s+(?=\w)', r'\1', testo_norm)
-
     # Rimuovi caratteri ripetuti eccessivi (sexxo → sesso)
     testo_norm = re.sub(r'(.)\1{2,}', r'\1\1', testo_norm)
 
