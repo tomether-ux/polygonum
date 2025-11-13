@@ -128,12 +128,16 @@ class AnnuncioForm(forms.ModelForm):
         """Validazione personalizzata del form"""
         from .validators import valida_annuncio_contenuto
         from django.core.exceptions import ValidationError
+        import logging
+        logger = logging.getLogger(__name__)
 
         cleaned_data = super().clean()
         tipo = cleaned_data.get('tipo')
         cerca_per_categoria = cleaned_data.get('cerca_per_categoria')
         titolo = cleaned_data.get('titolo')
         descrizione = cleaned_data.get('descrizione')
+
+        logger.info(f"🔍 AnnuncioForm.clean() chiamato - titolo: '{titolo}', descrizione: '{descrizione[:50] if descrizione else None}...'")
 
         # Il flag cerca_per_categoria può essere usato SOLO su annunci "cerco"
         if cerca_per_categoria and tipo != 'cerco':
@@ -148,10 +152,9 @@ class AnnuncioForm(forms.ModelForm):
 
         # Validazione contenuto testuale (parole vietate e pattern inappropriati)
         if titolo or descrizione:
-            try:
-                valida_annuncio_contenuto(titolo or '', descrizione or '')
-            except ValidationError as e:
-                raise forms.ValidationError(str(e))
+            logger.info(f"🔍 Validando contenuto testuale...")
+            valida_annuncio_contenuto(titolo or '', descrizione or '')
+            logger.info(f"✅ Validazione contenuto passata")
 
         return cleaned_data
 
