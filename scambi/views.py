@@ -148,7 +148,13 @@ def crea_annuncio(request):
                 })
 
             annuncio.save()
-            messages.success(request, 'Annuncio creato con successo!')
+
+            # Messaggio diverso se l'annuncio è in moderazione (ha immagine)
+            if annuncio.immagine and annuncio.moderation_status == 'pending':
+                messages.warning(request, '⏳ Annuncio creato ma in attesa di moderazione. Ti invieremo una notifica quando sarà approvato e visibile a tutti.')
+            else:
+                messages.success(request, '✅ Annuncio creato e pubblicato con successo!')
+
             return redirect('lista_annunci')
     else:
         form = AnnuncioForm()
@@ -180,11 +186,10 @@ def modifica_annuncio(request, annuncio_id):
             # Controllo moderazione SOLO se viene caricata una nuova immagine
             # (il testo è già validato automaticamente da AnnuncioForm.clean())
             if 'immagine' in request.FILES:
-                # Nuova immagine → reset moderazione
-                # Il metodo save() del modello chiamerà automaticamente trigger_moderation()
-                annuncio_aggiornato.moderation_status = 'pending'
+                # Nuova immagine → il metodo save() del modello lo metterà automaticamente in moderazione
+                # (moderation_status='pending', attivo=False) e chiamerà trigger_moderation()
                 annuncio_aggiornato.save()
-                messages.success(request, 'Annuncio modificato! L\'immagine è in fase di verifica.')
+                messages.warning(request, '⏳ Annuncio messo in moderazione. Riceverai una notifica quando sarà approvato.')
             else:
                 # Solo testo modificato → nessun controllo immagine necessario
                 annuncio_aggiornato.save()
@@ -2863,6 +2868,20 @@ def moderazione_approve(request, token):
             annuncio.moderation_status = 'approved'
             annuncio.attivo = True
             annuncio.save(update_fields=['moderation_status', 'attivo'])
+
+            # Notifica l'utente dell'approvazione
+            try:
+                Notifica.objects.create(
+                    utente=annuncio.utente,
+                    tipo='sistema',
+                    titolo=f'✅ Annuncio "{annuncio.titolo}" approvato!',
+                    messaggio=f'Il tuo annuncio "{annuncio.titolo}" è stato approvato ed è ora visibile a tutti gli utenti!',
+                    letta=False,
+                    link=f'/annuncio/{annuncio.id}/'
+                )
+                print(f"📬 Notifica approvazione inviata a {annuncio.utente.username}")
+            except Exception as e:
+                print(f"✗ Errore creazione notifica approvazione: {e}")
 
             messages.success(request, f'✅ Annuncio "{annuncio.titolo}" approvato con successo!')
             print(f"✓ Annuncio #{annuncio_id} approvato via email")
