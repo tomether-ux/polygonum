@@ -143,24 +143,26 @@ class Annuncio(models.Model):
         #     except Exception as e:
         #         print(f"Errore nell'ottimizzazione immagine: {e}")
 
+        # Verifica se è un'approvazione/rifiuto manuale dall'admin
+        # L'admin usa save(update_fields=['moderation_status']), l'utente no
+        update_fields = kwargs.get('update_fields')
+        is_admin_moderation = update_fields and 'moderation_status' in update_fields
+
         # Verifica se è un nuovo annuncio o se l'immagine è cambiata
         is_new = self.pk is None
         old_annuncio = None if is_new else Annuncio.objects.filter(pk=self.pk).first() if Annuncio.objects.filter(pk=self.pk).exists() else None
         old_image = old_annuncio.immagine if old_annuncio else None
-        old_status = old_annuncio.moderation_status if old_annuncio else 'pending'
         image_changed = is_new or (old_image != self.immagine)
 
         # Se c'è un'immagine nuova/modificata, metti in moderazione
-        # MA SOLO se non è già stata approvata/rifiutata manualmente dall'admin
-        if image_changed and self.immagine:
-            # Se l'admin ha appena approvato/rifiutato, NON sovrascrivere
-            if self.moderation_status not in ['approved', 'rejected']:
-                self.moderation_status = 'pending'
-                # NOTA: attivo=True (annuncio VISIBILE), solo l'IMMAGINE è nascosta finché approvata
-                print(f"📋 Annuncio #{self.pk or 'NEW'} - immagine in moderazione (annuncio visibile)")
-            else:
-                # L'admin ha appena modificato lo status manualmente, non toccare
-                print(f"✓ Annuncio #{self.pk} - status '{self.moderation_status}' preservato (non sovrascritto)")
+        # ECCETTO se è l'admin che sta approvando/rifiutando manualmente
+        if image_changed and self.immagine and not is_admin_moderation:
+            self.moderation_status = 'pending'
+            # NOTA: attivo=True (annuncio VISIBILE), solo l'IMMAGINE è nascosta finché approvata
+            print(f"📋 Annuncio #{self.pk or 'NEW'} - nuova immagine in moderazione (annuncio visibile)")
+        elif is_admin_moderation:
+            # L'admin ha appena approvato/rifiutato, preserva lo status
+            print(f"✓ Annuncio #{self.pk} - status '{self.moderation_status}' preservato (moderazione admin)")
 
         super().save(*args, **kwargs)
 
