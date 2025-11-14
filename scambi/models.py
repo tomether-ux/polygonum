@@ -145,19 +145,28 @@ class Annuncio(models.Model):
 
         # Verifica se è un nuovo annuncio o se l'immagine è cambiata
         is_new = self.pk is None
-        old_image = None if is_new else Annuncio.objects.filter(pk=self.pk).first().immagine if Annuncio.objects.filter(pk=self.pk).exists() else None
+        old_annuncio = None if is_new else Annuncio.objects.filter(pk=self.pk).first() if Annuncio.objects.filter(pk=self.pk).exists() else None
+        old_image = old_annuncio.immagine if old_annuncio else None
+        old_status = old_annuncio.moderation_status if old_annuncio else 'pending'
         image_changed = is_new or (old_image != self.immagine)
 
-        # Se c'è un'immagine nuova/modificata, metti in moderazione (immagine nascosta finché non approvata)
+        # Se c'è un'immagine nuova/modificata, metti in moderazione
+        # MA SOLO se non è già stata approvata/rifiutata manualmente dall'admin
         if image_changed and self.immagine:
-            self.moderation_status = 'pending'
-            # NOTA: attivo=True (annuncio VISIBILE), solo l'IMMAGINE è nascosta finché approvata
-            print(f"📋 Annuncio #{self.pk or 'NEW'} - immagine in moderazione (annuncio visibile)")
+            # Se l'admin ha appena approvato/rifiutato, NON sovrascrivere
+            if self.moderation_status not in ['approved', 'rejected']:
+                self.moderation_status = 'pending'
+                # NOTA: attivo=True (annuncio VISIBILE), solo l'IMMAGINE è nascosta finché approvata
+                print(f"📋 Annuncio #{self.pk or 'NEW'} - immagine in moderazione (annuncio visibile)")
+            else:
+                # L'admin ha appena modificato lo status manualmente, non toccare
+                print(f"✓ Annuncio #{self.pk} - status '{self.moderation_status}' preservato (non sovrascritto)")
 
         super().save(*args, **kwargs)
 
         # Triggera moderazione contenuto se c'è un'immagine nuova/modificata
-        if image_changed and self.immagine:
+        # MA SOLO se lo status è 'pending' (non se è già stata approvata/rifiutata)
+        if image_changed and self.immagine and self.moderation_status == 'pending':
             self.trigger_moderation()
 
     def _get_optimized_url(self, width=800, quality='auto'):
