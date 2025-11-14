@@ -112,6 +112,39 @@
                     <!-- Titolo -->
                     <h1 class="display-6 text-polygonum-primary mb-4">{{ annuncio.titolo }}</h1>
 
+                    <!-- Alert Moderazione (solo per proprietario) -->
+                    {% if user.is_authenticated and user == annuncio.utente %}
+                        {% if annuncio.moderation_status == 'rejected' %}
+                        <div class="alert alert-danger border-danger" role="alert">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-ban fa-2x me-3 text-danger"></i>
+                                <div>
+                                    <h5 class="alert-heading mb-2">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>Annuncio Bloccato
+                                    </h5>
+                                    <p class="mb-2">
+                                        Questo annuncio è stato bloccato perché contiene contenuto inappropriato (testo offensivo, immagini esplicite, ecc.).
+                                    </p>
+                                    <p class="mb-0">
+                                        <strong>Cosa fare?</strong> Modifica l'annuncio rimuovendo il contenuto non consentito e ricarica un'immagine appropriata.
+                                        L'annuncio sarà automaticamente rimesso in moderazione.
+                                    </p>
+                                    <hr class="my-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Strike ricevuti: {{ annuncio.utente.userprofile.content_strikes }}/3.
+                                        {% if annuncio.utente.userprofile.content_strikes >= 3 %}
+                                            <strong class="text-danger">Account sospeso permanentemente.</strong>
+                                        {% elif annuncio.utente.userprofile.content_strikes == 2 %}
+                                            <strong class="text-warning">Al prossimo strike sarai bannato.</strong>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+
                     <!-- Descrizione -->
                     <div class="mb-4">
                         <h5 class="text-polygonum-primary mb-3">

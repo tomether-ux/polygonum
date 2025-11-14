@@ -163,7 +163,11 @@
                                 {% endif %}
                             </div>
                             {% if is_own_profile %}
-                                {% if annuncio.attivo %}
+                                {% if annuncio.moderation_status == 'rejected' %}
+                                    <span class="badge bg-danger"><i class="fas fa-ban me-1"></i>Bloccato</span>
+                                {% elif annuncio.moderation_status == 'pending' %}
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>In moderazione</span>
+                                {% elif annuncio.attivo %}
                                     <span class="badge bg-success">Attivo</span>
                                 {% else %}
                                     <span class="badge bg-secondary">Disattivo</span>
@@ -173,6 +177,24 @@
                         <div class="card-body">
                             <h6 class="card-title">{{ annuncio.titolo }}</h6>
                             <p class="card-text text-muted small">{{ annuncio.descrizione|truncatewords:15 }}</p>
+
+                            {% if is_own_profile and annuncio.moderation_status == 'rejected' %}
+                            <div class="alert alert-danger alert-sm py-2 px-2 mb-2">
+                                <small>
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    <strong>Annuncio bloccato</strong> per contenuto inappropriato.
+                                    Modifica l'annuncio rimuovendo il contenuto violante per ripubblicarlo.
+                                </small>
+                            </div>
+                            {% elif is_own_profile and annuncio.moderation_status == 'pending' %}
+                            <div class="alert alert-warning alert-sm py-2 px-2 mb-2">
+                                <small>
+                                    <i class="fas fa-clock me-1"></i>
+                                    <strong>In attesa di approvazione.</strong> Riceverai una notifica quando sarà approvato.
+                                </small>
+                            </div>
+                            {% endif %}
+
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 {% if annuncio.prezzo_stimato %}
                                 <small class="text-success">€{{ annuncio.prezzo_stimato }}</small>
@@ -229,7 +251,11 @@
                                 {% endif %}
                             </div>
                             {% if is_own_profile %}
-                                {% if annuncio.attivo %}
+                                {% if annuncio.moderation_status == 'rejected' %}
+                                    <span class="badge bg-danger"><i class="fas fa-ban me-1"></i>Bloccato</span>
+                                {% elif annuncio.moderation_status == 'pending' %}
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>In moderazione</span>
+                                {% elif annuncio.attivo %}
                                     <span class="badge bg-success">Attivo</span>
                                 {% else %}
                                     <span class="badge bg-secondary">Disattivo</span>
@@ -239,6 +265,24 @@
                         <div class="card-body">
                             <h6 class="card-title">{{ annuncio.titolo }}</h6>
                             <p class="card-text text-muted small">{{ annuncio.descrizione|truncatewords:15 }}</p>
+
+                            {% if is_own_profile and annuncio.moderation_status == 'rejected' %}
+                            <div class="alert alert-danger alert-sm py-2 px-2 mb-2">
+                                <small>
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    <strong>Annuncio bloccato</strong> per contenuto inappropriato.
+                                    Modifica l'annuncio rimuovendo il contenuto violante per ripubblicarlo.
+                                </small>
+                            </div>
+                            {% elif is_own_profile and annuncio.moderation_status == 'pending' %}
+                            <div class="alert alert-warning alert-sm py-2 px-2 mb-2">
+                                <small>
+                                    <i class="fas fa-clock me-1"></i>
+                                    <strong>In attesa di approvazione.</strong> Riceverai una notifica quando sarà approvato.
+                                </small>
+                            </div>
+                            {% endif %}
+
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 {% if annuncio.prezzo_stimato %}
                                 <small class="text-info">€{{ annuncio.prezzo_stimato }}</small>
