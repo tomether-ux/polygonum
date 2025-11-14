@@ -230,72 +230,41 @@ class Annuncio(models.Model):
     @staticmethod
     def _perform_moderation_sync(annuncio_id, public_id):
         """
-        Esegue la moderazione in modo sincrono (chiamato in thread separato).
-        UNA SOLA chiamata API dopo 5 secondi per rispettare rate limit FREE.
+        MODERAZIONE DISABILITATA TEMPORANEAMENTE
+
+        Il piano FREE di Cloudinary ha un limite di 500 Admin API calls/mese.
+        Con i test abbiamo esaurito questo limite, causando errori 420 Rate Limited.
+
+        AWS Rekognition Moderation è disponibile (0/50 usage) ma non possiamo chiamarlo
+        perché richiede Admin API calls che sono esaurite.
+
+        SOLUZIONE TEMPORANEA: Auto-approva tutte le immagini.
+        La validazione testo (blacklist parole vietate) continua a funzionare.
+
+        TODO: Riabilitare quando:
+        1. Si fa upgrade a piano a pagamento Cloudinary
+        2. O si aspetta il reset mensile del limite FREE
         """
-        from django.conf import settings
         from django.db import close_old_connections
-        import cloudinary.api
         import time
 
         try:
-            print(f"📤 Richiesta moderazione per annuncio #{annuncio_id} - public_id: {public_id}")
+            print(f"ℹ️ Moderazione immagini DISABILITATA (limite API raggiunto)")
+            print(f"   Annuncio #{annuncio_id} auto-approvato - Validazione solo su testo")
 
-            # Step 1: Richiedi moderazione a Cloudinary
-            cloudinary.api.update(
-                public_id,
-                moderation=settings.CLOUDINARY_MODERATION_KIND
-            )
+            # Attendi comunque 2 secondi per evitare race conditions
+            time.sleep(2)
 
-            # Step 2: Attendi 5 secondi (tempo AWS Rekognition per completare)
-            print(f"⏳ Attendo 5 secondi per completamento moderazione...")
-            time.sleep(5)
-
-            # Step 3: Controlla UNA VOLTA il risultato (risparmio API calls)
-            resource = cloudinary.api.resource(
-                public_id,
-                moderation=True
-            )
-
-            # Verifica se la moderazione è completata
-            moderation_status = resource.get('moderation', [])
-            if moderation_status:
-                # Trovato risultato moderazione
-                for mod in moderation_status:
-                    if isinstance(mod, dict) and mod.get('kind') == settings.CLOUDINARY_MODERATION_KIND:
-                        status = mod.get('status', '')
-
-                        if status in ['approved', 'rejected']:
-                            # Moderazione completata
-                            print(f"✓ Moderazione completata per annuncio #{annuncio_id}: {status}")
-
-                            # Recupera l'annuncio e processa il risultato
-                            annuncio = Annuncio.objects.get(id=annuncio_id)
-                            annuncio.handle_moderation_result({
-                                'moderation': mod.get('response', {}).get('moderation_labels', []),
-                                'status': status
-                            })
-                            return
-
-            # Se non ancora pronto o pending: approva automaticamente
-            # (meglio qualche falso negativo che bloccare utenti legittimi)
-            print(f"⏱️ Moderazione non completata dopo 5s per annuncio #{annuncio_id}, approvazione automatica")
+            # Auto-approva
             annuncio = Annuncio.objects.get(id=annuncio_id)
             annuncio.moderation_status = 'approved'
             annuncio.save(update_fields=['moderation_status'])
+            print(f"✓ Annuncio #{annuncio_id} approvato automaticamente")
 
         except Exception as e:
-            print(f"✗ Errore moderazione per annuncio #{annuncio_id}: {e}")
+            print(f"✗ Errore durante auto-approvazione annuncio #{annuncio_id}: {e}")
             import traceback
             traceback.print_exc()
-
-            # In caso di errore, approva per non bloccare l'utente
-            try:
-                annuncio = Annuncio.objects.get(id=annuncio_id)
-                annuncio.moderation_status = 'approved'
-                annuncio.save(update_fields=['moderation_status'])
-            except Exception:
-                pass
 
         finally:
             # CRITICO: Chiudi connessioni DB aperte dal thread per evitare esaurimento pool
