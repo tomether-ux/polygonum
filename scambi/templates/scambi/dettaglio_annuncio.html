@@ -21,8 +21,42 @@
         <!-- Immagine -->
         <div class="col-lg-6 mb-4">
                 <div class="position-relative bg-light rounded-3">
-                    <img src="{{ annuncio.get_large_image_url }}" alt="{{ annuncio.titolo }}"
-                         class="img-fluid rounded-3 shadow-sm w-100" style="max-height: 500px; object-fit: contain;">
+                    {% comment %}Gestione immagine con moderazione{% endcomment %}
+                    {% if annuncio.immagine and annuncio.moderation_status == 'pending' %}
+                        {% if user.is_authenticated and user == annuncio.utente %}
+                            {% comment %}Proprietario: mostra avviso{% endcomment %}
+                            <div class="alert alert-warning m-3" role="alert">
+                                <i class="fas fa-clock me-2"></i>
+                                <strong>⏳ Immagine in attesa di moderazione</strong>
+                                <br>
+                                <small>Riceverai una notifica quando sarà approvata</small>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-center rounded-3" style="min-height: 500px;">
+                                <div class="text-muted text-center">
+                                    <i class="fas fa-image fa-4x mb-3 d-block"></i>
+                                    <p class="fs-5">In attesa di approvazione</p>
+                                </div>
+                            </div>
+                        {% else %}
+                            {% comment %}Altri utenti: placeholder generico{% endcomment %}
+                            <div class="d-flex align-items-center justify-content-center rounded-3" style="min-height: 500px;">
+                                <div class="text-muted text-center">
+                                    <i class="fas fa-image fa-4x mb-3 d-block"></i>
+                                    <p class="fs-5">Nessuna immagine</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% elif annuncio.immagine %}
+                        <img src="{{ annuncio.get_large_image_url }}" alt="{{ annuncio.titolo }}"
+                             class="img-fluid rounded-3 shadow-sm w-100" style="max-height: 500px; object-fit: contain;">
+                    {% else %}
+                        <div class="d-flex align-items-center justify-content-center rounded-3" style="min-height: 500px;">
+                            <div class="text-muted text-center">
+                                <i class="fas fa-image fa-4x mb-3 d-block"></i>
+                                <p class="fs-5">Nessuna immagine</p>
+                            </div>
+                        </div>
+                    {% endif %}
 
                     <!-- Badge tipo -->
                     <div class="position-absolute top-0 start-0 m-3">

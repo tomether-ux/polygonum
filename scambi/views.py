@@ -149,9 +149,9 @@ def crea_annuncio(request):
 
             annuncio.save()
 
-            # Messaggio diverso se l'annuncio è in moderazione (ha immagine)
+            # Messaggio diverso se l'annuncio ha immagine in moderazione
             if annuncio.immagine and annuncio.moderation_status == 'pending':
-                messages.warning(request, '⏳ Annuncio creato ma in attesa di moderazione. Ti invieremo una notifica quando sarà approvato e visibile a tutti.')
+                messages.warning(request, '⏳ Annuncio creato! L\'immagine è in attesa di moderazione. L\'annuncio è visibile ma l\'immagine sarà mostrata dopo l\'approvazione.')
             else:
                 messages.success(request, '✅ Annuncio creato e pubblicato con successo!')
 

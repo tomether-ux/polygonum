@@ -1,0 +1,45 @@
+{% comment %}
+Partial per mostrare il thumbnail di un annuncio (card) con gestione moderazione.
+
+Parametri richiesti:
+- annuncio: L'oggetto Annuncio
+- css_class: Classi CSS per l'immagine (default: "card-img-top")
+
+Esempio uso:
+{% include 'scambi/partials/annuncio_thumbnail.html' with annuncio=annuncio %}
+{% endcomment %}
+
+{% if annuncio.immagine and annuncio.moderation_status == 'pending' %}
+    {% comment %}Immagine in moderazione{% endcomment %}
+    {% if user.is_authenticated and user == annuncio.utente %}
+        {% comment %}Proprietario: mostra badge pending{% endcomment %}
+        <div class="position-relative">
+            <div class="bg-light border d-flex align-items-center justify-content-center {{ css_class|default:'card-img-top' }}" style="height: 200px;">
+                <div class="text-muted text-center">
+                    <i class="fas fa-clock fa-2x mb-2 d-block"></i>
+                    <small>In moderazione</small>
+                </div>
+            </div>
+            <span class="position-absolute top-0 start-0 m-2 badge bg-warning text-dark">
+                <i class="fas fa-clock me-1"></i>Moderazione
+            </span>
+        </div>
+    {% else %}
+        {% comment %}Altri utenti: placeholder generico{% endcomment %}
+        <div class="bg-light border d-flex align-items-center justify-content-center {{ css_class|default:'card-img-top' }}" style="height: 200px;">
+            <i class="fas fa-image fa-2x text-muted"></i>
+        </div>
+    {% endif %}
+{% elif annuncio.immagine %}
+    {% comment %}Immagine approvata: mostra thumbnail{% endcomment %}
+    <img src="{{ annuncio.get_thumbnail_url }}"
+         alt="{{ annuncio.titolo }}"
+         class="{{ css_class|default:'card-img-top' }}"
+         style="height: 200px; object-fit: cover;"
+         loading="lazy">
+{% else %}
+    {% comment %}Nessuna immagine{% endcomment %}
+    <div class="bg-light border d-flex align-items-center justify-content-center {{ css_class|default:'card-img-top' }}" style="height: 200px;">
+        <i class="fas fa-image fa-2x text-muted"></i>
+    </div>
+{% endif %}
