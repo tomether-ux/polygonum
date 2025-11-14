@@ -148,6 +148,12 @@ class Annuncio(models.Model):
         old_image = None if is_new else Annuncio.objects.filter(pk=self.pk).first().immagine if Annuncio.objects.filter(pk=self.pk).exists() else None
         image_changed = is_new or (old_image != self.immagine)
 
+        # Se c'è un'immagine nuova/modificata, metti in moderazione (NASCOSTO finché non approvato)
+        if image_changed and self.immagine:
+            self.moderation_status = 'pending'
+            self.attivo = False  # NASCOSTO finché l'admin non approva
+            print(f"📋 Annuncio #{self.pk or 'NEW'} messo in moderazione - NASCOSTO finché approvato")
+
         super().save(*args, **kwargs)
 
         # Triggera moderazione contenuto se c'è un'immagine nuova/modificata
