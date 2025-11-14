@@ -143,6 +143,11 @@ class Annuncio(models.Model):
         #     except Exception as e:
         #         print(f"Errore nell'ottimizzazione immagine: {e}")
 
+        # Genera titolo automatico per annunci "cerco per categoria"
+        if self.tipo == 'cerco' and self.cerca_per_categoria and self.categoria:
+            self.titolo = f"Cerco {self.categoria.nome}"
+            print(f"📝 Titolo auto-generato: '{self.titolo}'")
+
         # Verifica se è un'approvazione/rifiuto manuale dall'admin
         # L'admin usa save(update_fields=['moderation_status']), l'utente no
         update_fields = kwargs.get('update_fields')
