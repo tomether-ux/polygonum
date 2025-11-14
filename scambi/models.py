@@ -737,7 +737,7 @@ class Notifica(models.Model):
     # Collegamenti opzionali ad altri oggetti
     annuncio_collegato = models.ForeignKey(Annuncio, on_delete=models.CASCADE, null=True, blank=True)
     utente_collegato = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='notifiche_generate')
-    url_azione = models.URLField(blank=True, null=True, help_text="URL per azione della notifica")
+    url_azione = models.CharField(max_length=500, blank=True, null=True, help_text="URL o path relativo per azione della notifica")
 
     class Meta:
         verbose_name = "Notifica"
