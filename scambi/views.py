@@ -2877,7 +2877,7 @@ def moderazione_approve(request, token):
                     titolo=f'✅ Annuncio "{annuncio.titolo}" approvato!',
                     messaggio=f'Il tuo annuncio "{annuncio.titolo}" è stato approvato ed è ora visibile a tutti gli utenti!',
                     letta=False,
-                    link=f'/annuncio/{annuncio.id}/'
+                    url_azione=f'/annuncio/{annuncio.id}/'
                 )
                 print(f"📬 Notifica approvazione inviata a {annuncio.utente.username}")
             except Exception as e:
