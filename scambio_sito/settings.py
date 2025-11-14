@@ -181,6 +181,9 @@ EMAIL_HOST_USER = 'apikey'
 EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'polygonum.noreply@gmail.com')
 
+# Admin email per moderazione contenuti
+ADMIN_MODERATION_EMAIL = os.environ.get('ADMIN_MODERATION_EMAIL', 'tom.ether@live.com')
+
 # Email backend logic
 if os.environ.get('SENDGRID_API_KEY'):
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

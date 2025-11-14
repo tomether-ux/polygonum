@@ -230,41 +230,146 @@ class Annuncio(models.Model):
     @staticmethod
     def _perform_moderation_sync(annuncio_id, public_id):
         """
-        MODERAZIONE DISABILITATA TEMPORANEAMENTE
+        MODERAZIONE MANUALE VIA EMAIL
 
-        Il piano FREE di Cloudinary ha un limite di 500 Admin API calls/mese.
-        Con i test abbiamo esaurito questo limite, causando errori 420 Rate Limited.
+        Il piano FREE di Cloudinary ha un limite di 500 Admin API calls/mese esaurito.
+        Invece di API automatica, invia email all'admin per moderazione manuale.
 
-        AWS Rekognition Moderation è disponibile (0/50 usage) ma non possiamo chiamarlo
-        perché richiede Admin API calls che sono esaurite.
-
-        SOLUZIONE TEMPORANEA: Auto-approva tutte le immagini.
-        La validazione testo (blacklist parole vietate) continua a funzionare.
-
-        TODO: Riabilitare quando:
-        1. Si fa upgrade a piano a pagamento Cloudinary
-        2. O si aspetta il reset mensile del limite FREE
+        Processo:
+        1. Annuncio entra in status 'pending'
+        2. Email con immagine inviata all'admin
+        3. Admin clicca link Approva/Rifiuta dall'email (anche da telefono)
         """
         from django.db import close_old_connections
+        from django.core.mail import EmailMultiAlternatives
+        from django.conf import settings
+        from django.urls import reverse
+        from django.core.signing import Signer
         import time
+        import os
 
         try:
-            print(f"ℹ️ Moderazione immagini DISABILITATA (limite API raggiunto)")
-            print(f"   Annuncio #{annuncio_id} auto-approvato - Validazione solo su testo")
+            print(f"📧 Invio email moderazione per annuncio #{annuncio_id}")
 
-            # Attendi comunque 2 secondi per evitare race conditions
+            # Attendi 2 secondi per evitare race conditions
             time.sleep(2)
 
-            # Auto-approva
+            # Recupera annuncio
             annuncio = Annuncio.objects.get(id=annuncio_id)
-            annuncio.moderation_status = 'approved'
-            annuncio.save(update_fields=['moderation_status'])
-            print(f"✓ Annuncio #{annuncio_id} approvato automaticamente")
+
+            # Crea token firmato per link sicuri
+            signer = Signer()
+            approve_token = signer.sign(f'approve_{annuncio_id}')
+            reject_token = signer.sign(f'reject_{annuncio_id}')
+
+            # URL base (usa RENDER_EXTERNAL_URL in produzione, localhost in dev)
+            base_url = os.environ.get('RENDER_EXTERNAL_URL', 'http://localhost:8000')
+
+            # Link per approve/reject
+            approve_url = f"{base_url}/moderazione/approve/{approve_token}/"
+            reject_url = f"{base_url}/moderazione/reject/{reject_token}/"
+
+            # Componi email
+            subject = f'🔍 Moderazione richiesta - Annuncio #{annuncio.id}'
+
+            # Testo semplice (fallback)
+            text_content = f"""
+Nuovo annuncio da moderare
+
+Annuncio: {annuncio.titolo}
+Utente: {annuncio.utente.username}
+Categoria: {annuncio.categoria.nome}
+Tipo: {annuncio.get_tipo_display()}
+
+Descrizione:
+{annuncio.descrizione}
+
+Immagine: {annuncio.get_image_url()}
+
+---
+Per approvare: {approve_url}
+Per rifiutare: {reject_url}
+            """
+
+            # HTML ricco con immagine
+            html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h1 style="margin: 0; font-size: 24px;">🔍 Moderazione Richiesta</h1>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">Annuncio #{annuncio.id}</p>
+    </div>
+
+    <div style="background: #f9f9f9; padding: 30px; border: 1px solid #e0e0e0; border-top: none;">
+        <h2 style="color: #667eea; margin-top: 0;">{annuncio.titolo}</h2>
+
+        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin: 5px 0;"><strong>👤 Utente:</strong> {annuncio.utente.username}</p>
+            <p style="margin: 5px 0;"><strong>📁 Categoria:</strong> {annuncio.categoria.nome}</p>
+            <p style="margin: 5px 0;"><strong>🏷️ Tipo:</strong> {annuncio.get_tipo_display()}</p>
+            <p style="margin: 5px 0;"><strong>📅 Data:</strong> {annuncio.data_creazione.strftime('%d/%m/%Y %H:%M')}</p>
+        </div>
+
+        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="margin-top: 0; color: #667eea;">📝 Descrizione</h3>
+            <p style="margin: 0;">{annuncio.descrizione}</p>
+        </div>
+
+        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 30px; text-align: center;">
+            <h3 style="margin-top: 0; color: #667eea;">🖼️ Immagine</h3>
+            <img src="{annuncio.get_image_url()}" alt="{annuncio.titolo}"
+                 style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{approve_url}"
+               style="display: inline-block; background: #10b981; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 0 10px 10px 0; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);">
+                ✅ Approva
+            </a>
+            <a href="{reject_url}"
+               style="display: inline-block; background: #ef4444; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 0 0 10px 0; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);">
+                ❌ Rifiuta
+            </a>
+        </div>
+
+        <p style="text-align: center; color: #666; font-size: 12px; margin-top: 30px;">
+            Questa email è stata inviata automaticamente dal sistema di moderazione Polygonum
+        </p>
+    </div>
+</body>
+</html>
+            """
+
+            # Invia email
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[settings.ADMIN_MODERATION_EMAIL]
+            )
+            email.attach_alternative(html_content, "text/html")
+            email.send(fail_silently=False)
+
+            print(f"✓ Email moderazione inviata a {settings.ADMIN_MODERATION_EMAIL}")
 
         except Exception as e:
-            print(f"✗ Errore durante auto-approvazione annuncio #{annuncio_id}: {e}")
+            print(f"✗ Errore invio email moderazione per annuncio #{annuncio_id}: {e}")
             import traceback
             traceback.print_exc()
+
+            # In caso di errore, approva automaticamente per non bloccare l'utente
+            try:
+                annuncio = Annuncio.objects.get(id=annuncio_id)
+                annuncio.moderation_status = 'approved'
+                annuncio.save(update_fields=['moderation_status'])
+                print(f"⚠️ Fallback: Annuncio #{annuncio_id} approvato automaticamente")
+            except Exception:
+                pass
 
         finally:
             # CRITICO: Chiudi connessioni DB aperte dal thread per evitare esaurimento pool

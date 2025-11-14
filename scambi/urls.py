@@ -95,6 +95,10 @@ urlpatterns = [
     # Webhook per moderazione contenuti Cloudinary
     path('webhook/cloudinary-moderation/', views.cloudinary_moderation_webhook, name='cloudinary_moderation_webhook'),
 
+    # Moderazione manuale via email
+    path('moderazione/approve/<str:token>/', views.moderazione_approve, name='moderazione_approve'),
+    path('moderazione/reject/<str:token>/', views.moderazione_reject, name='moderazione_reject'),
+
     # Debug views (TEMPORANEE - RIMUOVERE)
     path('debug/basso/', views.debug_basso, name='debug_basso'),
     path('debug/view-catene/', views.debug_view_catene, name='debug_view_catene'),
