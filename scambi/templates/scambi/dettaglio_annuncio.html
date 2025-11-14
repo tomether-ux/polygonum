@@ -45,10 +45,34 @@
                                     <p class="fs-5">Nessuna immagine</p>
                                 </div>
                             </div>
+                            <!-- Badge tipo per altri utenti (quando pending) -->
+                            <div class="position-absolute top-0 start-0 m-3">
+                                {% if annuncio.tipo == 'offro' %}
+                                    <span class="badge bg-success px-4 py-3 shadow fs-6">
+                                        <i class="fas fa-gift me-2"></i>Offro
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-info px-4 py-3 shadow fs-6">
+                                        <i class="fas fa-search me-2"></i>Cerco
+                                    </span>
+                                {% endif %}
+                            </div>
                         {% endif %}
                     {% elif annuncio.immagine %}
                         <img src="{{ annuncio.get_large_image_url }}" alt="{{ annuncio.titolo }}"
                              class="img-fluid rounded-3 shadow-sm w-100" style="max-height: 500px; object-fit: contain;">
+                        <!-- Badge tipo (immagine approvata) -->
+                        <div class="position-absolute top-0 start-0 m-3">
+                            {% if annuncio.tipo == 'offro' %}
+                                <span class="badge bg-success px-4 py-3 shadow fs-6">
+                                    <i class="fas fa-gift me-2"></i>Offro
+                                </span>
+                            {% else %}
+                                <span class="badge bg-info px-4 py-3 shadow fs-6">
+                                    <i class="fas fa-search me-2"></i>Cerco
+                                </span>
+                            {% endif %}
+                        </div>
                     {% else %}
                         <div class="d-flex align-items-center justify-content-center rounded-3" style="min-height: 500px;">
                             <div class="text-muted text-center">
@@ -56,17 +80,15 @@
                                 <p class="fs-5">Nessuna immagine</p>
                             </div>
                         </div>
-                    {% endif %}
-
-                    <!-- Badge tipo -->
-                    <div class="position-absolute top-0 start-0 m-3">
-                        {% if annuncio.tipo == 'offro' %}
-                            <span class="badge bg-success px-4 py-3 shadow fs-6">
-                                <i class="fas fa-gift me-2"></i>Offro
-                            </span>
-                        {% else %}
-                            <span class="badge bg-info px-4 py-3 shadow fs-6">
-                                <i class="fas fa-search me-2"></i>Cerco
+                        <!-- Badge tipo (nessuna immagine) -->
+                        <div class="position-absolute top-0 start-0 m-3">
+                            {% if annuncio.tipo == 'offro' %}
+                                <span class="badge bg-success px-4 py-3 shadow fs-6">
+                                    <i class="fas fa-gift me-2"></i>Offro
+                                </span>
+                            {% else %}
+                                <span class="badge bg-info px-4 py-3 shadow fs-6">
+                                    <i class="fas fa-search me-2"></i>Cerco
                             </span>
                         {% endif %}
                     </div>
