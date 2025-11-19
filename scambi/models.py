@@ -625,6 +625,11 @@ class UserProfile(models.Model):
             return self.citta_obj.nome
         return self.citta_old or ""
 
+    @citta.setter
+    def citta(self, value):
+        """Setter per retrocompatibilità: imposta citta_old quando viene assegnata una stringa"""
+        self.citta_old = value
+
     def __str__(self):
         citta_str = self.citta
         if citta_str:
