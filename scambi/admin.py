@@ -25,8 +25,8 @@ class AnnuncioAdmin(admin.ModelAdmin):
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'citta', 'provincia_obj', 'get_location_string', 'email_verified']
-    list_filter = ['provincia_obj', 'email_verified']
+    list_display = ['user', 'get_location_string', 'email_verified', 'is_premium']
+    list_filter = ['provincia_obj', 'email_verified', 'is_premium']
     search_fields = ['user__username', 'citta', 'user__email', 'provincia_obj__nome']
 
     def get_queryset(self, request):
