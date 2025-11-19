@@ -509,57 +509,6 @@ Per rifiutare: {reject_url}
         ordering = ['-data_creazione']
 
 
-class Citta(models.Model):
-    """Modello per le città italiane principali"""
-    nome = models.CharField(max_length=100, unique=True)
-    provincia = models.CharField(max_length=50)
-    regione = models.CharField(max_length=50)
-
-    # Coordinate per calcoli futuri se necessario
-    latitudine = models.FloatField(null=True, blank=True)
-    longitudine = models.FloatField(null=True, blank=True)
-
-    class Meta:
-        verbose_name = "Città"
-        verbose_name_plural = "Città"
-        ordering = ['nome']
-
-    def __str__(self):
-        return f"{self.nome} ({self.provincia})"
-
-
-class DistanzaCitta(models.Model):
-    """Modello per memorizzare le distanze tra città"""
-    citta_a = models.ForeignKey(Citta, on_delete=models.CASCADE, related_name='distanze_da')
-    citta_b = models.ForeignKey(Citta, on_delete=models.CASCADE, related_name='distanze_a')
-    distanza_km = models.IntegerField(help_text="Distanza in km tra le due città")
-
-    class Meta:
-        verbose_name = "Distanza tra Città"
-        verbose_name_plural = "Distanze tra Città"
-        unique_together = ('citta_a', 'citta_b')
-
-    def __str__(self):
-        return f"{self.citta_a.nome} - {self.citta_b.nome}: {self.distanza_km} km"
-
-    @classmethod
-    def get_distanza(cls, citta_a, citta_b):
-        """Ottiene la distanza tra due città (in entrambe le direzioni)"""
-        if citta_a == citta_b:
-            return 0
-
-        try:
-            # Cerca in entrambe le direzioni
-            dist = cls.objects.filter(
-                models.Q(citta_a=citta_a, citta_b=citta_b) |
-                models.Q(citta_a=citta_b, citta_b=citta_a)
-            ).first()
-
-            return dist.distanza_km if dist else None
-        except:
-            return None
-
-
 class Provincia(models.Model):
     """Modello per le province italiane (107 province)"""
     sigla = models.CharField(max_length=2, unique=True, verbose_name="Sigla", help_text="Es: MI, RM, TO")
@@ -582,40 +531,19 @@ class Provincia(models.Model):
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
 
-    # Sistema località NUOVO: provincia obbligatoria + città campo libero
+    # Sistema località: provincia obbligatoria + città campo libero
     provincia_obj = models.ForeignKey(
         Provincia,
         on_delete=models.PROTECT,
-        null=True,  # Temporaneo per migration, verrà popolato automaticamente
-        blank=True,
         verbose_name="Provincia",
         help_text="Seleziona la tua provincia"
     )
     citta = models.CharField(
         max_length=100,
-        default='',  # Default temporaneo per migration
-        blank=True,
         verbose_name="Città/Comune",
-        help_text="Nome della tua città o comune (campo libero)"
+        help_text="Nome della tua città o comune"
     )
     cap = models.CharField(max_length=10, blank=True, verbose_name="CAP")
-
-    # DEPRECATO: vecchi campi per retrocompatibilità (da rimuovere in futuro)
-    citta_obj = models.ForeignKey(
-        Citta,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name="Città (deprecato)",
-        help_text="Campo obsoleto, non usare"
-    )
-    citta_old = models.CharField(max_length=100, blank=True, null=True, verbose_name="Città (vecchio)")
-    provincia = models.CharField(max_length=50, blank=True, null=True, verbose_name="Provincia (vecchio)")
-    regione = models.CharField(max_length=50, blank=True, null=True, verbose_name="Regione (vecchio)")
-
-    # Coordinate geografiche (deprecate ma mantenute per compatibilità)
-    latitudine = models.FloatField(null=True, blank=True)
-    longitudine = models.FloatField(null=True, blank=True)
 
     # Email verification
     email_verified = models.BooleanField(default=False, verbose_name="Email Verificata")
@@ -653,30 +581,40 @@ class UserProfile(models.Model):
     )
 
     def __str__(self):
-        if hasattr(self, 'provincia_obj') and self.provincia_obj:
-            return f"{self.user.username} - {self.citta}, {self.provincia_obj.sigla}"
-        return f"{self.user.username} - {self.citta if self.citta else 'No località'}"
+        return f"{self.user.username} - {self.citta}, {self.provincia_obj.sigla}"
 
     def get_location_string(self):
         """Restituisce una stringa rappresentativa della posizione dell'utente"""
-        # Nuovo sistema
-        if hasattr(self, 'provincia_obj') and self.provincia_obj:
-            return f"{self.citta}, {self.provincia_obj.nome} ({self.provincia_obj.sigla})"
-
-        # Fallback per profili vecchi (da migrare)
-        parts = []
-        if self.citta_old:
-            parts.append(self.citta_old)
-        if self.provincia:
-            parts.append(self.provincia)
-        return ", ".join(parts) if parts else "Posizione non specificata"
+        return f"{self.citta}, {self.provincia_obj.nome} ({self.provincia_obj.sigla})"
 
     def get_distanza_km(self, altro_profilo):
-        """Calcola la distanza da un altro profilo usando il database città"""
-        if not self.citta_obj or not altro_profilo.citta_obj:
-            return 9999  # Distanza default se manca la città (valore alto per distinguere da distanze reali)
+        """Calcola la distanza tra due province usando le coordinate GPS (formula di Haversine)"""
+        from math import radians, sin, cos, sqrt, atan2
 
-        return DistanzaCitta.get_distanza(self.citta_obj, altro_profilo.citta_obj) or 9999
+        if not self.provincia_obj or not altro_profilo.provincia_obj:
+            return 9999  # Distanza default se manca la provincia
+
+        if self.provincia_obj == altro_profilo.provincia_obj:
+            return 0  # Stessa provincia
+
+        # Coordinate del capoluogo provincia 1
+        lat1 = radians(self.provincia_obj.latitudine)
+        lon1 = radians(self.provincia_obj.longitudine)
+
+        # Coordinate del capoluogo provincia 2
+        lat2 = radians(altro_profilo.provincia_obj.latitudine)
+        lon2 = radians(altro_profilo.provincia_obj.longitudine)
+
+        # Formula di Haversine
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+        c = 2 * atan2(sqrt(a), sqrt(1-a))
+
+        # Raggio della Terra in km
+        r = 6371
+
+        return int(r * c)  # Distanza in km (arrotondata)
 
     # === SISTEMA LIMITI ANNUNCI ===
 
