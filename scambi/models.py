@@ -560,24 +560,58 @@ class DistanzaCitta(models.Model):
             return None
 
 
+class Provincia(models.Model):
+    """Modello per le province italiane (107 province)"""
+    sigla = models.CharField(max_length=2, unique=True, verbose_name="Sigla", help_text="Es: MI, RM, TO")
+    nome = models.CharField(max_length=100, verbose_name="Nome", help_text="Es: Milano, Roma, Torino")
+    regione = models.CharField(max_length=50, verbose_name="Regione")
+
+    # Coordinate del capoluogo per calcolo distanze
+    latitudine = models.FloatField(verbose_name="Latitudine")
+    longitudine = models.FloatField(verbose_name="Longitudine")
+
+    class Meta:
+        verbose_name = "Provincia"
+        verbose_name_plural = "Province"
+        ordering = ['nome']
+
+    def __str__(self):
+        return f"{self.nome} ({self.sigla})"
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
 
-    # Nuovo campo: ForeignKey a Citta
+    # Sistema località NUOVO: provincia obbligatoria + città campo libero
+    provincia_obj = models.ForeignKey(
+        Provincia,
+        on_delete=models.PROTECT,
+        null=True,  # Temporaneo per migration, verrà popolato automaticamente
+        blank=True,
+        verbose_name="Provincia",
+        help_text="Seleziona la tua provincia"
+    )
+    citta = models.CharField(
+        max_length=100,
+        default='',  # Default temporaneo per migration
+        blank=True,
+        verbose_name="Città/Comune",
+        help_text="Nome della tua città o comune (campo libero)"
+    )
+    cap = models.CharField(max_length=10, blank=True, verbose_name="CAP")
+
+    # DEPRECATO: vecchi campi per retrocompatibilità (da rimuovere in futuro)
     citta_obj = models.ForeignKey(
         Citta,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name="Città",
-        help_text="Seleziona la tua città dal menu"
+        verbose_name="Città (deprecato)",
+        help_text="Campo obsoleto, non usare"
     )
-
-    # Vecchi campi: manteniamo per retrocompatibilità durante la migrazione
     citta_old = models.CharField(max_length=100, blank=True, null=True, verbose_name="Città (vecchio)")
-    provincia = models.CharField(max_length=50, blank=True, verbose_name="Provincia")
-    regione = models.CharField(max_length=50, blank=True, verbose_name="Regione")
-    cap = models.CharField(max_length=10, blank=True, verbose_name="CAP")
+    provincia = models.CharField(max_length=50, blank=True, null=True, verbose_name="Provincia (vecchio)")
+    regione = models.CharField(max_length=50, blank=True, null=True, verbose_name="Regione (vecchio)")
 
     # Coordinate geografiche (deprecate ma mantenute per compatibilità)
     latitudine = models.FloatField(null=True, blank=True)
@@ -618,30 +652,18 @@ class UserProfile(models.Model):
         help_text="Data di fine sospensione temporanea"
     )
 
-    @property
-    def citta(self):
-        """Property per retrocompatibilità: restituisce nome città"""
-        if self.citta_obj:
-            return self.citta_obj.nome
-        return self.citta_old or ""
-
-    @citta.setter
-    def citta(self, value):
-        """Setter per retrocompatibilità: imposta citta_old quando viene assegnata una stringa"""
-        self.citta_old = value
-
     def __str__(self):
-        citta_str = self.citta
-        if citta_str:
-            return f"{self.user.username} - {citta_str}"
-        return f"{self.user.username} - No città"
+        if hasattr(self, 'provincia_obj') and self.provincia_obj:
+            return f"{self.user.username} - {self.citta}, {self.provincia_obj.sigla}"
+        return f"{self.user.username} - {self.citta if self.citta else 'No località'}"
 
     def get_location_string(self):
-        """Restituisce una stringa rappresentativa della posizione"""
-        if self.citta_obj:
-            return f"{self.citta_obj.nome}, {self.citta_obj.provincia}"
+        """Restituisce una stringa rappresentativa della posizione dell'utente"""
+        # Nuovo sistema
+        if hasattr(self, 'provincia_obj') and self.provincia_obj:
+            return f"{self.citta}, {self.provincia_obj.nome} ({self.provincia_obj.sigla})"
 
-        # Fallback per profili vecchi
+        # Fallback per profili vecchi (da migrare)
         parts = []
         if self.citta_old:
             parts.append(self.citta_old)
