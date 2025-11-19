@@ -1,7 +1,7 @@
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
-from .models import Annuncio, Categoria, UserProfile
+from .models import Annuncio, Categoria, UserProfile, Provincia
 
 class CustomUserCreationForm(UserCreationForm):
     citta = forms.CharField(
@@ -9,23 +9,25 @@ class CustomUserCreationForm(UserCreationForm):
         required=True,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Es: Roma, Milano, Torino...'
+            'placeholder': 'Es: Milano, Trieste, Brescia...'
         }),
-        label='Città *'
+        label='Città/Comune *',
+        help_text='Inserisci il nome della tua città o comune'
     )
-    provincia = forms.CharField(
-        max_length=50,
-        required=False,
-        widget=forms.TextInput(attrs={
+    provincia_obj = forms.ModelChoiceField(
+        queryset=Provincia.objects.all().order_by('nome'),
+        required=True,
+        empty_label="Seleziona una provincia...",
+        widget=forms.Select(attrs={
             'class': 'form-control',
-            'placeholder': 'Es: RM, MI, TO...'
         }),
-        label='Provincia (opzionale)'
+        label='Provincia *',
+        help_text='Seleziona la tua provincia dal menu'
     )
 
     class Meta:
         model = User
-        fields = ("username", "email", "password1", "password2", "citta", "provincia")
+        fields = ("username", "email", "password1", "password2", "citta", "provincia_obj")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -45,12 +47,13 @@ class CustomUserCreationForm(UserCreationForm):
             user.is_active = False
             user.save()
 
-            # Debug: Log data before creating profile
+            # Dati dal form
             citta_data = self.cleaned_data.get('citta', '')
-            provincia_data = self.cleaned_data.get('provincia', '')
+            provincia_obj_data = self.cleaned_data.get('provincia_obj')
+
             logger.info(f"Creating UserProfile for {user.username}")
-            logger.info(f"City data: '{citta_data}'")
-            logger.info(f"Province data: '{provincia_data}'")
+            logger.info(f"Città: '{citta_data}'")
+            logger.info(f"Provincia: '{provincia_obj_data}'")
 
             try:
                 # Get or create profile (signal might have already created it)
@@ -58,7 +61,7 @@ class CustomUserCreationForm(UserCreationForm):
                     user=user,
                     defaults={
                         'citta': citta_data,
-                        'provincia': provincia_data,
+                        'provincia_obj': provincia_obj_data,
                         'email_verified': False
                     }
                 )
@@ -66,15 +69,14 @@ class CustomUserCreationForm(UserCreationForm):
                 # If profile already existed (created by signal), update it with form data
                 if not created:
                     user_profile.citta = citta_data
-                    user_profile.provincia = provincia_data
+                    user_profile.provincia_obj = provincia_obj_data
                     user_profile.email_verified = False
                     user_profile.save()
-                    logger.info(f"UserProfile updated with form data - ID: {user_profile.id}")
+                    logger.info(f"UserProfile updated - ID: {user_profile.id}")
                 else:
-                    logger.info(f"UserProfile created successfully - ID: {user_profile.id}")
+                    logger.info(f"UserProfile created - ID: {user_profile.id}")
 
-                logger.info(f"Saved City: '{user_profile.citta}'")
-                logger.info(f"Saved Province: '{user_profile.provincia}'")
+                logger.info(f"Location: {user_profile.citta}, {user_profile.provincia_obj.nome}")
 
             except Exception as e:
                 logger.error(f"Error creating/updating UserProfile: {e}")
@@ -159,30 +161,30 @@ class AnnuncioForm(forms.ModelForm):
         return cleaned_data
 
 class UserProfileForm(forms.ModelForm):
-    # Definisci esplicitamente il campo citta_obj con queryset
-    from .models import Citta
-    citta_obj = forms.ModelChoiceField(
-        queryset=Citta.objects.all().order_by('nome'),
-        required=False,
-        empty_label="Seleziona una città...",
-        widget=forms.Select(attrs={
-            'class': 'form-control',
-        }),
-        label='Città *',
-        help_text='Seleziona la tua città. La provincia e regione verranno impostate automaticamente.'
-    )
-
     class Meta:
         model = UserProfile
-        fields = ['citta_obj', 'cap']
+        fields = ['citta', 'provincia_obj', 'cap']
         widgets = {
+            'citta': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Es: Milano, Trieste, Brescia...'
+            }),
+            'provincia_obj': forms.Select(attrs={
+                'class': 'form-control',
+            }),
             'cap': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Es: 00100, 20121...'
             }),
         }
         labels = {
+            'citta': 'Città/Comune *',
+            'provincia_obj': 'Provincia *',
             'cap': 'CAP (opzionale)'
+        }
+        help_texts = {
+            'citta': 'Inserisci il nome della tua città o comune',
+            'provincia_obj': 'Seleziona la tua provincia dal menu'
         }
 
 
