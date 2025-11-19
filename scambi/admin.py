@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Categoria, Annuncio, UserProfile, Notifica, Preferiti,
-    PropostaScambio, CicloScambio, Citta, DistanzaCitta, Provincia
+    PropostaScambio, CicloScambio, Provincia
 )
 
 
@@ -11,21 +11,6 @@ class ProvinciaAdmin(admin.ModelAdmin):
     list_filter = ['regione']
     search_fields = ['nome', 'sigla']
     ordering = ['nome']
-
-
-@admin.register(Citta)
-class CittaAdmin(admin.ModelAdmin):
-    list_display = ['nome', 'provincia', 'regione']
-    list_filter = ['regione', 'provincia']
-    search_fields = ['nome', 'provincia']
-    ordering = ['nome']
-
-
-@admin.register(DistanzaCitta)
-class DistanzaCittaAdmin(admin.ModelAdmin):
-    list_display = ['citta_a', 'citta_b', 'distanza_km']
-    list_filter = ['citta_a', 'citta_b']
-    search_fields = ['citta_a__nome', 'citta_b__nome']
 
 
 @admin.register(Categoria)
@@ -43,10 +28,9 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'citta', 'provincia_obj', 'get_location_string', 'email_verified']
     list_filter = ['provincia_obj', 'email_verified']
     search_fields = ['user__username', 'citta', 'user__email', 'provincia_obj__nome']
-    readonly_fields = ['latitudine', 'longitudine', 'citta_old', 'provincia', 'regione', 'citta_obj']
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('user', 'provincia_obj', 'citta_obj')
+        return super().get_queryset(request).select_related('user', 'provincia_obj')
 
 
 @admin.register(Notifica)
