@@ -147,10 +147,13 @@ class AnnuncioForm(forms.ModelForm):
                 "L'opzione 'Cerca per categoria' è disponibile solo per annunci di tipo 'Cerco'."
             )
 
-        # Se cerca_per_categoria è attivo, il titolo è opzionale
-        # Altrimenti, il titolo è obbligatorio
-        if not cerca_per_categoria and not titolo:
-            self.add_error('titolo', 'Il titolo è obbligatorio.')
+        # Se cerca_per_categoria è attivo, il titolo è opzionale (verrà auto-generato)
+        # Altrimenti, il titolo è obbligatorio E deve essere almeno 3 caratteri
+        if not cerca_per_categoria:
+            if not titolo:
+                self.add_error('titolo', 'Il titolo è obbligatorio.')
+            elif len(titolo.strip()) < 3:
+                self.add_error('titolo', 'Il titolo deve contenere almeno 3 caratteri per permettere il matching con altri annunci.')
 
         # Validazione contenuto testuale (parole vietate e pattern inappropriati)
         if titolo or descrizione:

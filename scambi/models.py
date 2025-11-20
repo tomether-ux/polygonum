@@ -148,6 +148,14 @@ class Annuncio(models.Model):
             self.titolo = f"Cerco {self.categoria.nome}"
             print(f"📝 Titolo auto-generato: '{self.titolo}'")
 
+        # Validazione lunghezza minima titolo (safety check)
+        # Se il titolo è troppo corto, non può funzionare nel matching
+        if self.titolo and len(self.titolo.strip()) < 3:
+            from django.core.exceptions import ValidationError
+            raise ValidationError({
+                'titolo': 'Il titolo deve contenere almeno 3 caratteri per permettere il matching con altri annunci.'
+            })
+
         # Verifica se è un'approvazione/rifiuto manuale dall'admin
         # L'admin usa save(update_fields=['moderation_status']), l'utente no
         update_fields = kwargs.get('update_fields')
