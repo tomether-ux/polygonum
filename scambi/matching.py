@@ -707,6 +707,11 @@ def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
     parole_offerto = estrai_parole_chiave(testo_offerto)
     parole_cercato = estrai_parole_chiave(testo_cercato)
 
+    # BUG FIX: Se parole_cercato è vuoto (es. titolo troppo corto come "bo"),
+    # NON deve matchare con tutto. Richiede almeno una parola chiave valida.
+    if not parole_cercato:
+        return False, None
+
     # NUOVA LOGICA: L'offerta deve contenere TUTTE le parole richieste
     # Questo permette ricerche specifiche ("iPhone 12 Pro") o generiche ("telefono")
     parole_mancanti = parole_cercato - parole_offerto
