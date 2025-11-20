@@ -156,8 +156,11 @@ class Annuncio(models.Model):
         # Verifica se è un nuovo annuncio o se l'immagine è cambiata
         is_new = self.pk is None
         old_annuncio = None if is_new else Annuncio.objects.filter(pk=self.pk).first() if Annuncio.objects.filter(pk=self.pk).exists() else None
-        old_image = old_annuncio.immagine if old_annuncio else None
-        image_changed = is_new or (old_image != self.immagine)
+
+        # Confronta gli URL delle immagini invece degli oggetti FieldFile per evitare false positives
+        old_image_url = str(old_annuncio.immagine) if (old_annuncio and old_annuncio.immagine) else None
+        new_image_url = str(self.immagine) if self.immagine else None
+        image_changed = is_new or (old_image_url != new_image_url)
 
         # Se c'è un'immagine nuova/modificata, metti in moderazione
         # ECCETTO se è l'admin che sta approvando/rifiutando manualmente
