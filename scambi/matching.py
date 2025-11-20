@@ -1,5 +1,6 @@
 from .models import Annuncio, UserProfile
 from django.contrib.auth.models import User
+from django.db.models import Q
 from collections import defaultdict
 import re
 import math
@@ -50,12 +51,23 @@ def trova_scambi_diretti():
                 break
 
             # Trova cosa offre A e cosa cerca B
-            offerte_a = Annuncio.objects.filter(utente=utente_a, tipo='offro', attivo=True, moderation_status='approved')
-            richieste_b = Annuncio.objects.filter(utente=utente_b, tipo='cerco', attivo=True, moderation_status='approved')
+            # Include annunci approved O senza immagine (che non richiedono moderazione)
+            offerte_a = Annuncio.objects.filter(
+                utente=utente_a, tipo='offro', attivo=True
+            ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
+
+            richieste_b = Annuncio.objects.filter(
+                utente=utente_b, tipo='cerco', attivo=True
+            ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
 
             # Trova cosa offre B e cosa cerca A
-            offerte_b = Annuncio.objects.filter(utente=utente_b, tipo='offro', attivo=True, moderation_status='approved')
-            richieste_a = Annuncio.objects.filter(utente=utente_a, tipo='cerco', attivo=True, moderation_status='approved')
+            offerte_b = Annuncio.objects.filter(
+                utente=utente_b, tipo='offro', attivo=True
+            ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
+
+            richieste_a = Annuncio.objects.filter(
+                utente=utente_a, tipo='cerco', attivo=True
+            ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
 
             # Calcola distanza geografica tra i due utenti
             distanza_km, categoria_distanza = calcola_distanza_geografica(utente_a, utente_b)
@@ -106,8 +118,10 @@ def trova_scambi_diretti():
 def filtra_catene_per_utente(scambi_diretti, catene_lunghe, utente):
     """Filtra le catene di scambio per mostrare solo quelle rilevanti per l'utente specificato"""
 
-    # Ottieni annunci dell'utente
-    annunci_utente = list(Annuncio.objects.filter(utente=utente, attivo=True, moderation_status='approved'))
+    # Ottieni annunci dell'utente (approved o senza immagine)
+    annunci_utente = list(Annuncio.objects.filter(
+        utente=utente, attivo=True
+    ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True)))
     annunci_utente_ids = set(ann.id for ann in annunci_utente)
 
     print(f"🔍 Filtraggio per utente {utente.username}: {len(annunci_utente)} annunci attivi")
@@ -275,12 +289,18 @@ def trova_catene_per_annuncio(annuncio_specifico, max_lunghezza=6):
 
         # Se l'annuncio è "offro", cerca chi cerca qualcosa di compatibile
         if annuncio_specifico.tipo == 'offro':
-            richieste_altri = Annuncio.objects.filter(utente=altro_utente, tipo='cerco', attivo=True, moderation_status='approved')
+            richieste_altri = Annuncio.objects.filter(
+                utente=altro_utente, tipo='cerco', attivo=True
+            ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
             for richiesta in richieste_altri:
                 if oggetti_compatibili(annuncio_specifico, richiesta):
                     # Controlla se c'è uno scambio di ritorno
-                    offerte_altri = Annuncio.objects.filter(utente=altro_utente, tipo='offro', attivo=True, moderation_status='approved')
-                    richieste_proprietario = Annuncio.objects.filter(utente=utente_proprietario, tipo='cerco', attivo=True, moderation_status='approved')
+                    offerte_altri = Annuncio.objects.filter(
+                        utente=altro_utente, tipo='offro', attivo=True
+                    ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
+                    richieste_proprietario = Annuncio.objects.filter(
+                        utente=utente_proprietario, tipo='cerco', attivo=True
+                    ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
 
                     for offerta_altro in offerte_altri:
                         for richiesta_proprietario in richieste_proprietario:
@@ -296,12 +316,18 @@ def trova_catene_per_annuncio(annuncio_specifico, max_lunghezza=6):
 
         # Se l'annuncio è "cerco", cerca chi offre qualcosa di compatibile
         elif annuncio_specifico.tipo == 'cerco':
-            offerte_altri = Annuncio.objects.filter(utente=altro_utente, tipo='offro', attivo=True, moderation_status='approved')
+            offerte_altri = Annuncio.objects.filter(
+                utente=altro_utente, tipo='offro', attivo=True
+            ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
             for offerta in offerte_altri:
                 if oggetti_compatibili(offerta, annuncio_specifico):
                     # Controlla se c'è uno scambio di ritorno
-                    offerte_proprietario = Annuncio.objects.filter(utente=utente_proprietario, tipo='offro', attivo=True, moderation_status='approved')
-                    richieste_altri = Annuncio.objects.filter(utente=altro_utente, tipo='cerco', attivo=True, moderation_status='approved')
+                    offerte_proprietario = Annuncio.objects.filter(
+                        utente=utente_proprietario, tipo='offro', attivo=True
+                    ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
+                    richieste_altri = Annuncio.objects.filter(
+                        utente=altro_utente, tipo='cerco', attivo=True
+                    ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
 
                     for offerta_proprietario in offerte_proprietario:
                         for richiesta_altro in richieste_altri:
@@ -366,7 +392,9 @@ def trova_catene_ricorsive(max_lunghezza=3):
         # Ordina per numero di annunci attivi (utenti più attivi hanno priorità)
         utenti_con_count = []
         for utente in utenti:
-            count_annunci = Annuncio.objects.filter(utente=utente, attivo=True, moderation_status='approved').count()
+            count_annunci = Annuncio.objects.filter(
+                utente=utente, attivo=True
+            ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True)).count()
             utenti_con_count.append((utente, count_annunci))
 
         # Prendi i 8 utenti con più annunci attivi
@@ -1311,8 +1339,12 @@ class CycleFinder:
             utente_da = User.objects.get(id=user_id_da)
             utente_a = User.objects.get(id=user_id_a)
 
-            offerte_da = Annuncio.objects.filter(utente=utente_da, tipo='offro', attivo=True, moderation_status='approved')
-            richieste_a = Annuncio.objects.filter(utente=utente_a, tipo='cerco', attivo=True, moderation_status='approved')
+            offerte_da = Annuncio.objects.filter(
+                utente=utente_da, tipo='offro', attivo=True
+            ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
+            richieste_a = Annuncio.objects.filter(
+                utente=utente_a, tipo='cerco', attivo=True
+            ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
 
             # Calcola distanza per usare logica avanzata
             try:
