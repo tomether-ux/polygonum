@@ -2,6 +2,7 @@
 Management command per approvare automaticamente gli annunci senza immagine
 """
 from django.core.management.base import BaseCommand
+from django.db.models import Q
 from scambi.models import Annuncio
 
 
@@ -10,9 +11,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Trova tutti gli annunci senza immagine in pending
+        # Usa Q objects per gestire correttamente NULL e stringa vuota
         annunci_pending = Annuncio.objects.filter(
             moderation_status='pending'
-        ).filter(immagine__in=['', None])
+        ).filter(Q(immagine='') | Q(immagine__isnull=True))
 
         count = annunci_pending.count()
 

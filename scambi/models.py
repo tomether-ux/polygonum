@@ -162,13 +162,19 @@ class Annuncio(models.Model):
         new_image_url = str(self.immagine) if self.immagine else None
         image_changed = is_new or (old_image_url != new_image_url)
 
-        # Se c'è un'immagine nuova/modificata, metti in moderazione
-        # ECCETTO se è l'admin che sta approvando/rifiutando manualmente
-        if image_changed and self.immagine and not is_admin_moderation:
-            self.moderation_status = 'pending'
-            # NOTA: attivo=True (annuncio VISIBILE), solo l'IMMAGINE è nascosta finché approvata
-            print(f"📋 Annuncio #{self.pk or 'NEW'} - nuova immagine in moderazione (annuncio visibile)")
-        elif is_admin_moderation:
+        # Gestione moderation_status
+        if not is_admin_moderation:
+            # Non è moderazione admin, applica logica automatica
+            if not self.immagine:
+                # Nessuna immagine → approva automaticamente
+                self.moderation_status = 'approved'
+                print(f"✓ Annuncio #{self.pk or 'NEW'} - senza immagine, approvato automaticamente")
+            elif image_changed and self.immagine:
+                # Immagine nuova/modificata → metti in moderazione
+                self.moderation_status = 'pending'
+                # NOTA: attivo=True (annuncio VISIBILE), solo l'IMMAGINE è nascosta finché approvata
+                print(f"📋 Annuncio #{self.pk or 'NEW'} - nuova immagine in moderazione (annuncio visibile)")
+        else:
             # L'admin ha appena approvato/rifiutato, preserva lo status
             print(f"✓ Annuncio #{self.pk} - status '{self.moderation_status}' preservato (moderazione admin)")
 
