@@ -784,15 +784,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // Le card hanno data-annuncio-url e devono navigare al dettaglio annuncio
     document.querySelectorAll('.clickable-ad-card').forEach(function(card) {
         card.addEventListener('click', function(e) {
+            console.log('Click su card annuncio:', e.target);
+            console.log('È un link?', e.target.tagName, e.target.closest('a'));
+
             // Non navigare se l'utente ha cliccato su un link interno (es. profilo utente)
             if (e.target.tagName === 'A' || e.target.closest('a')) {
+                console.log('Click su link interno, skippo navigazione');
                 return; // Lascia che il link gestisca il click
             }
 
             // Naviga alla pagina dell'annuncio
             const url = this.getAttribute('data-annuncio-url');
+            console.log('URL annuncio:', url);
             if (url) {
+                console.log('Navigando a:', url);
                 window.location.href = url;
+            } else {
+                console.error('Nessun URL trovato su questa card!');
             }
         });
     });
