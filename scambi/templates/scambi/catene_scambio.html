@@ -218,7 +218,7 @@
                             <div class="col-md-6">
                                 <h6>Annunci Coinvolti:</h6>
                                 {% for item in preferita.catena_data.annunci_coinvolti %}
-                                <a href="{% url 'dettaglio_annuncio' item.annuncio.id %}" class="text-decoration-none">
+                                <a href="{% url 'dettaglio_annuncio' item.annuncio.id %}" class="text-decoration-none card-link">
                                     <div class="card mb-2 border-primary clickable-ad-card">
                                         <div class="card-body p-2">
                                             <strong class="text-dark">{{ item.annuncio.titolo }}</strong>
@@ -1020,6 +1020,10 @@ document.addEventListener('DOMContentLoaded', function() {
 .clickable-ad-card {
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    /* Mobile touch optimization */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(102, 126, 234, 0.1);
+    user-select: none;
 }
 
 .clickable-ad-card:hover {
@@ -1027,9 +1031,26 @@ document.addEventListener('DOMContentLoaded', function() {
     box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
+/* Mobile tap feedback */
+.clickable-ad-card:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Assicura che il link wrapper delle card annunci sia completamente cliccabile su mobile */
+a.card-link {
+    display: block;
+    -webkit-tap-highlight-color: transparent;
+    /* Importante per mobile: il link deve essere l'intero blocco */
+    position: relative;
+}
+
 /* Link ai profili utente - senza hover, solo sottolineato */
 .card-body a.text-muted {
     /* Mantiene la sottolineatura ma nessun effetto hover */
+    display: inline;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(102, 126, 234, 0.2);
 }
 
 /* Rimuoviamo l'effetto hover dalle card principali delle catene */
