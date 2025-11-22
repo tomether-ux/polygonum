@@ -218,20 +218,18 @@
                             <div class="col-md-6">
                                 <h6>Annunci Coinvolti:</h6>
                                 {% for item in preferita.catena_data.annunci_coinvolti %}
-                                <a href="{% url 'dettaglio_annuncio' item.annuncio.id %}" class="text-decoration-none card-link">
-                                    <div class="card mb-2 border-primary clickable-ad-card">
-                                        <div class="card-body p-2">
-                                            <strong class="text-dark">{{ item.annuncio.titolo }}</strong>
-                                            <br><small><a href="{% url 'profilo_utente' item.utente %}" class="text-muted text-decoration-underline" onclick="event.stopPropagation();">{{ item.utente }}</a> - {{ item.annuncio.categoria.nome }}</small>
-                                            <br>
-                                            {% if item.ruolo == 'offre' %}
-                                                <span class="badge bg-success">Offre</span>
-                                            {% else %}
-                                                <span class="badge bg-primary">Cerca</span>
-                                            {% endif %}
-                                        </div>
+                                <div class="card mb-2 border-primary clickable-ad-card" data-annuncio-url="{% url 'dettaglio_annuncio' item.annuncio.id %}">
+                                    <div class="card-body p-2">
+                                        <strong class="text-dark">{{ item.annuncio.titolo }}</strong>
+                                        <br><small><a href="{% url 'profilo_utente' item.utente %}" class="text-muted text-decoration-underline">{{ item.utente }}</a> - {{ item.annuncio.categoria.nome }}</small>
+                                        <br>
+                                        {% if item.ruolo == 'offre' %}
+                                            <span class="badge bg-success">Offre</span>
+                                        {% else %}
+                                            <span class="badge bg-primary">Cerca</span>
+                                        {% endif %}
                                     </div>
-                                </a>
+                                </div>
                                 {% endfor %}
                             </div>
                         </div>
@@ -781,6 +779,23 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+
+    // Gestione dei click sulle card degli annunci
+    // Le card hanno data-annuncio-url e devono navigare al dettaglio annuncio
+    document.querySelectorAll('.clickable-ad-card').forEach(function(card) {
+        card.addEventListener('click', function(e) {
+            // Non navigare se l'utente ha cliccato su un link interno (es. profilo utente)
+            if (e.target.tagName === 'A' || e.target.closest('a')) {
+                return; // Lascia che il link gestisca il click
+            }
+
+            // Naviga alla pagina dell'annuncio
+            const url = this.getAttribute('data-annuncio-url');
+            if (url) {
+                window.location.href = url;
+            }
+        });
+    });
 });
 
 // Funzione per ottenere il CSRF token dai cookie
@@ -1035,14 +1050,6 @@ document.addEventListener('DOMContentLoaded', function() {
 .clickable-ad-card:active {
     transform: translateY(0);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-/* Assicura che il link wrapper delle card annunci sia completamente cliccabile su mobile */
-a.card-link {
-    display: block;
-    -webkit-tap-highlight-color: transparent;
-    /* Importante per mobile: il link deve essere l'intero blocco */
-    position: relative;
 }
 
 /* Link ai profili utente - senza hover, solo sottolineato */
