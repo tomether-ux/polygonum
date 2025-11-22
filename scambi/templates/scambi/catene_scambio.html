@@ -207,7 +207,8 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6">
+                            <!-- Sequenza Scambi: nascosta su mobile, visibile da tablet in su -->
+                            <div class="col-md-6 d-none d-md-block">
                                 <h6>Sequenza Scambi:</h6>
                                 <div class="alert alert-info">
                                     {% for scambio in preferita.catena_data.scambi %}
@@ -215,7 +216,8 @@
                                     {% endfor %}
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <!-- Annunci Coinvolti: full width su mobile, metà larghezza su desktop -->
+                            <div class="col-12 col-md-6">
                                 <h6>Annunci Coinvolti:</h6>
                                 {% for item in preferita.catena_data.annunci_coinvolti %}
                                 <div class="card mb-2 border-primary clickable-ad-card" data-annuncio-url="{% url 'dettaglio_annuncio' item.annuncio.id %}">
