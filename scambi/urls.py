@@ -109,4 +109,7 @@ urlpatterns = [
     path('premium/checkout/', views.premium_checkout, name='premium_checkout'),
     path('premium/success/', views.premium_success, name='premium_success'),
     path('premium/cancel/', views.premium_cancel, name='premium_cancel'),
+
+    # Regolamento e linee guida
+    path('regolamento/', views.regolamento, name='regolamento'),
 ]

@@ -1,0 +1,257 @@
+{% extends 'scambi/base.html' %}
+{% load static %}
+
+{% block title %}Regolamento e Linee Guida - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-4 mb-3" style="color: #667eea;">📜 Regolamento e Linee Guida</h1>
+                <p class="lead text-muted">Come funziona Polygonum e cosa ci aspettiamo dalla community</p>
+            </div>
+
+            <!-- Intro -->
+            <div class="alert alert-info mb-5">
+                <h4>👋 Benvenuto su Polygonum!</h4>
+                <p class="mb-0">Questo regolamento spiega come funziona la piattaforma e cosa ci aspettiamo da te come membro della community. Leggi con attenzione: rispettare queste regole rende Polygonum un posto migliore per tutti.</p>
+            </div>
+
+            <!-- Sezione 1: Creazione Annunci -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h3 class="mb-0">📝 1. Creazione Annunci</h3>
+                </div>
+                <div class="card-body">
+                    <h5 class="text-primary">Cosa puoi pubblicare</h5>
+                    <ul>
+                        <li>Oggetti fisici che possiedi e vuoi scambiare</li>
+                        <li>Servizi che puoi offrire in cambio di oggetti o altri servizi</li>
+                        <li>Richieste specifiche di ciò che cerchi</li>
+                    </ul>
+
+                    <h5 class="text-primary mt-4">Regole per gli annunci</h5>
+                    <ul>
+                        <li><strong>Titolo chiaro</strong>: Descrivi l'oggetto in modo comprensibile</li>
+                        <li><strong>Descrizione accurata</strong>: Spiega lo stato, caratteristiche, eventuali difetti</li>
+                        <li><strong>Foto veritiere</strong>: Se carichi foto, devono rappresentare realmente l'oggetto (no immagini da internet)</li>
+                        <li><strong>Valore stimato onesto</strong>: Aiuta gli altri a capire il valore dell'oggetto</li>
+                        <li><strong>Categoria corretta</strong>: Scegli la categoria più appropriata</li>
+                    </ul>
+
+                    <h5 class="text-danger mt-4">Cosa NON puoi pubblicare</h5>
+                    <ul class="text-danger">
+                        <li>❌ Contenuti illegali (armi, droghe, materiale rubato, ecc.)</li>
+                        <li>❌ Contenuti violenti, sessualmente espliciti o inappropriati</li>
+                        <li>❌ Animali vivi</li>
+                        <li>❌ Documenti personali, carte di credito, accessi ad account</li>
+                        <li>❌ Farmaci o prodotti che richiedono prescrizione medica</li>
+                        <li>❌ Prodotti contraffatti o che violano copyright</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Sezione 2: Comportamento -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h3 class="mb-0">🤝 2. Comportamento nella Community</h3>
+                </div>
+                <div class="card-body">
+                    <h5 class="text-primary">Le Regole d'Oro</h5>
+                    <ul>
+                        <li><strong>Sii onesto</strong>: Non mentire sulla qualità o condizione di ciò che offri</li>
+                        <li><strong>Sii gentile</strong>: Tratta gli altri con rispetto nelle chat e comunicazioni</li>
+                        <li><strong>Sii affidabile</strong>: Se ti impegni in uno scambio, portalo a termine</li>
+                        <li><strong>Sii paziente</strong>: Le catene di scambio vengono calcolate periodicamente</li>
+                    </ul>
+
+                    <h5 class="text-primary mt-4">Comunicazione</h5>
+                    <ul>
+                        <li>Usa un linguaggio rispettoso e civile</li>
+                        <li>Non insultare, minacciare o molestare altri utenti</li>
+                        <li>Non fare spam o pubblicità non richiesta</li>
+                        <li>Rispondi ai messaggi in modo tempestivo e cortese</li>
+                    </ul>
+
+                    <h5 class="text-primary mt-4">Impegni di Scambio</h5>
+                    <ul>
+                        <li>Se clicchi "Mi interessa" su una catena, sei interessato seriamente</li>
+                        <li>Comunica chiaramente disponibilità e preferenze di scambio</li>
+                        <li>Se cambi idea, avvisa subito gli altri partecipanti</li>
+                        <li>Rispetta gli accordi presi con gli altri utenti</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Sezione 3: Moderazione -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h3 class="mb-0">⚖️ 3. Sistema di Moderazione</h3>
+                </div>
+                <div class="card-body">
+                    <h5 class="text-primary">Moderazione Immagini</h5>
+                    <ul>
+                        <li>Tutti gli annunci con immagini vengono controllati automaticamente</li>
+                        <li>Le immagini inappropriate vengono bloccate</li>
+                        <li>Riceverai una email quando la tua immagine viene approvata o rifiutata</li>
+                    </ul>
+
+                    <h5 class="text-primary mt-4">Sistema di Strike</h5>
+                    <p>Polygonum usa un sistema progressivo di sanzioni:</p>
+
+                    <div class="alert alert-warning">
+                        <h6><strong>1° Strike - Warning</strong></h6>
+                        <ul class="mb-0">
+                            <li>L'annuncio viene rimosso</li>
+                            <li>Ricevi una notifica di avviso</li>
+                            <li>Nessuna sospensione</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-danger">
+                        <h6><strong>2° Strike - Sospensione Temporanea</strong></h6>
+                        <ul class="mb-0">
+                            <li>Account sospeso per 7 giorni</li>
+                            <li>Non puoi pubblicare annunci o partecipare a scambi</li>
+                            <li>Ultimo avviso prima del ban permanente</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-dark">
+                        <h6><strong>3° Strike - Ban Permanente</strong></h6>
+                        <ul class="mb-0">
+                            <li>Account bannato definitivamente</li>
+                            <li>Non puoi più accedere alla piattaforma</li>
+                            <li>Tutti i tuoi annunci vengono rimossi</li>
+                        </ul>
+                    </div>
+
+                    <h5 class="text-primary mt-4">Motivi di Strike</h5>
+                    <ul>
+                        <li>Pubblicazione di contenuti inappropriati</li>
+                        <li>Violazione delle regole sugli annunci</li>
+                        <li>Comportamenti abusivi verso altri utenti</li>
+                        <li>Spam o pubblicità ripetuta</li>
+                        <li>Tentativi di frode o truffa</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Sezione 4: Sicurezza -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h3 class="mb-0">🔒 4. Sicurezza e Privacy</h3>
+                </div>
+                <div class="card-body">
+                    <h5 class="text-primary">La Tua Sicurezza</h5>
+                    <ul>
+                        <li><strong>Polygonum facilita solo il contatto</strong>, gli scambi avvengono tra privati</li>
+                        <li>Incontra sempre in luoghi pubblici e sicuri</li>
+                        <li>Porta un amico se non ti senti sicuro</li>
+                        <li>Non condividere dati personali sensibili (carte di credito, documenti, ecc.)</li>
+                        <li>Fidati del tuo istinto: se qualcosa non ti convince, rinuncia</li>
+                    </ul>
+
+                    <h5 class="text-primary mt-4">Privacy</h5>
+                    <ul>
+                        <li>Le tue informazioni personali non vengono condivise con altri utenti senza il tuo consenso</li>
+                        <li>Le chat sono private tra i partecipanti della catena</li>
+                        <li>Non condivideremo mai la tua email o dati personali con terze parti per scopi commerciali</li>
+                    </ul>
+
+                    <h5 class="text-primary mt-4">Segnalazioni</h5>
+                    <p>Se incontri comportamenti inappropriati:</p>
+                    <ul>
+                        <li>Usa il pulsante "Segnala" nell'annuncio o nella chat</li>
+                        <li>Contattaci a <a href="mailto:noreply@polygonum.onrender.com">noreply@polygonum.onrender.com</a></li>
+                        <li>Fornisci dettagli e screenshot se possibile</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Sezione 5: Catene di Scambio -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h3 class="mb-0">🔄 5. Come Funzionano le Catene di Scambio</h3>
+                </div>
+                <div class="card-body">
+                    <h5 class="text-primary">Calcolo delle Catene</h5>
+                    <ul>
+                        <li>Il sistema analizza tutti gli annunci periodicamente</li>
+                        <li>Trova compatibilità tra ciò che offri e ciò che altri cercano</li>
+                        <li>Crea catene dove tutti ricevono qualcosa che cercano</li>
+                    </ul>
+
+                    <h5 class="text-primary mt-4">Tempistiche</h5>
+                    <ul>
+                        <li>Le catene non appaiono immediatamente</li>
+                        <li>Il calcolo avviene automaticamente ogni tot tempo</li>
+                        <li>Sii paziente: se non vedi subito il tuo annuncio, aspetta la prossima scansione</li>
+                    </ul>
+
+                    <h5 class="text-primary mt-4">Partecipazione</h5>
+                    <ul>
+                        <li>Clicca "Mi interessa" solo se sei veramente interessato</li>
+                        <li>Quando tutti i partecipanti sono interessati, si apre una chat di gruppo</li>
+                        <li>Coordinate insieme i dettagli dello scambio</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Sezione 6: Responsabilità -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning">
+                    <h3 class="mb-0">⚠️ 6. Limitazioni di Responsabilità</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>Polygonum:</strong></p>
+                    <ul>
+                        <li>NON è responsabile per controversie tra utenti</li>
+                        <li>NON garantisce la qualità o veridicità degli annunci</li>
+                        <li>NON gestisce direttamente gli scambi fisici</li>
+                        <li>NON è responsabile per danni, furti o problemi derivanti dagli scambi</li>
+                    </ul>
+                    <p class="alert alert-warning mt-3 mb-0">
+                        <strong>Usi Polygonum a tuo rischio e responsabilità.</strong>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Sezione 7: Contatti -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h3 class="mb-0">📧 7. Contatti e Supporto</h3>
+                </div>
+                <div class="card-body">
+                    <p>Hai domande o problemi?</p>
+                    <ul>
+                        <li><strong>Email</strong>: <a href="mailto:noreply@polygonum.onrender.com">noreply@polygonum.onrender.com</a></li>
+                        <li><strong>Segnalazioni</strong>: Usa il bottone "Segnala" nella piattaforma</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Sezione 8: Modifiche -->
+            <div class="card shadow-sm mb-5">
+                <div class="card-header bg-secondary text-white">
+                    <h3 class="mb-0">✅ 8. Modifiche al Regolamento</h3>
+                </div>
+                <div class="card-body">
+                    <p>Polygonum si riserva il diritto di modificare questo regolamento in qualsiasi momento. Le modifiche sostanziali verranno comunicate via email.</p>
+                    <p class="mb-0"><strong>Ultimo aggiornamento</strong>: {{ today|date:"d/m/Y" }}</p>
+                </div>
+            </div>
+
+            <!-- Footer messaggio -->
+            <div class="text-center mb-5">
+                <h4 style="color: #667eea;">Grazie per far parte della community Polygonum! 🎉</h4>
+                <a href="{% url 'home' %}" class="btn btn-primary mt-3">Torna alla Home</a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

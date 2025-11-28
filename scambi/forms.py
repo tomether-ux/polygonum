@@ -24,10 +24,20 @@ class CustomUserCreationForm(UserCreationForm):
         label='Provincia *',
         help_text='Seleziona la tua provincia dal menu'
     )
+    accetta_regolamento = forms.BooleanField(
+        required=True,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input',
+        }),
+        label='',  # Lasciamo vuoto, renderizziamo il label custom nel template
+        error_messages={
+            'required': 'Devi accettare il regolamento per registrarti.'
+        }
+    )
 
     class Meta:
         model = User
-        fields = ("username", "email", "password1", "password2", "citta", "provincia_obj")
+        fields = ("username", "email", "password1", "password2", "citta", "provincia_obj", "accetta_regolamento")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
