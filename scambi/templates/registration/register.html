@@ -25,7 +25,97 @@
 
                 <form method="post" id="registration-form" style="position: relative;">
                     {% csrf_token %}
-                    {{ form.as_p }}
+
+                    <!-- Username -->
+                    <div class="mb-3">
+                        <label for="{{ form.username.id_for_label }}" class="form-label">{{ form.username.label }}</label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                            <div class="text-danger">{{ form.username.errors }}</div>
+                        {% endif %}
+                        {% if form.username.help_text %}
+                            <small class="form-text text-muted">{{ form.username.help_text }}</small>
+                        {% endif %}
+                    </div>
+
+                    <!-- Email -->
+                    <div class="mb-3">
+                        <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="text-danger">{{ form.email.errors }}</div>
+                        {% endif %}
+                        {% if form.email.help_text %}
+                            <small class="form-text text-muted">{{ form.email.help_text }}</small>
+                        {% endif %}
+                    </div>
+
+                    <!-- Password1 -->
+                    <div class="mb-3">
+                        <label for="{{ form.password1.id_for_label }}" class="form-label">{{ form.password1.label }}</label>
+                        {{ form.password1 }}
+                        {% if form.password1.errors %}
+                            <div class="text-danger">{{ form.password1.errors }}</div>
+                        {% endif %}
+                        {% if form.password1.help_text %}
+                            <small class="form-text text-muted">{{ form.password1.help_text|safe }}</small>
+                        {% endif %}
+                    </div>
+
+                    <!-- Password2 -->
+                    <div class="mb-3">
+                        <label for="{{ form.password2.id_for_label }}" class="form-label">{{ form.password2.label }}</label>
+                        {{ form.password2 }}
+                        {% if form.password2.errors %}
+                            <div class="text-danger">{{ form.password2.errors }}</div>
+                        {% endif %}
+                        {% if form.password2.help_text %}
+                            <small class="form-text text-muted">{{ form.password2.help_text }}</small>
+                        {% endif %}
+                    </div>
+
+                    <!-- Città -->
+                    <div class="mb-3">
+                        <label for="{{ form.citta.id_for_label }}" class="form-label">{{ form.citta.label }}</label>
+                        {{ form.citta }}
+                        {% if form.citta.errors %}
+                            <div class="text-danger">{{ form.citta.errors }}</div>
+                        {% endif %}
+                        {% if form.citta.help_text %}
+                            <small class="form-text text-muted">{{ form.citta.help_text }}</small>
+                        {% endif %}
+                    </div>
+
+                    <!-- Provincia -->
+                    <div class="mb-3">
+                        <label for="{{ form.provincia_obj.id_for_label }}" class="form-label">{{ form.provincia_obj.label }}</label>
+                        {{ form.provincia_obj }}
+                        {% if form.provincia_obj.errors %}
+                            <div class="text-danger">{{ form.provincia_obj.errors }}</div>
+                        {% endif %}
+                        {% if form.provincia_obj.help_text %}
+                            <small class="form-text text-muted">{{ form.provincia_obj.help_text }}</small>
+                        {% endif %}
+                    </div>
+
+                    <!-- Accettazione Regolamento -->
+                    <div class="mb-3 form-check">
+                        {{ form.accetta_regolamento }}
+                        <label class="form-check-label" for="{{ form.accetta_regolamento.id_for_label }}">
+                            Accetto i <a href="{% url 'regolamento' %}" target="_blank" class="text-decoration-underline">Termini e Condizioni d'Uso</a> di Polygonum *
+                        </label>
+                        {% if form.accetta_regolamento.errors %}
+                            <div class="text-danger">{{ form.accetta_regolamento.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Errori non di campo -->
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
                     <button type="submit" class="btn btn-primary" id="submit-btn">Registrati</button>
                     <a href="{% url 'login' %}" class="btn btn-link">Hai già un account? Accedi</a>
                 </form>

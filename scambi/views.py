@@ -2716,6 +2716,14 @@ def pricing(request):
     return render(request, 'scambi/pricing.html')
 
 
+def regolamento(request):
+    """Pagina del regolamento e linee guida"""
+    from datetime import date
+    return render(request, 'scambi/regolamento.html', {
+        'today': date.today()
+    })
+
+
 @login_required
 def premium_checkout(request):
     """Pagina di checkout per Premium con PayPal"""
