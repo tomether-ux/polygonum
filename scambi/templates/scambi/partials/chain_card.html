@@ -56,10 +56,10 @@
             </h6>
             <div class="participants-list">
                 {% for utente in catena.utenti %}
-                    <span class="participant-badge">
+                    <a href="{% url 'profilo_utente' utente.user.username %}" class="participant-badge participant-link">
                         <i class="fas fa-user-circle"></i>
                         {{ utente.user.username }}
-                    </span>
+                    </a>
                 {% endfor %}
             </div>
         </div>
@@ -77,18 +77,18 @@
                             {{ utente.user.username|slice:":1"|upper }}
                         </div>
                         <div class="user-exchange-info">
-                            <div class="user-name">{{ utente.user.username }}</div>
+                            <a href="{% url 'profilo_utente' utente.user.username %}" class="user-name user-name-link">{{ utente.user.username }}</a>
                             {% if utente.richiede %}
-                                <div class="exchange-detail request">
+                                <a href="{% url 'dettaglio_annuncio' utente.richiede.id %}" class="exchange-detail request exchange-detail-link">
                                     <i class="fas fa-search"></i>
                                     <span>Cerca: {{ utente.richiede.titolo|truncatechars:30 }}</span>
-                                </div>
+                                </a>
                             {% endif %}
                             {% if utente.offerta %}
-                                <div class="exchange-detail offer">
+                                <a href="{% url 'dettaglio_annuncio' utente.offerta.id %}" class="exchange-detail offer exchange-detail-link">
                                     <i class="fas fa-hand-holding"></i>
                                     <span>Offre: {{ utente.offerta.titolo|truncatechars:30 }}</span>
-                                </div>
+                                </a>
                             {% endif %}
                         </div>
                     </div>

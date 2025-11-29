@@ -1337,6 +1337,18 @@ document.addEventListener('DOMContentLoaded', function() {
     box-shadow: 0 6px 18px rgba(102, 126, 234, 0.4);
 }
 
+/* Stili per i link ai profili nei badge partecipanti */
+.participant-badge.participant-link {
+    text-decoration: none;
+    cursor: pointer;
+    min-height: 44px; /* Apple HIG touch target */
+}
+
+.participant-badge.participant-link:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+}
+
 .participant-badge i {
     font-size: 1.1rem;
 }
@@ -1422,6 +1434,28 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 1rem;
 }
 
+/* Stili per i link ai profili nella sequenza scambi */
+.user-name-link {
+    text-decoration: none;
+    color: #667eea;
+    font-weight: 700;
+    transition: all 0.2s ease;
+    display: inline-block;
+    padding: 4px 8px;
+    margin: -4px -8px;
+    border-radius: 4px;
+    min-height: 44px; /* Apple HIG touch target */
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.user-name-link:hover,
+.user-name-link:active {
+    background-color: rgba(102, 126, 234, 0.1);
+    color: #764ba2;
+}
+
 .exchange-detail {
     display: flex;
     align-items: center;
@@ -1447,6 +1481,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .exchange-detail i {
     font-size: 1.1rem;
+}
+
+/* Stili per i link agli annunci nei dettagli scambio */
+.exchange-detail-link {
+    text-decoration: none;
+    cursor: pointer;
+    min-height: 44px; /* Apple HIG touch target */
+    display: flex;
+    align-items: center;
+}
+
+.exchange-detail-link:hover {
+    transform: translateX(3px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.exchange-detail-link:active {
+    transform: translateX(1px) scale(0.98);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.exchange-detail-link.offer:hover {
+    background: linear-gradient(135deg, rgba(46, 213, 115, 0.2) 0%, rgba(72, 219, 251, 0.2) 100%);
+}
+
+.exchange-detail-link.request:hover {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.2) 0%, rgba(155, 89, 182, 0.2) 100%);
 }
 
 .modern-exchange-arrow {
@@ -1803,6 +1864,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
     .participant-badge i {
         font-size: 0.95rem;
+    }
+
+    /* Touch targets migliorati per mobile */
+    .participant-badge.participant-link {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 8px 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .user-name-link {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 8px 12px;
+        margin: -4px -8px;
+    }
+
+    .exchange-detail-link {
+        min-height: 44px;
+        padding: 8px 12px;
+        margin: 4px 0;
     }
 
     /* Bottoni più compatti */
