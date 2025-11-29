@@ -155,7 +155,7 @@
 
                     <!-- Info Grid -->
                     <div class="row g-3 mb-4">
-                        <div class="col-6">
+                        <div class="col-md-4">
                             <div class="bg-light rounded-3 p-3">
                                 <small class="text-muted d-block mb-1">Categoria</small>
                                 <strong class="text-polygonum-primary">
@@ -163,7 +163,15 @@
                                 </strong>
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-md-4">
+                            <div class="bg-light rounded-3 p-3">
+                                <small class="text-muted d-block mb-1">Condizione</small>
+                                <strong class="text-polygonum-primary">
+                                    <span class="me-1">{{ annuncio.get_condizione_icon }}</span>{{ annuncio.get_condizione_display }}
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
                             <div class="bg-light rounded-3 p-3">
                                 <small class="text-muted d-block mb-1">Pubblicato</small>
                                 <strong class="text-polygonum-primary">

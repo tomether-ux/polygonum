@@ -116,12 +116,17 @@
 
                                 <!-- Meta Info -->
                                 <div class="row g-2 mb-3">
-                                    <div class="col-6">
+                                    <div class="col-4">
                                         <small class="text-muted d-flex align-items-center">
                                             <i class="fas fa-tag me-2"></i>{{ annuncio.categoria.nome }}
                                         </small>
                                     </div>
-                                    <div class="col-6">
+                                    <div class="col-4">
+                                        <small class="text-muted d-flex align-items-center" title="{{ annuncio.get_condizione_display }}">
+                                            <span class="me-1">{{ annuncio.get_condizione_icon }}</span>{{ annuncio.get_condizione_display_short }}
+                                        </small>
+                                    </div>
+                                    <div class="col-4">
                                         <small class="text-muted d-flex align-items-center">
                                             <i class="fas fa-calendar me-2"></i>{{ annuncio.data_creazione|date:"d/m/Y" }}
                                         </small>

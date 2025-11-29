@@ -1694,6 +1694,12 @@ def ricerca_annunci(request):
             ricerca_effettuata = True
             annunci = annunci.filter(categoria=categoria)
 
+        # Filtro per condizione
+        condizione = form.cleaned_data.get('condizione')
+        if condizione:
+            ricerca_effettuata = True
+            annunci = annunci.filter(condizione=condizione)
+
         # Filtro per città
         citta = form.cleaned_data.get('citta')
         if citta:

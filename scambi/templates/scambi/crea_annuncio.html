@@ -136,7 +136,7 @@
                             </h5>
 
                             <div class="row">
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-4 mb-3">
                                     <label class="form-label">{{ form.prezzo_stimato.label_tag }}</label>
                                     <div class="input-group">
                                         {{ form.prezzo_stimato }}
@@ -145,7 +145,13 @@
                                     <small class="form-text text-muted">Valore indicativo per scambi equi (opzionale)</small>
                                 </div>
 
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">{{ form.condizione.label_tag }}</label>
+                                    {{ form.condizione }}
+                                    <small class="form-text text-muted">Indica lo stato dell'oggetto</small>
+                                </div>
+
+                                <div class="col-md-4 mb-3">
                                     <label class="form-label">{{ form.metodo_scambio.label_tag }}</label>
                                     {{ form.metodo_scambio }}
                                 </div>
