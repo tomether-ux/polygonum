@@ -98,7 +98,7 @@ class AnnuncioForm(forms.ModelForm):
     class Meta:
         model = Annuncio
         fields = ['titolo', 'descrizione', 'categoria', 'tipo', 'cerca_per_categoria', 'immagine',
-                 'prezzo_stimato', 'metodo_scambio', 'distanza_massima_km']
+                 'prezzo_stimato', 'condizione', 'metodo_scambio', 'distanza_massima_km']
         widgets = {
             'titolo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Es: Chitarra elettrica Fender'}),
             'descrizione': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Descrivi il tuo annuncio...'}),
@@ -116,6 +116,7 @@ class AnnuncioForm(forms.ModelForm):
                 'step': '0.01',
                 'min': '0'
             }),
+            'condizione': forms.Select(attrs={'class': 'form-control'}),
             'metodo_scambio': forms.Select(attrs={'class': 'form-control'}),
             'distanza_massima_km': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -132,6 +133,7 @@ class AnnuncioForm(forms.ModelForm):
             'cerca_per_categoria': 'Cerco qualsiasi cosa in questa categoria',
             'immagine': 'Foto dell\'oggetto (opzionale)',
             'prezzo_stimato': 'Valore stimato (€)',
+            'condizione': 'Condizioni dell\'oggetto',
             'metodo_scambio': 'Come preferisci scambiare?',
             'distanza_massima_km': 'Distanza massima per incontro (km)'
         }
@@ -231,6 +233,14 @@ class RicercaAvanzataForm(forms.Form):
         empty_label="Tutte le categorie",
         widget=forms.Select(attrs={'class': 'form-select'}),
         label='Categoria'
+    )
+
+    # Filtro per condizione
+    condizione = forms.ChoiceField(
+        choices=[('', 'Tutte le condizioni')] + Annuncio.CONDIZIONE_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Condizione'
     )
 
     # Filtro per città

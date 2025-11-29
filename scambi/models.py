@@ -28,6 +28,14 @@ class Annuncio(models.Model):
         ('spedizione', 'Solo spedizione'),
     ]
 
+    CONDIZIONE_CHOICES = [
+        ('nuovo', 'Come nuovo'),
+        ('ottimo', 'Ottime condizioni'),
+        ('buono', 'Buone condizioni'),
+        ('usato', 'Usato'),
+        ('danneggiato', 'Danneggiato/Da riparare'),
+    ]
+
     utente = models.ForeignKey(User, on_delete=models.CASCADE)
     titolo = models.CharField(max_length=200, blank=True)
     descrizione = models.TextField()
@@ -55,6 +63,13 @@ class Annuncio(models.Model):
         choices=METODO_SCAMBIO_CHOICES,
         default='entrambi',
         verbose_name="Metodo di scambio preferito"
+    )
+    condizione = models.CharField(
+        max_length=15,
+        choices=CONDIZIONE_CHOICES,
+        default='usato',
+        verbose_name="Condizioni dell'oggetto",
+        help_text="Indica lo stato attuale dell'oggetto"
     )
     distanza_massima_km = models.IntegerField(
         blank=True,
@@ -108,6 +123,28 @@ class Annuncio(models.Model):
 
     def __str__(self):
         return f"{self.utente.username} - {self.tipo}: {self.titolo}"
+
+    def get_condizione_icon(self):
+        """Restituisce l'icona corrispondente alla condizione dell'oggetto"""
+        icons = {
+            'nuovo': '⭐',
+            'ottimo': '✨',
+            'buono': '✓',
+            'usato': '📦',
+            'danneggiato': '🔧',
+        }
+        return icons.get(self.condizione, '📦')
+
+    def get_condizione_display_short(self):
+        """Restituisce la versione abbreviata della condizione"""
+        short_labels = {
+            'nuovo': 'Nuovo',
+            'ottimo': 'Ottimo',
+            'buono': 'Buono',
+            'usato': 'Usato',
+            'danneggiato': 'Danneggiato',
+        }
+        return short_labels.get(self.condizione, 'Usato')
 
     def clean(self):
         """
