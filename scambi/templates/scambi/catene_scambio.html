@@ -220,16 +220,36 @@
                             <div class="col-12 col-md-6">
                                 <h6>Annunci Coinvolti:</h6>
                                 {% for item in preferita.catena_data.annunci_coinvolti %}
-                                <div class="card mb-2 border-primary clickable-ad-card" data-annuncio-url="{% url 'dettaglio_annuncio' item.annuncio.id %}">
-                                    <div class="card-body p-2">
-                                        <strong class="text-dark">{{ item.annuncio.titolo }}</strong>
-                                        <br><small><a href="{% url 'profilo_utente' item.utente %}" class="text-muted text-decoration-underline">{{ item.utente }}</a> - {{ item.annuncio.categoria.nome }}</small>
-                                        <br>
-                                        {% if item.ruolo == 'offre' %}
-                                            <span class="badge bg-success">Offre</span>
-                                        {% else %}
-                                            <span class="badge bg-primary">Cerca</span>
-                                        {% endif %}
+                                <div class="card mb-3 border-primary clickable-ad-card" data-annuncio-url="{% url 'dettaglio_annuncio' item.annuncio.id %}" style="cursor: pointer;">
+                                    <div class="card-body p-3">
+                                        <!-- Titolo Annuncio -->
+                                        <div class="mb-2">
+                                            <strong class="text-dark d-block">{{ item.annuncio.titolo }}</strong>
+                                        </div>
+
+                                        <!-- Link Utente con area touch maggiore -->
+                                        <div class="mb-2">
+                                            <a href="{% url 'profilo_utente' item.utente %}"
+                                               class="user-profile-link d-inline-block py-1 px-2 text-decoration-none"
+                                               style="min-height: 44px; display: inline-flex; align-items: center; margin: -0.25rem -0.5rem;">
+                                                <i class="fas fa-user me-1 text-muted"></i>
+                                                <span class="text-primary fw-bold">{{ item.utente }}</span>
+                                            </a>
+                                            <span class="text-muted ms-2">• {{ item.annuncio.categoria.nome }}</span>
+                                        </div>
+
+                                        <!-- Badge Ruolo -->
+                                        <div>
+                                            {% if item.ruolo == 'offre' %}
+                                                <span class="badge bg-success px-3 py-2">
+                                                    <i class="fas fa-gift me-1"></i>Offre
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-primary px-3 py-2">
+                                                    <i class="fas fa-search me-1"></i>Cerca
+                                                </span>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
                                 {% endfor %}
@@ -785,24 +805,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // Gestione dei click sulle card degli annunci
     // Le card hanno data-annuncio-url e devono navigare al dettaglio annuncio
     document.querySelectorAll('.clickable-ad-card').forEach(function(card) {
-        card.addEventListener('click', function(e) {
-            console.log('Click su card annuncio:', e.target);
-            console.log('È un link?', e.target.tagName, e.target.closest('a'));
+        // Previeni il click sulla card se si clicca su un link utente
+        const userLinks = card.querySelectorAll('.user-profile-link');
+        userLinks.forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                e.stopPropagation(); // Previeni la propagazione alla card
+            });
+        });
 
-            // Non navigare se l'utente ha cliccato su un link interno (es. profilo utente)
+        // Gestisci click sulla card
+        card.addEventListener('click', function(e) {
+            // Non navigare se l'utente ha cliccato su un link o dentro un link
             if (e.target.tagName === 'A' || e.target.closest('a')) {
-                console.log('Click su link interno, skippo navigazione');
                 return; // Lascia che il link gestisca il click
             }
 
             // Naviga alla pagina dell'annuncio
             const url = this.getAttribute('data-annuncio-url');
-            console.log('URL annuncio:', url);
             if (url) {
-                console.log('Navigando a:', url);
                 window.location.href = url;
-            } else {
-                console.error('Nessun URL trovato su questa card!');
             }
         });
     });
@@ -1952,6 +1973,53 @@ document.addEventListener('DOMContentLoaded', function() {
 
     .chain-group-content {
         padding: 0 15px;
+    }
+}
+
+/* Miglioramenti touch targets per mobile */
+.clickable-ad-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.clickable-ad-card:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+}
+
+/* Area touch più grande per i link ai profili utente */
+.user-profile-link {
+    position: relative;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.user-profile-link:hover,
+.user-profile-link:active {
+    background-color: rgba(102, 126, 234, 0.1);
+}
+
+/* Assicura che i link siano facilmente cliccabili su mobile */
+@media (max-width: 768px) {
+    .clickable-ad-card {
+        min-height: 120px;
+    }
+
+    .clickable-ad-card .card-body {
+        padding: 1rem !important;
+    }
+
+    /* Area touch minima di 44x44px per i link utente (Apple HIG) */
+    .user-profile-link {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0.5rem 0.75rem !important;
+        margin: -0.25rem -0.5rem;
+    }
+
+    /* Badge più grandi su mobile per facilitare la visibilità */
+    .clickable-ad-card .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem !important;
     }
 }
 </style>
