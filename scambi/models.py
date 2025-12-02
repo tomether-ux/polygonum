@@ -1145,6 +1145,69 @@ class CicloScambio(models.Model):
             calcolato_at__lt=cutoff
         ).delete()
 
+    def validate_annunci(self):
+        """
+        Valida che tutti gli annunci nel ciclo esistano ancora e siano attivi
+        Returns: (bool, list) - (is_valid, missing_annunci_ids)
+        """
+        # Estrae gli ID degli annunci dai dettagli
+        annunci_ids = set()
+        if 'utenti' in self.dettagli:
+            for utente_data in self.dettagli['utenti']:
+                if 'richiede' in utente_data and utente_data['richiede']:
+                    annunci_ids.add(utente_data['richiede'].get('id'))
+                if 'offerta' in utente_data and utente_data['offerta']:
+                    annunci_ids.add(utente_data['offerta'].get('id'))
+
+        # Rimuovi None se presente
+        annunci_ids.discard(None)
+
+        if not annunci_ids:
+            # Nessun annuncio trovato nei dettagli, ciclo invalido
+            return False, []
+
+        # Controlla quali annunci esistono ancora e sono attivi
+        annunci_attivi = Annuncio.objects.filter(
+            id__in=annunci_ids,
+            attivo=True
+        ).values_list('id', flat=True)
+
+        annunci_attivi_set = set(annunci_attivi)
+        annunci_mancanti = annunci_ids - annunci_attivi_set
+
+        is_valid = len(annunci_mancanti) == 0
+        return is_valid, list(annunci_mancanti)
+
+    @classmethod
+    def validate_all_cycles(cls):
+        """
+        Valida tutti i cicli marcati come validi e invalida quelli con annunci mancanti
+        Returns: dict con statistiche della validazione
+        """
+        cicli_validi = cls.objects.filter(valido=True)
+        total_checked = cicli_validi.count()
+        invalidated = 0
+        missing_annunci_log = []
+
+        for ciclo in cicli_validi:
+            is_valid, missing_ids = ciclo.validate_annunci()
+            if not is_valid:
+                ciclo.valido = False
+                ciclo.save(update_fields=['valido'])
+                invalidated += 1
+                missing_annunci_log.append({
+                    'ciclo_id': ciclo.id,
+                    'hash': ciclo.hash_ciclo,
+                    'missing_annunci': missing_ids
+                })
+
+        return {
+            'total_checked': total_checked,
+            'invalidated': invalidated,
+            'still_valid': total_checked - invalidated,
+            'missing_annunci_details': missing_annunci_log
+        }
+
 
 # === SISTEMA PROPOSTE CATENE MVP ===
 
