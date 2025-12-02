@@ -633,6 +633,17 @@ def catene_scambio(request):
     catene_5 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 5]
     catene_6 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 6]
 
+    # Carica i cicli per cui l'utente ha già espresso interesse
+    cicli_interessati = set()
+    if request.user.is_authenticated:
+        from .models import RispostaProposta
+        cicli_interessati = set(
+            RispostaProposta.objects.filter(
+                utente=request.user,
+                risposta='interessato'
+            ).values_list('proposta__ciclo_id', flat=True)
+        )
+
     return render(request, 'scambi/catene_scambio.html', {
         'catene_specifiche': catene_specifiche,
         'catene_2': catene_2,
@@ -645,6 +656,7 @@ def catene_scambio(request):
         'totale_catene_lunghe': len(catene_specifiche) - len(catene_2),
         'miei_annunci': miei_annunci,
         'annuncio_selezionato': annuncio_selezionato,
+        'cicli_interessati': cicli_interessati,  # IDs dei cicli per cui l'utente ha già mostrato interesse
     })
 
 # La funzione test_matching rimane uguale...
