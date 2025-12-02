@@ -275,7 +275,7 @@
                 {% if miei_annunci %}
                 <div class="mb-3">
                     <label for="annuncioFiltro" class="form-label">
-                        <i class="fas fa-filter me-1"></i>Cerca catene per un tuo annuncio specifico (opzionale):
+                        <i class="fas fa-filter me-1"></i>Cerca per annuncio
                     </label>
                     <select id="annuncioFiltro" class="form-select">
                         <option value="">🔍 Tutte le catene che mi coinvolgono</option>
@@ -370,8 +370,13 @@
             <div class="chain-group mb-4">
                 <button class="chain-group-header" onclick="toggleGroup('group-3')">
                     <div class="group-title">
-                        <span class="group-icon">🔺</span>
+                        <span class="group-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 4 L20 20 L4 20 Z" stroke="#4169E1" stroke-width="2" fill="none" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
                         <span class="group-name">Triangle</span>
+                        <span class="group-count-badge-mobile d-inline d-md-none">{{ catene_3|length }}</span>
                         <span class="group-description">3 persone</span>
                     </div>
                     <div class="group-meta">
@@ -392,8 +397,13 @@
             <div class="chain-group mb-4">
                 <button class="chain-group-header" onclick="toggleGroup('group-4')">
                     <div class="group-title">
-                        <span class="group-icon">⬛</span>
+                        <span class="group-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="4" y="4" width="16" height="16" stroke="#4169E1" stroke-width="2" fill="none" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
                         <span class="group-name">Square</span>
+                        <span class="group-count-badge-mobile d-inline d-md-none">{{ catene_4|length }}</span>
                         <span class="group-description">4 persone</span>
                     </div>
                     <div class="group-meta">
@@ -414,8 +424,13 @@
             <div class="chain-group mb-4">
                 <button class="chain-group-header" onclick="toggleGroup('group-5')">
                     <div class="group-title">
-                        <span class="group-icon">⬟</span>
+                        <span class="group-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 3 L21 9 L18 19 L6 19 L3 9 Z" stroke="#4169E1" stroke-width="2" fill="none" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
                         <span class="group-name">Pentagon</span>
+                        <span class="group-count-badge-mobile d-inline d-md-none">{{ catene_5|length }}</span>
                         <span class="group-description">5 persone</span>
                     </div>
                     <div class="group-meta">
@@ -436,8 +451,13 @@
             <div class="chain-group mb-4">
                 <button class="chain-group-header" onclick="toggleGroup('group-6')">
                     <div class="group-title">
-                        <span class="group-icon">⬢</span>
+                        <span class="group-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2 L20 7 L20 17 L12 22 L4 17 L4 7 Z" stroke="#4169E1" stroke-width="2" fill="none" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
                         <span class="group-name">Hexagon</span>
+                        <span class="group-count-badge-mobile d-inline d-md-none">{{ catene_6|length }}</span>
                         <span class="group-description">6 persone</span>
                     </div>
                     <div class="group-meta">
@@ -517,15 +537,18 @@ function toggleGroup(groupId) {
     const content = document.getElementById(groupId);
     const header = event.target.closest('.chain-group-header');
     const chevron = header.querySelector('.chevron-icon');
+    const group = header.closest('.chain-group');
 
     if (content.style.maxHeight && content.style.maxHeight !== '0px') {
         // Close
         content.style.maxHeight = '0px';
         chevron.style.transform = 'rotate(0deg)';
+        group.classList.remove('expanded');
     } else {
         // Open
         content.style.maxHeight = content.scrollHeight + 'px';
         chevron.style.transform = 'rotate(180deg)';
+        group.classList.add('expanded');
     }
 }
 
@@ -2026,26 +2049,57 @@ document.addEventListener('DOMContentLoaded', function() {
     margin-bottom: 20px;
 }
 
+/* Group description: nascosto di default, mostrato quando espanso */
+.group-description {
+    display: none;
+}
+
+.chain-group.expanded .group-description {
+    display: block;
+}
+
+/* Mobile: count badge inline nel titolo */
+.group-count-badge-mobile {
+    background: #4169E1;
+    color: white;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
 /* Responsive adjustments for groups */
 @media (max-width: 768px) {
     .chain-group-header {
         padding: 15px;
-        flex-direction: column;
-        gap: 15px;
-        align-items: flex-start;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
     }
 
     .group-title {
         flex-wrap: wrap;
+        gap: 8px;
     }
 
     .group-name {
         font-size: 1.2rem;
     }
 
+    .group-icon {
+        font-size: 1.5rem;
+    }
+
     .group-meta {
-        width: 100%;
-        justify-content: space-between;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* Nascondi il badge desktop su mobile */
+    .group-count-badge {
+        display: none;
     }
 
     .chain-group-content {
