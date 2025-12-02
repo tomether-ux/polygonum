@@ -993,7 +993,12 @@ def mie_catene_scambio(request):
 
 @login_required
 def le_mie_catene(request):
-    """Vista ottimizzata per le catene personali dell'utente"""
+    """
+    Vista ottimizzata per le catene personali dell'utente.
+    NUOVA LOGICA:
+    - Di default: carica catene dal DB (CicloScambio) senza ricalcolare
+    - Solo se ?cerca=true: ricalcola e salva nuovi cicli
+    """
     import time
 
     # Controlla se l'utente ha annunci attivi
@@ -1013,7 +1018,85 @@ def le_mie_catene(request):
             messages.error(request, 'Annuncio non trovato o non accessibile.')
             annuncio_id = None
 
-    if cerca_nuove and ha_annunci:
+    # NUOVA LOGICA: Se non è richiesto ricalcolo, carica dal DB
+    if not cerca_nuove and ha_annunci:
+        print(f"📦 CARICAMENTO CATENE DAL DB per utente: {request.user.username}")
+
+        # Carica cicli dal DB che contengono questo utente
+        cicli_db = CicloScambio.find_for_user(request.user.id, limit=200)
+
+        # Filtra per annuncio specifico se richiesto
+        if annuncio_selezionato:
+            # Filtra cicli che contengono l'annuncio selezionato
+            cicli_filtrati = []
+            for ciclo in cicli_db:
+                if 'utenti' in ciclo.dettagli:
+                    for utente_info in ciclo.dettagli['utenti']:
+                        annunci_ids = []
+                        if utente_info.get('richiede'):
+                            annunci_ids.append(utente_info['richiede'].get('id'))
+                        if utente_info.get('offerta'):
+                            annunci_ids.append(utente_info['offerta'].get('id'))
+                        if annuncio_selezionato.id in annunci_ids:
+                            cicli_filtrati.append(ciclo)
+                            break
+            cicli_db = cicli_filtrati
+
+        # Converti cicli DB in formato template
+        catene_uniche = [converti_ciclo_a_catena(ciclo) for ciclo in cicli_db]
+
+        print(f"✅ Caricate {len(catene_uniche)} catene dal DB")
+
+        # Separa per qualità
+        catene_alta_qualita = [c for c in catene_uniche if c.get('categoria_qualita') == 'alta']
+        catene_generiche = [c for c in catene_uniche if c.get('categoria_qualita') == 'generica']
+
+        # Ordina
+        catene_alta_qualita.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
+        catene_generiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
+
+        # Aggiungi flag per preferiti
+        for catena in catene_alta_qualita + catene_generiche:
+            catena['is_favorita'] = is_catena_preferita(request.user, catena)
+            catena['json_data'] = json.dumps(catena, default=str)
+
+        # Ottieni catene preferite
+        catene_preferite_qs = CatenaPreferita.objects.filter(utente=request.user).order_by('-data_aggiunta')
+        catene_preferite = processa_catene_preferite(catene_preferite_qs)
+
+        # Raggruppa per numero partecipanti
+        catene_specifiche = catene_alta_qualita + catene_generiche
+        catene_2 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 2]
+        catene_3 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 3]
+        catene_4 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 4]
+        catene_5 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 5]
+        catene_6 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 6]
+
+        context = {
+            'catene_alta_qualita': catene_alta_qualita,
+            'catene_generiche': catene_generiche,
+            'catene_preferite': catene_preferite,
+            'totale_catene': len(catene_uniche),
+            'totale_scambi_diretti': len(catene_2),
+            'totale_catene_lunghe': len(catene_uniche) - len(catene_2),
+            'totale_specifiche': len(catene_alta_qualita),
+            'totale_generiche': len(catene_generiche),
+            'ricerca_eseguita': True,
+            'personalizzato': True,
+            'miei_annunci': annunci_utente,
+            'annuncio_selezionato': annuncio_selezionato,
+            'catene_specifiche': catene_specifiche,
+            'catene_2': catene_2,
+            'catene_3': catene_3,
+            'catene_4': catene_4,
+            'catene_5': catene_5,
+            'catene_6': catene_6,
+            'caricamento_db': True,  # Flag per indicare caricamento dal DB
+        }
+
+        return render(request, 'scambi/catene_scambio.html', context)
+
+    elif cerca_nuove and ha_annunci:
         # Import delle funzioni di matching
         from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente, trova_catene_per_annuncio_ottimizzato
 
@@ -1182,6 +1265,41 @@ def le_mie_catene(request):
 # === HELPER FUNCTIONS PER CATENE PREFERITE ===
 import hashlib
 import json
+
+def converti_ciclo_a_catena(ciclo):
+    """
+    Converte un oggetto CicloScambio dal DB nel formato catena per il template
+    Returns: dict con struttura catena
+    """
+    from django.contrib.auth.models import User
+
+    # Estrai dettagli dal JSON
+    dettagli = ciclo.dettagli
+
+    # Costruisci la lista utenti con i loro annunci
+    utenti_data = []
+    if 'utenti' in dettagli:
+        for utente_info in dettagli['utenti']:
+            user = User.objects.filter(id=utente_info['user']['id']).first()
+            if user:
+                utenti_data.append({
+                    'user': user,
+                    'richiede': utente_info.get('richiede'),
+                    'offerta': utente_info.get('offerta')
+                })
+
+    # Costruisci la catena nel formato template
+    catena = {
+        'id_ciclo': ciclo.id,
+        'utenti': utenti_data,
+        'punteggio_qualita': dettagli.get('punteggio_qualita', 0),
+        'categoria_qualita': dettagli.get('categoria_qualita', 'generica'),
+        'tipo': 'scambio_diretto' if ciclo.lunghezza == 2 else 'catena_lunga',
+        'usa_sinonimi': dettagli.get('usa_sinonimi', False),
+        'hash_catena': ciclo.hash_ciclo,
+    }
+
+    return catena
 
 def processa_catene_preferite(catene_preferite):
     """
