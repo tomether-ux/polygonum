@@ -376,7 +376,6 @@
                             </svg>
                         </span>
                         <span class="group-name">Triangle</span>
-                        <span class="group-count-badge-mobile d-inline d-md-none">{{ catene_3|length }}</span>
                         <span class="group-description">3 persone</span>
                     </div>
                     <div class="group-meta">
@@ -403,7 +402,6 @@
                             </svg>
                         </span>
                         <span class="group-name">Square</span>
-                        <span class="group-count-badge-mobile d-inline d-md-none">{{ catene_4|length }}</span>
                         <span class="group-description">4 persone</span>
                     </div>
                     <div class="group-meta">
@@ -430,7 +428,6 @@
                             </svg>
                         </span>
                         <span class="group-name">Pentagon</span>
-                        <span class="group-count-badge-mobile d-inline d-md-none">{{ catene_5|length }}</span>
                         <span class="group-description">5 persone</span>
                     </div>
                     <div class="group-meta">
@@ -457,7 +454,6 @@
                             </svg>
                         </span>
                         <span class="group-name">Hexagon</span>
-                        <span class="group-count-badge-mobile d-inline d-md-none">{{ catene_6|length }}</span>
                         <span class="group-description">6 persone</span>
                     </div>
                     <div class="group-meta">
@@ -2058,17 +2054,6 @@ document.addEventListener('DOMContentLoaded', function() {
     display: block;
 }
 
-/* Mobile: count badge inline nel titolo */
-.group-count-badge-mobile {
-    background: #4169E1;
-    color: white;
-    padding: 2px 10px;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    margin-left: 8px;
-}
-
 /* Responsive adjustments for groups */
 @media (max-width: 768px) {
     .chain-group-header {
@@ -2097,9 +2082,9 @@ document.addEventListener('DOMContentLoaded', function() {
         gap: 10px;
     }
 
-    /* Nascondi il badge desktop su mobile */
     .group-count-badge {
-        display: none;
+        font-size: 0.75rem;
+        padding: 6px 12px;
     }
 
     .chain-group-content {
