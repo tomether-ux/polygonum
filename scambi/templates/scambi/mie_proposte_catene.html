@@ -1,459 +1,322 @@
 {% extends 'scambi/base.html' %}
+{% load static %}
 
 {% block title %}Le Mie Catene - POLYGONUM{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1 class="mb-4">🔗 Le Mie Catene</h1>
+<div class="row">
+    <div class="col-12">
+        <h1 class="display-4 fw-bold mb-4" style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; color: #2c3e50;">🔗 Le Mie Catene</h1>
 
-    {% if total_catene == 0 %}
-    <div class="alert alert-info">
-        <i class="fas fa-info-circle me-2"></i>
-        Non hai ancora mostrato interesse per nessuna catena di scambio.
-        <br>
-        <a href="{% url 'catene_scambio' %}" class="alert-link">Esplora le catene disponibili</a>
-    </div>
-    {% else %}
-    <p class="text-muted mb-4">
-        Hai mostrato interesse per <strong>{{ total_catene }}</strong> catena{{ total_catene|pluralize }}
-    </p>
-
-    {% for catena in catene_info %}
-    <div class="card mb-3 shadow-sm catena-card">
-        <!-- Header minimale cliccabile -->
-        <div class="card-header catena-header" data-bs-toggle="collapse" data-bs-target="#catena-{{ forloop.counter }}"
-             style="cursor: pointer; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center flex-grow-1">
-                    <i class="fas fa-chevron-right me-3 collapse-icon" style="transition: transform 0.3s;"></i>
-                    <div>
-                        <h6 class="mb-0">
-                            <i class="fas fa-sync-alt me-2"></i>
-                            Catena con {{ catena.count_totale }} partecipanti
-                        </h6>
-                        <small class="opacity-75">
-                            Iniziata da <strong>{{ catena.proposta.iniziatore.username }}</strong>
-                            • {{ catena.proposta.data_creazione|timesince }} fa
-                        </small>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center gap-3">
-                    <!-- Barra progresso 3D blu -->
-                    <div class="progress-3d-container" style="width: 120px;">
-                        <div class="progress progress-3d" style="height: 22px;">
-                            <div class="progress-bar progress-bar-3d"
-                                 role="progressbar"
-                                 style="width: {{ catena.percentuale }}%;"
-                                 aria-valuenow="{{ catena.percentuale }}"
-                                 aria-valuemin="0"
-                                 aria-valuemax="100">
-                                <span class="progress-text">{{ catena.count_interessati }}/{{ catena.count_totale }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <span class="badge bg-{{ catena.stato_class }} px-3 py-2">{{ catena.stato_display }}</span>
-                </div>
-            </div>
+        {% if total_catene == 0 %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Non hai ancora mostrato interesse per nessuna catena di scambio.
+            <br>
+            <a href="{% url 'catene_scambio' %}?load=true" class="alert-link">Esplora le catene disponibili</a>
         </div>
+        {% else %}
+        <p class="text-muted mb-4">
+            Hai mostrato interesse per <strong>{{ total_catene }}</strong> catena{{ total_catene|pluralize }}
+        </p>
 
-        <!-- Body espandibile -->
-        <div id="catena-{{ forloop.counter }}" class="collapse">
-            <div class="card-body">
-                <!-- Scadenza -->
-                {% if catena.giorni_scadenza is not None %}
-                <div class="alert {% if catena.giorni_scadenza <= 1 %}alert-danger{% elif catena.giorni_scadenza <= 3 %}alert-warning{% else %}alert-info{% endif %} py-2 mb-3">
-                    <i class="fas fa-clock me-2"></i>
-                    {% if catena.giorni_scadenza == 0 %}
-                        <strong>Scade oggi!</strong>
-                    {% elif catena.giorni_scadenza == 1 %}
-                        <strong>Scade domani</strong>
-                    {% else %}
-                        Scade tra <strong>{{ catena.giorni_scadenza }} giorni</strong>
-                    {% endif %}
-                </div>
-                {% endif %}
-
-                <!-- Visualizzazione circolare scambi -->
-                <h6 class="fw-bold mb-3">
-                    <i class="fas fa-exchange-alt me-2"></i>Sequenza Scambi:
-                </h6>
-
-                <div class="exchange-circle-container">
-                    {% for exchange in catena.exchanges %}
-                    <div class="exchange-circle-item">
-                        <!-- Cerchio utente che dà -->
-                        <div class="user-circle">
-                            <a href="{% url 'profilo_utente' exchange.giver.username %}" class="user-avatar-link">
-                                <div class="user-avatar">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <div class="user-name">{{ exchange.giver.username }}</div>
-                            </a>
-                            <a href="{% url 'dettaglio_annuncio' exchange.giving_ad.id %}" class="exchange-item giving exchange-item-link">
-                                <i class="fas fa-gift me-1"></i>
-                                <strong>{{ exchange.giving_ad.titolo|truncatechars:20 }}</strong>
-                            </a>
-                        </div>
-
-                        <!-- Freccia -->
-                        <div class="exchange-arrow">
-                            <i class="fas fa-arrow-right fa-2x text-primary"></i>
-                        </div>
-
-                        <!-- Cerchio utente che riceve -->
-                        <div class="user-circle">
-                            <a href="{% url 'profilo_utente' exchange.receiver.username %}" class="user-avatar-link">
-                                <div class="user-avatar">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <div class="user-name">{{ exchange.receiver.username }}</div>
-                            </a>
-                            <a href="{% url 'dettaglio_annuncio' exchange.receiving_ad.id %}" class="exchange-item receiving exchange-item-link">
-                                <i class="fas fa-box me-1"></i>
-                                <strong>{{ exchange.receiving_ad.titolo|truncatechars:20 }}</strong>
-                            </a>
-                        </div>
+        <!-- Contenitore gruppi di catene -->
+        <div class="chains-container">
+            <!-- Gruppo 2 persone - Line -->
+            {% if catene_2 %}
+            <div class="chain-group mb-4">
+                <button class="chain-group-header" onclick="toggleGroup('group-2')">
+                    <div class="group-title">
+                        <span class="group-icon">➖</span>
+                        <span class="group-name">Line</span>
+                        <span class="group-description">2 persone</span>
                     </div>
-                    {% if not forloop.last %}
-                    <div class="exchange-separator">
-                        <i class="fas fa-chevron-down text-muted"></i>
+                    <div class="group-meta">
+                        <span class="group-count-badge">{{ catene_2|length }} catene</span>
+                        <i class="fas fa-chevron-down chevron-icon"></i>
                     </div>
-                    {% endif %}
+                </button>
+                <div id="group-2" class="chain-group-content">
+                    {% for catena in catene_2 %}
+                    {% include "scambi/partials/chain_card.html" %}
                     {% endfor %}
                 </div>
-
-                <!-- Link azioni -->
-                {% if catena.stato_class == 'success' and catena.percentuale == 100 %}
-                <div class="mt-4 pt-3 border-top">
-                    <a href="{% url 'lista_messaggi' %}" class="btn btn-success btn-sm">
-                        <i class="fas fa-comments me-1"></i>Chat Gruppo
-                    </a>
-                </div>
-                {% endif %}
             </div>
+            {% endif %}
+
+            <!-- Gruppo 3 persone - Triangle -->
+            {% if catene_3 %}
+            <div class="chain-group mb-4">
+                <button class="chain-group-header" onclick="toggleGroup('group-3')">
+                    <div class="group-title">
+                        <span class="group-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 4 L20 20 L4 20 Z" stroke="#4169E1" stroke-width="2" fill="none" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                        <span class="group-name">Triangle</span>
+                        <span class="group-description">3 persone</span>
+                    </div>
+                    <div class="group-meta">
+                        <span class="group-count-badge">{{ catene_3|length }} catene</span>
+                        <i class="fas fa-chevron-down chevron-icon"></i>
+                    </div>
+                </button>
+                <div id="group-3" class="chain-group-content">
+                    {% for catena in catene_3 %}
+                    {% include "scambi/partials/chain_card.html" %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Gruppo 4 persone - Square -->
+            {% if catene_4 %}
+            <div class="chain-group mb-4">
+                <button class="chain-group-header" onclick="toggleGroup('group-4')">
+                    <div class="group-title">
+                        <span class="group-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="4" y="4" width="16" height="16" stroke="#4169E1" stroke-width="2" fill="none" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                        <span class="group-name">Square</span>
+                        <span class="group-description">4 persone</span>
+                    </div>
+                    <div class="group-meta">
+                        <span class="group-count-badge">{{ catene_4|length }} catene</span>
+                        <i class="fas fa-chevron-down chevron-icon"></i>
+                    </div>
+                </button>
+                <div id="group-4" class="chain-group-content">
+                    {% for catena in catene_4 %}
+                    {% include "scambi/partials/chain_card.html" %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Gruppo 5 persone - Pentagon -->
+            {% if catene_5 %}
+            <div class="chain-group mb-4">
+                <button class="chain-group-header" onclick="toggleGroup('group-5')">
+                    <div class="group-title">
+                        <span class="group-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 3 L21 9 L18 19 L6 19 L3 9 Z" stroke="#4169E1" stroke-width="2" fill="none" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                        <span class="group-name">Pentagon</span>
+                        <span class="group-description">5 persone</span>
+                    </div>
+                    <div class="group-meta">
+                        <span class="group-count-badge">{{ catene_5|length }} catene</span>
+                        <i class="fas fa-chevron-down chevron-icon"></i>
+                    </div>
+                </button>
+                <div id="group-5" class="chain-group-content">
+                    {% for catena in catene_5 %}
+                    {% include "scambi/partials/chain_card.html" %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Gruppo 6 persone - Hexagon -->
+            {% if catene_6 %}
+            <div class="chain-group mb-4">
+                <button class="chain-group-header" onclick="toggleGroup('group-6')">
+                    <div class="group-title">
+                        <span class="group-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2 L20 7 L20 17 L12 22 L4 17 L4 7 Z" stroke="#4169E1" stroke-width="2" fill="none" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                        <span class="group-name">Hexagon</span>
+                        <span class="group-description">6 persone</span>
+                    </div>
+                    <div class="group-meta">
+                        <span class="group-count-badge">{{ catene_6|length }} catene</span>
+                        <i class="fas fa-chevron-down chevron-icon"></i>
+                    </div>
+                </button>
+                <div id="group-6" class="chain-group-content">
+                    {% for catena in catene_6 %}
+                    {% include "scambi/partials/chain_card.html" %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
-    </div>
-    {% endfor %}
+        {% endif %}
 
-    {% endif %}
-
-    <!-- Torna alle catene -->
-    <div class="text-center mt-4">
-        <a href="{% url 'catene_scambio' %}" class="btn btn-lg btn-primary">
-            <i class="fas fa-search me-2"></i>Esplora Altre Catene
-        </a>
+        <!-- Torna alle catene -->
+        <div class="text-center mt-4">
+            <a href="{% url 'catene_scambio' %}?load=true" class="btn btn-lg btn-primary">
+                <i class="fas fa-search me-2"></i>Esplora Altre Catene
+            </a>
+        </div>
     </div>
 </div>
 
-<style>
-/* Animazione icona collapse */
-.catena-header[aria-expanded="true"] .collapse-icon {
-    transform: rotate(90deg);
-}
-
-/* Barra progresso 3D blu */
-.progress-3d {
-    background: linear-gradient(to bottom, #e0e0e0 0%, #cfcfcf 100%);
-    border-radius: 12px;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
-    overflow: hidden;
-}
-
-.progress-bar-3d {
-    background: linear-gradient(to bottom,
-        #4d94ff 0%,
-        #3d7ae0 50%,
-        #2d5fc7 51%,
-        #1e4fb0 100%
-    );
-    box-shadow:
-        inset 0 2px 9px rgba(255,255,255,0.3),
-        inset 0 -2px 6px rgba(0,0,0,0.4);
-    position: relative;
-    overflow: hidden;
-    transition: width 0.6s ease;
-}
-
-.progress-bar-3d::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 50%;
-    background: linear-gradient(to bottom,
-        rgba(255,255,255,0.4) 0%,
-        rgba(255,255,255,0) 100%
-    );
-    border-radius: 12px 12px 0 0;
-}
-
-.progress-text {
-    position: relative;
-    z-index: 2;
-    font-weight: 600;
-    font-size: 0.85rem;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-}
-
-/* Layout circolare scambi */
-.exchange-circle-container {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 20px;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    border-radius: 12px;
-}
-
-.exchange-circle-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    gap: 30px;
-    padding: 20px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.user-circle {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
-}
-
-.user-avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 24px;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.user-name {
-    font-weight: 600;
-    color: #333;
-    font-size: 0.95rem;
-}
-
-.exchange-item {
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    text-align: center;
-    max-width: 200px;
-}
-
-.exchange-item.giving {
-    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-    color: #8b4513;
-}
-
-.exchange-item.receiving {
-    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-    color: #2d5f5d;
-}
-
-.exchange-arrow {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.1);
-        opacity: 0.8;
-    }
-}
-
-.exchange-separator {
-    text-align: center;
-    font-size: 1.5rem;
-    opacity: 0.5;
-}
-
-/* Clickable user avatars and items */
-.user-avatar-link {
-    text-decoration: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    transition: transform 0.2s;
-}
-
-.user-avatar-link:hover {
-    transform: scale(1.05);
-}
-
-.user-avatar-link:hover .user-avatar {
-    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
-}
-
-.user-avatar-link:hover .user-name {
-    color: #667eea;
-}
-
-.exchange-item-link {
-    text-decoration: none;
-    transition: transform 0.2s, box-shadow 0.2s;
-    display: block;
-}
-
-.exchange-item-link:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.exchange-item-link.giving:hover {
-    background: linear-gradient(135deg, #ffd7b8 0%, #fb9f85 100%);
-}
-
-.exchange-item-link.receiving:hover {
-    background: linear-gradient(135deg, #8edce6 0%, #fcc2d9 100%);
-}
-
-/* Card hover effect */
-.catena-card {
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.catena-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15) !important;
-}
-
-/* Mobile responsive */
-@media (max-width: 768px) {
-    /* Header catena - layout verticale su mobile */
-    .catena-header .d-flex.justify-content-between {
-        flex-direction: column !important;
-        gap: 12px;
-    }
-
-    .catena-header .d-flex.align-items-center.gap-3 {
-        width: 100%;
-        justify-content: space-between !important;
-        gap: 10px !important;
-    }
-
-    /* Riduci spacing header */
-    .catena-header {
-        padding: 12px 15px !important;
-    }
-
-    .catena-header h6 {
-        font-size: 0.95rem !important;
-        margin-bottom: 3px !important;
-    }
-
-    .catena-header small {
-        font-size: 0.75rem !important;
-    }
-
-    /* Barra progresso più leggibile su mobile */
-    .progress-3d-container {
-        width: 100px !important;
-    }
-
-    .progress-3d {
-        height: 20px !important;
-    }
-
-    .progress-text {
-        font-size: 0.75rem !important;
-    }
-
-    /* Badge più compatto */
-    .catena-header .badge {
-        font-size: 0.75rem !important;
-        padding: 4px 8px !important;
-    }
-
-    /* Scambi - layout verticale */
-    .exchange-circle-item {
-        flex-direction: column;
-        gap: 15px;
-        padding: 15px;
-    }
-
-    .exchange-arrow {
-        transform: rotate(90deg);
-    }
-
-    /* Avatar più piccoli */
-    .user-avatar {
-        width: 50px !important;
-        height: 50px !important;
-        font-size: 20px !important;
-    }
-
-    .user-name {
-        font-size: 0.85rem !important;
-    }
-
-    /* Exchange items più compatti */
-    .exchange-item {
-        font-size: 0.75rem !important;
-        padding: 6px 12px !important;
-        max-width: 100% !important;
-    }
-
-    /* Container scambi più compatto */
-    .exchange-circle-container {
-        padding: 15px !important;
-        gap: 15px !important;
-    }
-
-    /* Card body padding ridotto */
-    .card-body {
-        padding: 15px !important;
-    }
-
-    /* Riduci icona collapse */
-    .collapse-icon {
-        font-size: 0.9rem !important;
-    }
-
-    /* Alert scadenza più compatto */
-    .card-body .alert {
-        font-size: 0.85rem !important;
-        padding: 8px 12px !important;
-    }
-}
-</style>
-
 <script>
-// Anima l'icona quando si espande/collassa
-document.querySelectorAll('.catena-header').forEach(header => {
-    header.addEventListener('click', function() {
-        const icon = this.querySelector('.collapse-icon');
-        const target = this.getAttribute('data-bs-target');
-        const collapseElement = document.querySelector(target);
+// Funzione per espandere/contrarre i gruppi
+function toggleGroup(groupId) {
+    const content = document.getElementById(groupId);
+    const header = event.target.closest('.chain-group-header');
+    const chevron = header.querySelector('.chevron-icon');
+    const group = header.closest('.chain-group');
 
-        collapseElement.addEventListener('shown.bs.collapse', () => {
-            icon.style.transform = 'rotate(90deg)';
-        });
+    if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+        // Close
+        content.style.maxHeight = '0px';
+        chevron.style.transform = 'rotate(0deg)';
+        group.classList.remove('expanded');
+    } else {
+        // Open
+        content.style.maxHeight = content.scrollHeight + 'px';
+        chevron.style.transform = 'rotate(180deg)';
+        group.classList.add('expanded');
+    }
+}
 
-        collapseElement.addEventListener('hidden.bs.collapse', () => {
-            icon.style.transform = 'rotate(0deg)';
-        });
+// Funzione per proporre una catena (toggle)
+function proponiCatena(cicloId) {
+    const button = event.target.closest('.btn-mi-interessa');
+    const card = document.querySelector(`[data-ciclo-id="${cicloId}"]`);
+
+    if (!button || !card) return;
+
+    // Disabilita temporaneamente il pulsante durante l'operazione
+    const wasInterested = button.classList.contains('interested');
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Attendere...';
+
+    fetch(`/catene/proponi/${cicloId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Trova tutti i bottoni per questo ciclo (potrebbero esserne più di uno nel DOM)
+            const buttons = document.querySelectorAll(`[data-ciclo-id="${cicloId}"] .btn-mi-interessa`);
+
+            if (data.action === 'added') {
+                buttons.forEach(btn => {
+                    btn.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
+                    btn.classList.add('interested');
+                    btn.disabled = false;
+                });
+
+                // Mostra messaggio di successo
+                if (data.tutti_interessati) {
+                    alert('🎉 Tutti sono interessati! Chat di gruppo creata.');
+                    if (data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    }
+                }
+            } else if (data.action === 'removed') {
+                buttons.forEach(btn => {
+                    btn.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
+                    btn.classList.remove('interested');
+                    btn.disabled = false;
+                });
+
+                // Rimuovi la card dalla pagina se l'interesse è stato rimosso
+                card.style.transition = 'opacity 0.3s';
+                card.style.opacity = '0';
+                setTimeout(() => {
+                    card.remove();
+                    // Aggiorna contatore
+                    location.reload();
+                }, 300);
+            }
+
+            // Aggiorna i badge
+            document.querySelectorAll(`[data-ciclo-id="${cicloId}"] .badge-interessati`).forEach(badge => {
+                badge.style.display = 'flex';
+                const countText = badge.querySelector('.count-text');
+                if (countText) {
+                    countText.textContent = `${data.count_interessati}/${data.count_totale}`;
+                }
+            });
+
+            buttons.forEach(btn => {
+                btn.disabled = false;
+                if (wasInterested) {
+                    btn.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
+                } else {
+                    btn.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
+                }
+            });
+        } else {
+            alert('Errore: ' + (data.error || 'Operazione fallita'));
+        }
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        button.disabled = false;
+        // Ripristina stato precedente in caso di errore
+        if (wasInterested) {
+            button.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
+        } else {
+            button.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
+        }
+        alert('Errore di connessione. Riprova.');
+    });
+}
+
+// Carica lo stato delle proposte al caricamento della pagina
+document.addEventListener('DOMContentLoaded', function() {
+    // Carica stato proposte esistenti
+    document.querySelectorAll('[data-ciclo-id]').forEach(card => {
+        const cicloId = card.dataset.cicloId;
+
+        // Recupera informazioni sulla proposta
+        fetch(`/catene/stato/${cicloId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.proposta_esistente) {
+                    // Aggiorna badge interessati
+                    const badges = card.querySelectorAll('.badge-interessati');
+                    badges.forEach(badge => {
+                        badge.style.display = 'flex';
+                        const countText = badge.querySelector('.count-text');
+                        if (countText) {
+                            countText.textContent = `${data.count_interessati}/${data.count_totale}`;
+                        }
+                    });
+
+                    // Aggiorna badge scadenza se presente
+                    if (data.giorni_scadenza !== null) {
+                        const badgeScadenza = card.querySelectorAll('.badge-scadenza');
+                        badgeScadenza.forEach(badge => {
+                            badge.style.display = 'flex';
+                            const scadenzaText = badge.querySelector('.scadenza-text');
+                            if (scadenzaText) {
+                                if (data.giorni_scadenza === 0) {
+                                    scadenzaText.textContent = 'Scade oggi!';
+                                    badge.classList.add('urgent');
+                                } else if (data.giorni_scadenza === 1) {
+                                    scadenzaText.textContent = 'Scade domani';
+                                    badge.classList.add('warning');
+                                } else {
+                                    scadenzaText.textContent = `${data.giorni_scadenza}g`;
+                                }
+                            }
+                        });
+                    }
+                }
+            })
+            .catch(error => console.error('Errore caricamento stato:', error));
     });
 });
 </script>
 
+<link rel="stylesheet" href="{% static 'css/catene_scambio.css' %}">
 {% endblock %}
