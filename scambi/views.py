@@ -1288,6 +1288,10 @@ def converti_ciclo_a_catena(ciclo):
     # Estrai dettagli dal JSON
     dettagli = ciclo.dettagli
 
+    # DEBUG: stampa struttura dettagli
+    print(f"DEBUG converti_ciclo_a_catena - Ciclo {ciclo.id}:")
+    print(f"  - Chiavi in dettagli: {list(dettagli.keys()) if dettagli else 'None'}")
+
     # Costruisci la lista utenti con i loro annunci
     utenti_data = []
     if 'utenti' in dettagli:
@@ -1299,6 +1303,8 @@ def converti_ciclo_a_catena(ciclo):
                     'richiede': utente_info.get('richiede'),
                     'offerta': utente_info.get('offerta')
                 })
+    else:
+        print(f"  - ATTENZIONE: 'utenti' non trovato in dettagli!")
 
     # Costruisci la catena nel formato template
     catena = {
