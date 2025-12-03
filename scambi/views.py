@@ -2829,16 +2829,20 @@ def mie_proposte_catene(request):
     # Ordina per stato (tutti_interessati, in_attesa, altro) e poi per data creazione
     catene_info.sort(key=lambda x: (x['stato_ordinamento'], -x['proposta'].data_creazione.timestamp()))
 
-    # Raggruppa per stato per visualizzazione
-    catene_per_stato = {
-        'tutti_interessati': [c for c in catene_info if c['stato_class'] == 'success' and c['percentuale'] == 100],
-        'in_attesa': [c for c in catene_info if c['stato_class'] == 'warning'],
-        'altro': [c for c in catene_info if c not in catene_info if c['stato_class'] not in ['success', 'warning']]
-    }
+    # Raggruppa per numero di partecipanti (per il layout con poligoni)
+    catene_2 = [c for c in catene_info if c['count_totale'] == 2]
+    catene_3 = [c for c in catene_info if c['count_totale'] == 3]
+    catene_4 = [c for c in catene_info if c['count_totale'] == 4]
+    catene_5 = [c for c in catene_info if c['count_totale'] == 5]
+    catene_6 = [c for c in catene_info if c['count_totale'] == 6]
 
     context = {
         'catene_info': catene_info,
-        'catene_per_stato': catene_per_stato,
+        'catene_2': catene_2,
+        'catene_3': catene_3,
+        'catene_4': catene_4,
+        'catene_5': catene_5,
+        'catene_6': catene_6,
         'total_catene': len(catene_info),
     }
 
