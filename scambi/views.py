@@ -1288,10 +1288,6 @@ def converti_ciclo_a_catena(ciclo):
     # Estrai dettagli dal JSON
     dettagli = ciclo.dettagli
 
-    # DEBUG: stampa struttura dettagli
-    print(f"DEBUG converti_ciclo_a_catena - Ciclo {ciclo.id}:")
-    print(f"  - Chiavi in dettagli: {list(dettagli.keys()) if dettagli else 'None'}")
-
     # Costruisci la lista utenti con i loro annunci
     utenti_data = []
     if 'utenti' in dettagli:
@@ -1303,8 +1299,6 @@ def converti_ciclo_a_catena(ciclo):
                     'richiede': utente_info.get('richiede'),
                     'offerta': utente_info.get('offerta')
                 })
-    else:
-        print(f"  - ATTENZIONE: 'utenti' non trovato in dettagli!")
 
     # Costruisci la catena nel formato template
     catena = {
@@ -2751,8 +2745,8 @@ def mie_proposte_catene(request):
         risposta__in=['interessato', 'in_attesa']
     ).select_related('proposta', 'proposta__ciclo', 'proposta__iniziatore')
 
-    # Converti cicli nel formato compatibile con chain_card.html
-    catene_list = []
+    # Raggruppa per proposta/ciclo
+    catene_info = []
     for risposta in mie_risposte:
         proposta = risposta.proposta
         ciclo = proposta.ciclo
@@ -2761,76 +2755,91 @@ def mie_proposte_catene(request):
         if proposta.stato in ['annullata', 'rifiutata']:
             continue
 
-        if not ciclo:
-            continue
-
-        # Converti ciclo nel formato catena usando la funzione esistente
-        catena = converti_ciclo_a_catena(ciclo)
-
-        # DEBUG: stampa informazioni sulla catena
-        print(f"DEBUG mie_proposte_catene - Ciclo {ciclo.id}:")
-        print(f"  - Lunghezza ciclo: {ciclo.lunghezza}")
-        print(f"  - Numero utenti in catena['utenti']: {len(catena.get('utenti', []))}")
-        if ciclo.dettagli and 'utenti' in ciclo.dettagli:
-            print(f"  - Numero utenti in dettagli: {len(ciclo.dettagli.get('utenti', []))}")
-
-        # Aggiungi informazioni sulla proposta
-        catena['proposta'] = proposta
-        catena['count_interessati'] = proposta.get_count_interessati()
-        catena['count_totale'] = proposta.get_count_totale()
-        catena['percentuale'] = int((catena['count_interessati'] / catena['count_totale']) * 100) if catena['count_totale'] > 0 else 0
+        # Calcola stato avanzamento
+        count_interessati = proposta.get_count_interessati()
+        count_totale = proposta.get_count_totale()
+        percentuale = int((count_interessati / count_totale) * 100) if count_totale > 0 else 0
 
         # Determina lo stato testuale
         if proposta.stato == 'confermata':
-            catena['stato_display'] = 'Confermata'
-            catena['stato_class'] = 'success'
+            stato_display = 'Confermata'
+            stato_class = 'success'
         elif proposta.stato == 'in_attesa':
-            if catena['count_interessati'] == catena['count_totale']:
-                catena['stato_display'] = 'Tutti interessati!'
-                catena['stato_class'] = 'success'
+            if count_interessati == count_totale:
+                stato_display = 'Tutti interessati!'
+                stato_class = 'success'
             else:
-                catena['stato_display'] = f'In attesa ({catena["count_interessati"]}/{catena["count_totale"]})'
-                catena['stato_class'] = 'warning'
+                stato_display = f'In attesa ({count_interessati}/{count_totale})'
+                stato_class = 'warning'
         else:
-            catena['stato_display'] = proposta.stato.title()
-            catena['stato_class'] = 'secondary'
+            stato_display = proposta.stato.title()
+            stato_class = 'secondary'
 
-        catena['giorni_scadenza'] = proposta.giorni_alla_scadenza() if proposta.data_scadenza else None
-        catena['stato_ordinamento'] = 0 if proposta.stato == 'tutti_interessati' else (1 if proposta.stato == 'in_attesa' else 2)
+        # Ottieni gli scambi dal campo dettagli del ciclo e costruisci il formato atteso dal template
+        exchanges = []
+        if ciclo and ciclo.dettagli and 'scambi' in ciclo.dettagli:
+            from django.contrib.auth.models import User
 
-        catene_list.append(catena)
+            for scambio in ciclo.dettagli['scambi']:
+                da_user_id = scambio.get('da_user')
+                a_user_id = scambio.get('a_user')
+
+                # Ottieni gli utenti
+                try:
+                    giver = User.objects.get(id=da_user_id)
+                    receiver = User.objects.get(id=a_user_id)
+                except User.DoesNotExist:
+                    continue
+
+                # Processa ogni oggetto scambiato
+                for oggetto in scambio.get('oggetti', []):
+                    offerto_data = oggetto.get('offerto', {})
+                    richiesto_data = oggetto.get('richiesto', {})
+
+                    # Ottieni gli annunci
+                    try:
+                        giving_ad = Annuncio.objects.get(id=offerto_data.get('id'))
+                        receiving_ad = Annuncio.objects.get(id=richiesto_data.get('id'))
+
+                        # Crea l'oggetto exchange nel formato atteso dal template
+                        exchange = type('Exchange', (), {
+                            'giver': giver,
+                            'receiver': receiver,
+                            'giving_ad': giving_ad,
+                            'receiving_ad': receiving_ad,
+                        })()
+                        exchanges.append(exchange)
+                    except Annuncio.DoesNotExist:
+                        continue
+
+        catene_info.append({
+            'proposta': proposta,
+            'ciclo': ciclo,
+            'exchanges': exchanges,
+            'mia_risposta': risposta.risposta,
+            'count_interessati': count_interessati,
+            'count_totale': count_totale,
+            'percentuale': percentuale,
+            'stato_display': stato_display,
+            'stato_class': stato_class,
+            'giorni_scadenza': proposta.giorni_alla_scadenza() if proposta.data_scadenza else None,
+            'stato_ordinamento': 0 if proposta.stato == 'tutti_interessati' else (1 if proposta.stato == 'in_attesa' else 2)
+        })
 
     # Ordina per stato (tutti_interessati, in_attesa, altro) e poi per data creazione
-    catene_list.sort(key=lambda x: (x['stato_ordinamento'], -x['proposta'].data_creazione.timestamp()))
+    catene_info.sort(key=lambda x: (x['stato_ordinamento'], -x['proposta'].data_creazione.timestamp()))
 
-    # Raggruppa per numero di partecipanti (come in catene_scambio)
-    catene_2 = [c for c in catene_list if len(c.get('utenti', [])) == 2]
-    catene_3 = [c for c in catene_list if len(c.get('utenti', [])) == 3]
-    catene_4 = [c for c in catene_list if len(c.get('utenti', [])) == 4]
-    catene_5 = [c for c in catene_list if len(c.get('utenti', [])) == 5]
-    catene_6 = [c for c in catene_list if len(c.get('utenti', [])) == 6]
-
-    # DEBUG: stampa gruppi
-    print(f"DEBUG Raggruppamento:")
-    print(f"  - Total catene_list: {len(catene_list)}")
-    print(f"  - catene_2: {len(catene_2)}")
-    print(f"  - catene_3: {len(catene_3)}")
-    print(f"  - catene_4: {len(catene_4)}")
-    print(f"  - catene_5: {len(catene_5)}")
-    print(f"  - catene_6: {len(catene_6)}")
-
-    # Carica i cicli per cui l'utente ha già espresso interesse (tutti in questo caso)
-    cicli_interessati = set(c['id_ciclo'] for c in catene_list)
+    # Raggruppa per stato per visualizzazione
+    catene_per_stato = {
+        'tutti_interessati': [c for c in catene_info if c['stato_class'] == 'success' and c['percentuale'] == 100],
+        'in_attesa': [c for c in catene_info if c['stato_class'] == 'warning'],
+        'altro': [c for c in catene_info if c not in catene_info if c['stato_class'] not in ['success', 'warning']]
+    }
 
     context = {
-        'catene_specifiche': catene_list,
-        'catene_2': catene_2,
-        'catene_3': catene_3,
-        'catene_4': catene_4,
-        'catene_5': catene_5,
-        'catene_6': catene_6,
-        'total_catene': len(catene_list),
-        'cicli_interessati': cicli_interessati,
+        'catene_info': catene_info,
+        'catene_per_stato': catene_per_stato,
+        'total_catene': len(catene_info),
     }
 
     return render(request, 'scambi/mie_proposte_catene.html', context)
