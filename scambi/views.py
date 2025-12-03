@@ -2761,6 +2761,13 @@ def mie_proposte_catene(request):
         # Converti ciclo nel formato catena usando la funzione esistente
         catena = converti_ciclo_a_catena(ciclo)
 
+        # DEBUG: stampa informazioni sulla catena
+        print(f"DEBUG mie_proposte_catene - Ciclo {ciclo.id}:")
+        print(f"  - Lunghezza ciclo: {ciclo.lunghezza}")
+        print(f"  - Numero utenti in catena['utenti']: {len(catena.get('utenti', []))}")
+        if ciclo.dettagli and 'utenti' in ciclo.dettagli:
+            print(f"  - Numero utenti in dettagli: {len(ciclo.dettagli.get('utenti', []))}")
+
         # Aggiungi informazioni sulla proposta
         catena['proposta'] = proposta
         catena['count_interessati'] = proposta.get_count_interessati()
@@ -2796,6 +2803,15 @@ def mie_proposte_catene(request):
     catene_4 = [c for c in catene_list if len(c.get('utenti', [])) == 4]
     catene_5 = [c for c in catene_list if len(c.get('utenti', [])) == 5]
     catene_6 = [c for c in catene_list if len(c.get('utenti', [])) == 6]
+
+    # DEBUG: stampa gruppi
+    print(f"DEBUG Raggruppamento:")
+    print(f"  - Total catene_list: {len(catene_list)}")
+    print(f"  - catene_2: {len(catene_2)}")
+    print(f"  - catene_3: {len(catene_3)}")
+    print(f"  - catene_4: {len(catene_4)}")
+    print(f"  - catene_5: {len(catene_5)}")
+    print(f"  - catene_6: {len(catene_6)}")
 
     # Carica i cicli per cui l'utente ha già espresso interesse (tutti in questo caso)
     cicli_interessati = set(c['id_ciclo'] for c in catene_list)
