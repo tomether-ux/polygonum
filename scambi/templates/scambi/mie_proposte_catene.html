@@ -399,7 +399,7 @@
     display: block;
     width: 100%;
     padding: 10px;
-    margin: 8px 0;
+    margin: 8px 0 0 0;
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
     border: 1px dashed rgba(102, 126, 234, 0.3);
     border-radius: 8px;
@@ -590,10 +590,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 toggleBtn.innerHTML = `<i class="fas fa-chevron-down me-1"></i>Altri match (${otherExchanges.length})`;
                 toggleBtn.setAttribute('data-expanded', 'false');
 
-                // Inserisci il pulsante dopo il primo exchange
+                // Inserisci il pulsante subito dopo il primo exchange, prima del separator
                 const separator = firstExchange.nextElementSibling;
                 if (separator && separator.classList.contains('exchange-separator')) {
-                    separator.after(toggleBtn);
+                    firstExchange.after(toggleBtn);
                 } else {
                     firstExchange.after(toggleBtn);
                 }
