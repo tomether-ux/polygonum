@@ -148,11 +148,10 @@
 <style>
 /* Modern Chain Card - Glassmorphism */
 .modern-chain-card {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
+    background: white;
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
     overflow: hidden;
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     position: relative;
@@ -178,6 +177,12 @@
 
 .modern-chain-card:hover::before {
     transform: scaleX(1);
+}
+
+/* Chain Card Body */
+.card-body {
+    padding: 30px 25px;
+    background: white;
 }
 
 /* Chain Card Header */
@@ -257,9 +262,9 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
-    padding: 20px;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    border-radius: 12px;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
 }
 
 .exchange-circle-item {
@@ -267,16 +272,18 @@
     align-items: center;
     justify-content: space-around;
     gap: 30px;
-    padding: 20px;
+    padding: 25px;
     background: white;
     border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .exchange-circle-item:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    border-color: rgba(102, 126, 234, 0.3);
 }
 
 .user-circle {
@@ -312,18 +319,21 @@
     font-size: 0.85rem;
     text-align: center;
     max-width: 200px;
+    font-weight: 500;
 }
 
 .exchange-item.giving {
-    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-    color: #8b4513;
-    border: 1px solid rgba(252, 182, 159, 0.5);
+    background: linear-gradient(135deg, rgba(46, 213, 115, 0.1) 0%, rgba(72, 219, 251, 0.1) 100%);
+    color: #27ae60;
+    border-left: 3px solid #27ae60;
+    border: 1px solid rgba(39, 174, 96, 0.3);
 }
 
 .exchange-item.receiving {
-    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-    color: #2d5f5d;
-    border: 1px solid rgba(168, 237, 234, 0.5);
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.1) 0%, rgba(155, 89, 182, 0.1) 100%);
+    color: #3498db;
+    border-left: 3px solid #3498db;
+    border: 1px solid rgba(52, 152, 219, 0.3);
 }
 
 .exchange-arrow {
@@ -380,15 +390,15 @@
 
 .exchange-item-link:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .exchange-item-link.giving:hover {
-    background: linear-gradient(135deg, #ffd7b8 0%, #fb9f85 100%);
+    background: linear-gradient(135deg, rgba(46, 213, 115, 0.2) 0%, rgba(72, 219, 251, 0.2) 100%);
 }
 
 .exchange-item-link.receiving:hover {
-    background: linear-gradient(135deg, #8edce6 0%, #fcc2d9 100%);
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.2) 0%, rgba(155, 89, 182, 0.2) 100%);
 }
 
 /* Section Labels */
