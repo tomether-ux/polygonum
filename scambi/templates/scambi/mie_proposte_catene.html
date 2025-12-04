@@ -81,13 +81,10 @@
                 <div class="exchange-circle-container">
                     {% for exchange in catena.exchanges %}
                     <div class="exchange-circle-item">
-                        <!-- Cerchio utente che dà -->
+                        <!-- Utente che dà -->
                         <div class="user-circle">
-                            <a href="{% url 'profilo_utente' exchange.giver.username %}" class="user-avatar-link">
-                                <div class="user-avatar">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <div class="user-name">{{ exchange.giver.username }}</div>
+                            <a href="{% url 'profilo_utente' exchange.giver.username %}" class="user-badge-link">
+                                <i class="fas fa-user-circle me-1"></i>{{ exchange.giver.username }}
                             </a>
                             <a href="{% url 'dettaglio_annuncio' exchange.giving_ad.id %}" class="exchange-item giving exchange-item-link">
                                 <i class="fas fa-gift me-1"></i>
@@ -100,13 +97,10 @@
                             <i class="fas fa-arrow-right fa-2x text-primary"></i>
                         </div>
 
-                        <!-- Cerchio utente che riceve -->
+                        <!-- Utente che riceve -->
                         <div class="user-circle">
-                            <a href="{% url 'profilo_utente' exchange.receiver.username %}" class="user-avatar-link">
-                                <div class="user-avatar">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <div class="user-name">{{ exchange.receiver.username }}</div>
+                            <a href="{% url 'profilo_utente' exchange.receiver.username %}" class="user-badge-link">
+                                <i class="fas fa-user-circle me-1"></i>{{ exchange.receiver.username }}
                             </a>
                             <a href="{% url 'dettaglio_annuncio' exchange.receiving_ad.id %}" class="exchange-item receiving exchange-item-link">
                                 <i class="fas fa-box me-1"></i>
@@ -294,23 +288,32 @@
     flex: 1;
 }
 
-.user-avatar {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
+.user-badge-link {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    font-size: 18px;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+    text-decoration: none;
+    min-height: 44px;
+    min-width: 44px;
 }
 
-.user-name {
-    font-weight: 600;
-    color: #2c3e50;
-    font-size: 0.85rem;
+.user-badge-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.user-badge-link i {
+    font-size: 1.1rem;
 }
 
 .exchange-item {
@@ -360,28 +363,7 @@
     opacity: 0.5;
 }
 
-/* Clickable user avatars and items */
-.user-avatar-link {
-    text-decoration: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    transition: transform 0.2s;
-}
-
-.user-avatar-link:hover {
-    transform: scale(1.05);
-}
-
-.user-avatar-link:hover .user-avatar {
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-}
-
-.user-avatar-link:hover .user-name {
-    color: #667eea;
-}
-
+/* Clickable exchange items */
 .exchange-item-link {
     text-decoration: none;
     transition: transform 0.2s, box-shadow 0.2s;
@@ -474,15 +456,17 @@
         font-size: 1.2rem;
     }
 
-    /* Avatar più piccoli */
-    .user-avatar {
-        width: 40px !important;
-        height: 40px !important;
-        font-size: 16px !important;
+    /* Badge utente più compatti su mobile */
+    .user-badge-link {
+        font-size: 0.75rem !important;
+        padding: 6px 10px !important;
+        gap: 4px !important;
+        min-height: 36px !important;
+        min-width: 36px !important;
     }
 
-    .user-name {
-        font-size: 0.85rem !important;
+    .user-badge-link i {
+        font-size: 0.9rem !important;
     }
 
     /* Exchange items più compatti */
