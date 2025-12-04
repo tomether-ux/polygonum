@@ -603,24 +603,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     const isExpanded = toggleBtn.getAttribute('data-expanded') === 'true';
 
                     if (isExpanded) {
-                        // Chiudi
+                        // Chiudi - nascondi gli exchanges
                         otherExchanges.forEach(ex => {
                             ex.style.display = 'none';
-                            const sep = ex.nextElementSibling;
-                            if (sep && sep.classList.contains('exchange-separator')) {
-                                sep.style.display = 'none';
-                            }
                         });
                         toggleBtn.innerHTML = `<i class="fas fa-chevron-down me-1"></i>Altri match (${otherExchanges.length})`;
                         toggleBtn.setAttribute('data-expanded', 'false');
                     } else {
-                        // Apri
+                        // Apri - inserisci gli exchanges dopo il pulsante
+                        let currentElement = toggleBtn;
                         otherExchanges.forEach(ex => {
                             ex.style.display = 'flex';
-                            const sep = ex.nextElementSibling;
-                            if (sep && sep.classList.contains('exchange-separator')) {
-                                sep.style.display = 'block';
-                            }
+                            // Sposta l'elemento dopo il pulsante (o dopo l'ultimo exchange inserito)
+                            currentElement.after(ex);
+                            currentElement = ex;
                         });
                         toggleBtn.innerHTML = `<i class="fas fa-chevron-up me-1"></i>Nascondi altri match`;
                         toggleBtn.setAttribute('data-expanded', 'true');
