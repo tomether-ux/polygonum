@@ -78,9 +78,9 @@
                     <i class="fas fa-exchange-alt me-2"></i>Sequenza Scambi
                 </h6>
 
-                <div class="exchange-circle-container">
+                <div class="exchange-circle-container" id="exchanges-{{ forloop.parentloop.counter }}">
                     {% for exchange in catena.exchanges %}
-                    <div class="exchange-circle-item">
+                    <div class="exchange-circle-item" data-users="{{ exchange.giver.username }}-{{ exchange.receiver.username }}" data-exchange-index="{{ forloop.counter0 }}">
                         <!-- Utente che dà -->
                         <div class="user-circle">
                             <a href="{% url 'profilo_utente' exchange.giver.username %}" class="user-badge-link">
@@ -394,6 +394,33 @@
     align-items: center;
 }
 
+/* Pulsante Altri Match */
+.btn-altri-match {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+    border: 1px dashed rgba(102, 126, 234, 0.3);
+    border-radius: 8px;
+    color: #667eea;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.btn-altri-match:hover {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+    border-color: rgba(102, 126, 234, 0.5);
+    transform: translateY(-1px);
+}
+
+.btn-altri-match i {
+    transition: transform 0.3s ease;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
     /* Header catena - layout verticale su mobile */
@@ -522,6 +549,84 @@ document.querySelectorAll('.catena-header').forEach(header => {
 
         collapseElement.addEventListener('hidden.bs.collapse', () => {
             icon.style.transform = 'rotate(0deg)';
+        });
+    });
+});
+
+// Raggruppa exchanges tra stessi utenti
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.exchange-circle-container').forEach(container => {
+        const exchanges = Array.from(container.querySelectorAll('.exchange-circle-item'));
+        const grouped = {};
+
+        // Raggruppa per coppia utenti
+        exchanges.forEach(exchange => {
+            const users = exchange.getAttribute('data-users');
+            if (!grouped[users]) {
+                grouped[users] = [];
+            }
+            grouped[users].push(exchange);
+        });
+
+        // Per ogni gruppo con più di 1 exchange
+        Object.entries(grouped).forEach(([users, group]) => {
+            if (group.length > 1) {
+                const firstExchange = group[0];
+                const otherExchanges = group.slice(1);
+
+                // Nascondi gli altri exchanges
+                otherExchanges.forEach(ex => {
+                    ex.style.display = 'none';
+                    // Nascondi anche il separator dopo
+                    const separator = ex.nextElementSibling;
+                    if (separator && separator.classList.contains('exchange-separator')) {
+                        separator.style.display = 'none';
+                    }
+                });
+
+                // Crea il pulsante "Altri match"
+                const toggleBtn = document.createElement('button');
+                toggleBtn.className = 'btn-altri-match';
+                toggleBtn.innerHTML = `<i class="fas fa-chevron-down me-1"></i>Altri match (${otherExchanges.length})`;
+                toggleBtn.setAttribute('data-expanded', 'false');
+
+                // Inserisci il pulsante dopo il primo exchange
+                const separator = firstExchange.nextElementSibling;
+                if (separator && separator.classList.contains('exchange-separator')) {
+                    separator.after(toggleBtn);
+                } else {
+                    firstExchange.after(toggleBtn);
+                }
+
+                // Gestisci click
+                toggleBtn.addEventListener('click', () => {
+                    const isExpanded = toggleBtn.getAttribute('data-expanded') === 'true';
+
+                    if (isExpanded) {
+                        // Chiudi
+                        otherExchanges.forEach(ex => {
+                            ex.style.display = 'none';
+                            const sep = ex.nextElementSibling;
+                            if (sep && sep.classList.contains('exchange-separator')) {
+                                sep.style.display = 'none';
+                            }
+                        });
+                        toggleBtn.innerHTML = `<i class="fas fa-chevron-down me-1"></i>Altri match (${otherExchanges.length})`;
+                        toggleBtn.setAttribute('data-expanded', 'false');
+                    } else {
+                        // Apri
+                        otherExchanges.forEach(ex => {
+                            ex.style.display = 'flex';
+                            const sep = ex.nextElementSibling;
+                            if (sep && sep.classList.contains('exchange-separator')) {
+                                sep.style.display = 'block';
+                            }
+                        });
+                        toggleBtn.innerHTML = `<i class="fas fa-chevron-up me-1"></i>Nascondi altri match`;
+                        toggleBtn.setAttribute('data-expanded', 'true');
+                    }
+                });
+            }
         });
     });
 });
