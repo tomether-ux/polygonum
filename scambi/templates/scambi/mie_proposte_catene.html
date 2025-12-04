@@ -459,15 +459,19 @@
         padding: 4px 8px !important;
     }
 
-    /* Scambi - layout verticale */
+    /* Scambi - mantieni layout orizzontale anche su mobile */
     .exchange-circle-item {
-        flex-direction: column;
-        gap: 15px;
-        padding: 15px;
+        gap: 10px;
+        padding: 15px 10px;
+        flex-wrap: nowrap;
     }
 
     .exchange-arrow {
-        transform: rotate(90deg);
+        font-size: 1.2rem;
+    }
+
+    .exchange-arrow i {
+        font-size: 1.2rem;
     }
 
     /* Avatar più piccoli */
@@ -483,14 +487,22 @@
 
     /* Exchange items più compatti */
     .exchange-item {
-        font-size: 0.75rem !important;
-        padding: 6px 12px !important;
-        max-width: 100% !important;
+        font-size: 0.7rem !important;
+        padding: 4px 8px !important;
+        max-width: 120px !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .user-circle {
+        gap: 5px !important;
+        min-width: 0;
+        flex: 1;
     }
 
     /* Container scambi più compatto */
     .exchange-circle-container {
-        padding: 15px !important;
         gap: 15px !important;
     }
 
