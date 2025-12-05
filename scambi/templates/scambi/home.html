@@ -1,20 +1,24 @@
 {% extends 'scambi/base.html' %}
-{% load static %}
 
 {% block title %}Home - Polygonum{% endblock %}
 
 {% block content %}
 <!-- Hero Section -->
-<section class="hero-section-minimal">
+<section class="hero-section">
     <div class="container">
-        <div class="row align-items-center justify-content-center" style="min-height: 60vh;">
-            <div class="col-lg-6 col-md-8 col-10 text-center">
-                <img src="{% static 'img/polygonum-logo.png' %}" alt="POLYGONUM Logo" class="hero-logo mb-4">
-                <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center mt-5">
-                    <a class="btn btn-primary btn-lg px-4 py-3" href="{% url 'crea_annuncio' %}">
-                        <i class="fas fa-plus me-2"></i>Crea annuncio
+        <div class="row align-items-center hero-content">
+            <div class="col-lg-8 mx-auto text-center fade-in-up">
+                <h1 class="display-3 fw-bold mb-4">
+                    Benvenuto su <span class="text-warning">Polygonum</span>
+                </h1>
+                <p class="lead fs-4 mb-5 opacity-90">
+                    Scambia oggetti con altri utenti senza usare denaro. Il nostro algoritmo intelligente trova automaticamente catene di scambio che soddisfano tutti!
+                </p>
+                <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+                    <a class="btn btn-light btn-lg px-4 py-3" href="{% url 'crea_annuncio' %}">
+                        <i class="fas fa-plus me-2"></i>Crea il tuo primo annuncio
                     </a>
-                    <a class="btn btn-outline-primary btn-lg px-4 py-3" href="{% url 'lista_annunci' %}">
+                    <a class="btn btn-outline-light btn-lg px-4 py-3" href="{% url 'lista_annunci' %}">
                         <i class="fas fa-search me-2"></i>Esplora annunci
                     </a>
                 </div>
@@ -22,41 +26,6 @@
         </div>
     </div>
 </section>
-
-<style>
-.hero-section-minimal {
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    padding: 80px 0;
-}
-
-.hero-logo {
-    max-width: 100%;
-    height: auto;
-    width: 400px;
-    animation: fadeInUp 0.8s ease;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@media (max-width: 768px) {
-    .hero-logo {
-        width: 280px;
-    }
-
-    .hero-section-minimal {
-        padding: 60px 0;
-    }
-}
-</style>
 
 <!-- Come Funziona -->
 <section class="py-5 bg-texture-white">
