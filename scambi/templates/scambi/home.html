@@ -4,6 +4,14 @@
 {% block title %}Home - Polygonum{% endblock %}
 
 {% block content %}
+<style>
+/* Rimuovi margin top dal main per questa pagina */
+main.container {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+</style>
+
 <!-- Hero Section con Video -->
 <section class="hero-video-section">
     <div class="video-container-full mb-4">
@@ -33,6 +41,7 @@
 .hero-video-section {
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     padding: 0 0 60px 0;
+    margin: 0;
     min-height: 60vh;
     display: flex;
     flex-direction: column;
@@ -49,7 +58,7 @@
     width: 100%;
     height: auto;
     display: block;
-    clip-path: inset(50% 0 50% 0);
+    clip-path: inset(35% 0 35% 0);
 }
 
 @media (max-width: 768px) {
