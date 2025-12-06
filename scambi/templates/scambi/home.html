@@ -1,21 +1,26 @@
 {% extends 'scambi/base.html' %}
+{% load static %}
 
 {% block title %}Home - Polygonum{% endblock %}
 
 {% block content %}
-<!-- Hero Section Minimal -->
-<section class="py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 40vh; display: flex; align-items: center;">
+<!-- Hero Section con Video -->
+<section class="hero-video-section">
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-lg-8 text-center">
-                <h1 class="display-1 fw-bold mb-4" style="color: white; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">
-                    POLYGONUM
-                </h1>
-                <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center mt-5">
-                    <a class="btn btn-light btn-lg px-4 py-3" href="{% url 'crea_annuncio' %}">
+            <div class="col-lg-8 col-md-10 text-center">
+                <div class="video-container mb-5">
+                    <video autoplay loop muted playsinline class="hero-video">
+                        <source src="{% static 'video/polygonum-hero.mp4' %}" type="video/mp4">
+                        <!-- Fallback per browser senza supporto video -->
+                        <h1 class="display-1 fw-bold" style="color: #667eea;">POLYGONUM</h1>
+                    </video>
+                </div>
+                <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+                    <a class="btn btn-primary btn-lg px-4 py-3" href="{% url 'crea_annuncio' %}">
                         <i class="fas fa-plus me-2"></i>Crea annuncio
                     </a>
-                    <a class="btn btn-outline-light btn-lg px-4 py-3" href="{% url 'lista_annunci' %}">
+                    <a class="btn btn-outline-primary btn-lg px-4 py-3" href="{% url 'lista_annunci' %}">
                         <i class="fas fa-search me-2"></i>Esplora annunci
                     </a>
                 </div>
@@ -23,6 +28,42 @@
         </div>
     </div>
 </section>
+
+<style>
+.hero-video-section {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 80px 0 60px 0;
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+}
+
+.video-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.hero-video {
+    width: 100%;
+    height: auto;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 768px) {
+    .hero-video-section {
+        padding: 60px 0 40px 0;
+    }
+
+    .video-container {
+        max-width: 100%;
+    }
+
+    .hero-video {
+        border-radius: 12px;
+    }
+}
+</style>
 
 <!-- Annunci Recenti -->
 <section class="py-5 bg-texture-light">
