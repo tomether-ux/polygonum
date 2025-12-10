@@ -89,10 +89,29 @@ def home(request):
     """Vista principale del sito"""
     annunci_recenti = Annuncio.objects.filter(attivo=True).order_by('-data_creazione')[:6]
     categorie = Categoria.objects.all()
-    
+
+    # Suggerimenti personalizzati basati sulle categorie degli annunci "cerco" dell'utente
+    annunci_suggeriti = []
+    if request.user.is_authenticated:
+        # Trova le categorie degli annunci "cerco" dell'utente
+        mie_categorie = Annuncio.objects.filter(
+            utente=request.user,
+            tipo='cerco',
+            attivo=True
+        ).values_list('categoria_id', flat=True).distinct()
+
+        # Se l'utente ha almeno un annuncio "cerco", suggerisci annunci "offro" in quelle categorie
+        if mie_categorie:
+            annunci_suggeriti = Annuncio.objects.filter(
+                categoria_id__in=mie_categorie,
+                tipo='offro',
+                attivo=True
+            ).exclude(utente=request.user).order_by('-data_creazione')[:6]
+
     return render(request, 'scambi/home.html', {
         'annunci_recenti': annunci_recenti,
-        'categorie': categorie
+        'categorie': categorie,
+        'annunci_suggeriti': annunci_suggeriti,
     })
 
 def lista_annunci(request):

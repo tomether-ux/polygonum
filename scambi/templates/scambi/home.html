@@ -90,6 +90,63 @@
 }
 </style>
 
+<!-- Suggeriti per te -->
+{% if annunci_suggeriti %}
+<section class="py-5 bg-white">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center mb-5">
+                <h2 class="display-5 fw-bold text-polygonum-primary">
+                    <i class="fas fa-sparkles me-2"></i>Suggeriti per te
+                </h2>
+                <p class="lead text-muted">Annunci che potrebbero interessarti in base alle tue ricerche</p>
+            </div>
+        </div>
+        <div class="row g-4">
+            {% for annuncio in annunci_suggeriti %}
+            <div class="col-lg-4 col-md-6">
+                <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none">
+                    <div class="card h-100 border-0 shadow-sm card-hover" style="cursor: pointer; border-left: 4px solid #667eea !important;">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                {% if annuncio.tipo == 'offro' %}
+                                    <span class="badge bg-success px-3 py-2">
+                                        <i class="fas fa-gift me-1"></i>Offro
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-info px-3 py-2">
+                                        <i class="fas fa-search me-1"></i>Cerco
+                                    </span>
+                                {% endif %}
+                                <div class="d-flex align-items-center gap-2">
+                                    {% if annuncio.prezzo_stimato %}
+                                        <small class="text-success fw-bold">€{{ annuncio.prezzo_stimato }}</small>
+                                    {% endif %}
+                                    <span class="badge bg-light text-dark border" title="{{ annuncio.get_condizione_display }}">
+                                        {{ annuncio.get_condizione_icon }} {{ annuncio.get_condizione_display_short }}
+                                    </span>
+                                </div>
+                            </div>
+                            <h5 class="card-title text-polygonum-primary mb-3">{{ annuncio.titolo }}</h5>
+                            <p class="card-text text-muted">{{ annuncio.descrizione|truncatewords:15 }}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-auto">
+                                <small class="text-muted">
+                                    <i class="fas fa-tag me-1"></i>{{ annuncio.categoria.nome }}
+                                </small>
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i>{{ annuncio.utente.username }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
 <!-- Annunci Recenti -->
 <section class="py-5 bg-texture-light">
     <div class="container">
