@@ -87,6 +87,28 @@
     .d-flex.gap-4 {
         gap: 1rem !important;
     }
+
+    /* Card più compatte su mobile quando affiancate */
+    .card-img-container {
+        height: 150px !important;
+    }
+
+    .card-body {
+        padding: 0.75rem !important;
+    }
+
+    .card-title {
+        font-size: 0.9rem !important;
+    }
+
+    .badge {
+        font-size: 0.7rem !important;
+        padding: 0.25rem 0.5rem !important;
+    }
+
+    small {
+        font-size: 0.7rem !important;
+    }
 }
 </style>
 
@@ -103,7 +125,7 @@
         </div>
         <div class="row g-4">
             {% for annuncio in annunci_suggeriti %}
-            <div class="col-lg-4 col-md-6">
+            <div class="col-6 col-md-6 col-lg-4">
                 <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none">
                     <div class="card h-100 border-0 shadow-sm card-hover" style="cursor: pointer; border-left: 4px solid #667eea !important; overflow: hidden;">
                         <!-- Immagine annuncio -->
@@ -161,7 +183,7 @@
         {% if annunci_recenti %}
             <div class="row g-4">
                 {% for annuncio in annunci_recenti %}
-                <div class="col-lg-4 col-md-6">
+                <div class="col-6 col-md-6 col-lg-4">
                     <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none">
                         <div class="card h-100 border-0 shadow-sm card-hover" style="cursor: pointer; overflow: hidden;">
                             <!-- Immagine annuncio -->
