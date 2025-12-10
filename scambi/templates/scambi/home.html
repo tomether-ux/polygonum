@@ -6,70 +6,80 @@
 {% block content %}
 <!-- Hero Section con Video -->
 <section class="hero-video-section">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-auto text-center">
-                <div class="video-container-centered mb-4">
-                    <video autoplay loop muted playsinline class="hero-video">
-                        <source src="{% static 'video/polygonum-hero.mp4' %}" type="video/mp4">
-                        <!-- Fallback per browser senza supporto video -->
-                        <h1 class="display-1 fw-bold" style="color: #667eea;">POLYGONUM</h1>
-                    </video>
-                </div>
-                <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
-                    <a class="btn btn-primary btn-lg px-4 py-3" href="{% url 'crea_annuncio' %}">
-                        <i class="fas fa-plus me-2"></i>Crea annuncio
-                    </a>
-                    <a class="btn btn-outline-primary btn-lg px-4 py-3" href="{% url 'lista_annunci' %}">
-                        <i class="fas fa-search me-2"></i>Esplora annunci
-                    </a>
-                </div>
-            </div>
+    <video autoplay loop muted playsinline class="hero-video-bg">
+        <source src="{% static 'video/polygonum-hero.mp4' %}" type="video/mp4">
+    </video>
+    <div class="hero-content">
+        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+            <a class="btn-hero-transparent btn-lg px-4 py-3" href="{% url 'crea_annuncio' %}">
+                <i class="fas fa-plus me-2"></i>Crea annuncio
+            </a>
+            <a class="btn-hero-transparent btn-lg px-4 py-3" href="{% url 'lista_annunci' %}">
+                <i class="fas fa-search me-2"></i>Esplora annunci
+            </a>
         </div>
     </div>
 </section>
 
 <style>
 .hero-video-section {
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    padding: 60px 0;
-    margin: 0;
+    position: relative;
+    width: 100%;
     min-height: 60vh;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
-.video-container-centered {
-    max-width: 450px;
+.hero-video-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
-    margin: 0 auto;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
 }
 
-.hero-video {
-    width: 100%;
-    height: auto;
-    display: block;
-    clip-path: inset(35% 0 35% 0);
+.hero-content {
+    position: relative;
+    z-index: 2;
+    padding: 60px 20px;
 }
 
-.hero-video-section .d-flex {
-    max-width: 450px;
+.btn-hero-transparent {
+    background: transparent;
+    border: 2px solid white;
+    color: white;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.btn-hero-transparent:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border-color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-hero-transparent i {
+    color: white;
 }
 
 @media (max-width: 768px) {
     .hero-video-section {
-        padding: 40px 0;
+        min-height: 50vh;
     }
 
-    .video-container-centered {
-        max-width: 100%;
-        padding: 0 15px;
-    }
-
-    .hero-video-section .d-flex {
-        max-width: 100%;
+    .hero-content {
+        padding: 40px 15px;
     }
 }
 </style>
