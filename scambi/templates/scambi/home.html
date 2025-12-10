@@ -106,35 +106,39 @@
             {% for annuncio in annunci_suggeriti %}
             <div class="col-lg-4 col-md-6">
                 <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none">
-                    <div class="card h-100 border-0 shadow-sm card-hover" style="cursor: pointer; border-left: 4px solid #667eea !important;">
-                        <div class="card-body p-4">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="card h-100 border-0 shadow-sm card-hover" style="cursor: pointer; border-left: 4px solid #667eea !important; overflow: hidden;">
+                        <!-- Immagine annuncio -->
+                        <div class="card-img-container" style="height: 200px; overflow: hidden; background: #f8f9fa;">
+                            {% if annuncio.immagine %}
+                                <img src="{{ annuncio.immagine.url }}" alt="{{ annuncio.titolo }}" class="card-img-top" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% else %}
+                                <div class="d-flex align-items-center justify-content-center h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                    <i class="fas fa-image fa-3x text-white opacity-50"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
                                 {% if annuncio.tipo == 'offro' %}
-                                    <span class="badge bg-success px-3 py-2">
+                                    <span class="badge bg-success px-2 py-1">
                                         <i class="fas fa-gift me-1"></i>Offro
                                     </span>
                                 {% else %}
-                                    <span class="badge bg-info px-3 py-2">
+                                    <span class="badge bg-info px-2 py-1">
                                         <i class="fas fa-search me-1"></i>Cerco
                                     </span>
                                 {% endif %}
-                                <div class="d-flex align-items-center gap-2">
-                                    {% if annuncio.prezzo_stimato %}
-                                        <small class="text-success fw-bold">€{{ annuncio.prezzo_stimato }}</small>
-                                    {% endif %}
-                                    <span class="badge bg-light text-dark border" title="{{ annuncio.get_condizione_display }}">
-                                        {{ annuncio.get_condizione_icon }} {{ annuncio.get_condizione_display_short }}
-                                    </span>
-                                </div>
+                                {% if annuncio.prezzo_stimato %}
+                                    <span class="badge bg-success-subtle text-success px-2 py-1">€{{ annuncio.prezzo_stimato }}</span>
+                                {% endif %}
                             </div>
-                            <h5 class="card-title text-polygonum-primary mb-3">{{ annuncio.titolo }}</h5>
-                            <p class="card-text text-muted">{{ annuncio.descrizione|truncatewords:15 }}</p>
-                            <div class="d-flex justify-content-between align-items-center mt-auto">
+                            <h5 class="card-title text-polygonum-primary mb-2" style="font-size: 1.1rem;">{{ annuncio.titolo|truncatechars:50 }}</h5>
+                            <div class="d-flex justify-content-between align-items-center">
                                 <small class="text-muted">
                                     <i class="fas fa-tag me-1"></i>{{ annuncio.categoria.nome }}
                                 </small>
                                 <small class="text-muted">
-                                    <i class="fas fa-user me-1"></i>{{ annuncio.utente.username }}
+                                    <i class="fas fa-user me-1"></i>{{ annuncio.utente.username|truncatechars:15 }}
                                 </small>
                             </div>
                         </div>
@@ -161,35 +165,39 @@
                 {% for annuncio in annunci_recenti %}
                 <div class="col-lg-4 col-md-6">
                     <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none">
-                        <div class="card h-100 border-0 shadow-sm card-hover" style="cursor: pointer;">
-                            <div class="card-body p-4">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="card h-100 border-0 shadow-sm card-hover" style="cursor: pointer; overflow: hidden;">
+                            <!-- Immagine annuncio -->
+                            <div class="card-img-container" style="height: 200px; overflow: hidden; background: #f8f9fa;">
+                                {% if annuncio.immagine %}
+                                    <img src="{{ annuncio.immagine.url }}" alt="{{ annuncio.titolo }}" class="card-img-top" style="width: 100%; height: 100%; object-fit: cover;">
+                                {% else %}
+                                    <div class="d-flex align-items-center justify-content-center h-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                        <i class="fas fa-image fa-3x text-white opacity-50"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
                                     {% if annuncio.tipo == 'offro' %}
-                                        <span class="badge bg-success px-3 py-2">
+                                        <span class="badge bg-success px-2 py-1">
                                             <i class="fas fa-gift me-1"></i>Offro
                                         </span>
                                     {% else %}
-                                        <span class="badge bg-info px-3 py-2">
+                                        <span class="badge bg-info px-2 py-1">
                                             <i class="fas fa-search me-1"></i>Cerco
                                         </span>
                                     {% endif %}
-                                    <div class="d-flex align-items-center gap-2">
-                                        {% if annuncio.prezzo_stimato %}
-                                            <small class="text-success fw-bold">€{{ annuncio.prezzo_stimato }}</small>
-                                        {% endif %}
-                                        <span class="badge bg-light text-dark border" title="{{ annuncio.get_condizione_display }}">
-                                            {{ annuncio.get_condizione_icon }} {{ annuncio.get_condizione_display_short }}
-                                        </span>
-                                    </div>
+                                    {% if annuncio.prezzo_stimato %}
+                                        <span class="badge bg-success-subtle text-success px-2 py-1">€{{ annuncio.prezzo_stimato }}</span>
+                                    {% endif %}
                                 </div>
-                                <h5 class="card-title text-polygonum-primary mb-3">{{ annuncio.titolo }}</h5>
-                                <p class="card-text text-muted">{{ annuncio.descrizione|truncatewords:15 }}</p>
-                                <div class="d-flex justify-content-between align-items-center mt-auto">
+                                <h5 class="card-title text-polygonum-primary mb-2" style="font-size: 1.1rem;">{{ annuncio.titolo|truncatechars:50 }}</h5>
+                                <div class="d-flex justify-content-between align-items-center">
                                     <small class="text-muted">
                                         <i class="fas fa-tag me-1"></i>{{ annuncio.categoria.nome }}
                                     </small>
                                     <small class="text-muted">
-                                        <i class="fas fa-user me-1"></i>{{ annuncio.utente.username }}
+                                        <i class="fas fa-user me-1"></i>{{ annuncio.utente.username|truncatechars:15 }}
                                     </small>
                                 </div>
                             </div>
