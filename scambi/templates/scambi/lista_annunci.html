@@ -83,88 +83,34 @@
             <!-- Grid Annunci -->
             <div class="row g-4">
                 {% for annuncio in annunci %}
-                <div class="col-lg-4 col-md-6">
+                <div class="col-6 col-md-6 col-lg-4">
                     <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none">
-                        <div class="card h-100 border-0 shadow-sm card-hover" style="cursor: pointer;">
-                            <!-- Immagine -->
-                            <div class="position-relative">
-                                {% include 'scambi/partials/annuncio_thumbnail.html' with annuncio=annuncio %}
-                                <div class="position-absolute top-0 start-0 m-3">
-                                    {% if annuncio.tipo == 'offro' %}
-                                        <span class="badge bg-success px-3 py-2 shadow">
-                                            <i class="fas fa-gift me-1"></i>Offro
-                                        </span>
-                                    {% else %}
-                                        <span class="badge bg-info px-3 py-2 shadow">
-                                            <i class="fas fa-search me-1"></i>Cerco
-                                        </span>
-                                    {% endif %}
-                                </div>
-                                {% if annuncio.prezzo_stimato %}
-                                <div class="position-absolute top-0 end-0 m-3">
-                                    <span class="badge bg-dark px-3 py-2 shadow">
-                                        €{{ annuncio.prezzo_stimato }}
-                                    </span>
-                                </div>
+                        <div class="modern-card">
+                            <!-- Immagine annuncio con angoli arrotondati -->
+                            <div class="modern-card-img">
+                                {% if annuncio.immagine %}
+                                    <img src="{{ annuncio.immagine.url }}" alt="{{ annuncio.titolo }}">
+                                {% else %}
+                                    <div class="modern-card-placeholder">
+                                        <i class="fas fa-image"></i>
+                                    </div>
                                 {% endif %}
                             </div>
-
-                            <!-- Content -->
-                            <div class="card-body p-4">
-                                <h5 class="card-title text-polygonum-primary mb-3">{{ annuncio.titolo }}</h5>
-                                <p class="card-text text-muted mb-3">{{ annuncio.descrizione|truncatewords:20 }}</p>
-
-                                <!-- Meta Info -->
-                                <div class="row g-2 mb-3">
-                                    <div class="col-4">
-                                        <small class="text-muted d-flex align-items-center">
-                                            <i class="fas fa-tag me-2"></i>{{ annuncio.categoria.nome }}
-                                        </small>
-                                    </div>
-                                    <div class="col-4">
-                                        <small class="text-muted d-flex align-items-center" title="{{ annuncio.get_condizione_display }}">
-                                            <span class="me-1">{{ annuncio.get_condizione_icon }}</span>{{ annuncio.get_condizione_display_short }}
-                                        </small>
-                                    </div>
-                                    <div class="col-4">
-                                        <small class="text-muted d-flex align-items-center">
-                                            <i class="fas fa-calendar me-2"></i>{{ annuncio.data_creazione|date:"d/m/Y" }}
-                                        </small>
-                                    </div>
+                            <!-- Info essenziali -->
+                            <div class="modern-card-info">
+                                <h6 class="modern-card-title">{{ annuncio.titolo|truncatechars:40 }}</h6>
+                                <p class="modern-card-description">{{ annuncio.descrizione|truncatechars:60 }}</p>
+                                <div class="modern-card-details">
+                                    {% if annuncio.utente.userprofile.citta %}
+                                    <span class="detail-item">{{ annuncio.utente.userprofile.citta }} ({{ annuncio.utente.userprofile.provincia_obj.sigla }})</span>
+                                    {% else %}
+                                    <span class="detail-item">{{ annuncio.categoria.nome }}</span>
+                                    {% endif %}
+                                    {% if annuncio.prezzo_stimato %}
+                                    <span class="detail-item price">€{{ annuncio.prezzo_stimato }}</span>
+                                    {% endif %}
                                 </div>
-
-                                <!-- Metodo Scambio -->
-                                {% if annuncio.metodo_scambio %}
-                                <div class="mb-3">
-                                    <small class="text-muted d-flex align-items-center">
-                                        <i class="fas fa-truck me-2"></i>
-                                        {% if annuncio.metodo_scambio == 'entrambi' %}
-                                            Scambio a mano o spedizione
-                                        {% elif annuncio.metodo_scambio == 'mano' %}
-                                            Solo scambio a mano
-                                            {% if annuncio.distanza_massima_km %}
-                                                (max {{ annuncio.distanza_massima_km }}km)
-                                            {% endif %}
-                                        {% elif annuncio.metodo_scambio == 'spedizione' %}
-                                            Solo spedizione
-                                        {% endif %}
-                                    </small>
-                                </div>
-                                {% endif %}
-
-                                <!-- User Info -->
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="d-flex align-items-center">
-                                        <div class="bg-polygonum-secondary rounded-circle d-flex align-items-center justify-content-center me-2"
-                                             style="width: 32px; height: 32px;">
-                                            <i class="fas fa-user text-polygonum-primary"></i>
-                                        </div>
-                                        <small class="text-polygonum-primary fw-bold">{{ annuncio.utente.username }}</small>
-                                    </div>
-                                    <small class="text-muted">
-                                        <i class="fas fa-eye me-1"></i>Dettagli
-                                    </small>
-                                </div>
+                                <div class="modern-card-user">{{ annuncio.utente.username }}</div>
                             </div>
                         </div>
                     </a>
@@ -234,13 +180,115 @@
 </section>
 
 <style>
-.card-hover {
-    transition: all 0.3s ease;
+/* Modern Card Design */
+.modern-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
 }
 
-.card-hover:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+.modern-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.modern-card-img {
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    background: #f8f9fa;
+    position: relative;
+}
+
+.modern-card-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.modern-card-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    color: #adb5bd;
+}
+
+.modern-card-placeholder i {
+    font-size: 3rem;
+}
+
+.modern-card-info {
+    padding: 12px 16px;
+}
+
+.modern-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #212529;
+    margin: 0 0 6px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.modern-card-description {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin: 0 0 8px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
+.modern-card-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.detail-item {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.detail-item.price {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.modern-card-user {
+    font-size: 0.8rem;
+    color: #adb5bd;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .modern-card-img {
+        height: 150px !important;
+    }
+
+    .modern-card-title {
+        font-size: 0.85rem !important;
+    }
+
+    .modern-card-description {
+        font-size: 0.75rem !important;
+    }
+
+    .modern-card-details {
+        font-size: 0.7rem !important;
+    }
+
+    .modern-card-user {
+        font-size: 0.7rem !important;
+    }
 }
 </style>
 {% endblock %}
