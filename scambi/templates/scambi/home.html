@@ -4,11 +4,9 @@
 {% block title %}Home - Polygonum{% endblock %}
 
 {% block content %}
-<!-- Hero Section con Video -->
-<section class="hero-video-section">
-    <video autoplay loop muted playsinline class="hero-video-bg">
-        <source src="{% static 'video/polygonum-hero.mp4' %}" type="video/mp4">
-    </video>
+<!-- Hero Section con Immagine -->
+<section class="hero-image-section">
+    <img src="{% static 'img/homepage-hero.jpg' %}" alt="Polygonum - Community di Scambio" class="hero-image-bg">
     <div class="hero-content">
         <div class="d-flex flex-column flex-sm-row gap-4 justify-content-center">
             <a class="btn-hero-transparent btn-lg px-5 py-3" href="{% url 'crea_annuncio' %}">
@@ -22,7 +20,7 @@
 </section>
 
 <style>
-.hero-video-section {
+.hero-image-section {
     position: relative;
     width: 100%;
     min-height: 60vh;
@@ -33,7 +31,7 @@
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
-.hero-video-bg {
+.hero-image-bg {
     position: absolute;
     top: 0;
     left: 0;
@@ -76,7 +74,7 @@
 }
 
 @media (max-width: 768px) {
-    .hero-video-section {
+    .hero-image-section {
         min-height: 50vh;
     }
 
