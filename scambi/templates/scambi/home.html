@@ -237,7 +237,11 @@
                         <div class="modern-card-info">
                             <h6 class="modern-card-title">{{ annuncio.titolo|truncatechars:40 }}</h6>
                             <div class="modern-card-details">
+                                {% if annuncio.utente.userprofile.citta %}
+                                <span class="detail-item">{{ annuncio.utente.userprofile.citta }} ({{ annuncio.utente.userprofile.provincia_obj.sigla }})</span>
+                                {% else %}
                                 <span class="detail-item">{{ annuncio.categoria.nome }}</span>
+                                {% endif %}
                                 {% if annuncio.prezzo_stimato %}
                                 <span class="detail-item price">€{{ annuncio.prezzo_stimato }}</span>
                                 {% endif %}
@@ -281,7 +285,11 @@
                             <div class="modern-card-info">
                                 <h6 class="modern-card-title">{{ annuncio.titolo|truncatechars:40 }}</h6>
                                 <div class="modern-card-details">
+                                    {% if annuncio.utente.userprofile.citta %}
+                                    <span class="detail-item">{{ annuncio.utente.userprofile.citta }} ({{ annuncio.utente.userprofile.provincia_obj.sigla }})</span>
+                                    {% else %}
                                     <span class="detail-item">{{ annuncio.categoria.nome }}</span>
+                                    {% endif %}
                                     {% if annuncio.prezzo_stimato %}
                                     <span class="detail-item price">€{{ annuncio.prezzo_stimato }}</span>
                                     {% endif %}
