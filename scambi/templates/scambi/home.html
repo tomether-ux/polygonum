@@ -109,6 +109,101 @@
     small {
         font-size: 0.7rem !important;
     }
+
+    /* Modern card più compatta su mobile */
+    .modern-card-img {
+        height: 150px !important;
+    }
+
+    .modern-card-title {
+        font-size: 0.85rem !important;
+    }
+
+    .modern-card-details {
+        font-size: 0.7rem !important;
+    }
+
+    .modern-card-user {
+        font-size: 0.7rem !important;
+    }
+}
+
+/* Modern Card Design */
+.modern-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.modern-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.modern-card-img {
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    background: #f8f9fa;
+    position: relative;
+}
+
+.modern-card-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.modern-card-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    color: #adb5bd;
+}
+
+.modern-card-placeholder i {
+    font-size: 3rem;
+}
+
+.modern-card-info {
+    padding: 12px 16px;
+}
+
+.modern-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #212529;
+    margin: 0 0 8px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.modern-card-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.detail-item {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.detail-item.price {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.modern-card-user {
+    font-size: 0.8rem;
+    color: #adb5bd;
 }
 </style>
 
@@ -127,41 +222,27 @@
             {% for annuncio in annunci_suggeriti %}
             <div class="col-6 col-md-6 col-lg-4">
                 <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none">
-                    <div class="card h-100 border-0 shadow-sm card-hover" style="cursor: pointer; border-left: 4px solid #667eea !important; overflow: hidden;">
-                        <!-- Immagine annuncio -->
-                        <div class="card-img-container" style="height: 200px; overflow: hidden; background: #f8f9fa;">
+                    <div class="modern-card">
+                        <!-- Immagine annuncio con angoli arrotondati -->
+                        <div class="modern-card-img">
                             {% if annuncio.immagine %}
-                                <img src="{{ annuncio.immagine.url }}" alt="{{ annuncio.titolo }}" class="card-img-top" style="width: 100%; height: 100%; object-fit: cover;">
+                                <img src="{{ annuncio.immagine.url }}" alt="{{ annuncio.titolo }}">
                             {% else %}
-                                <div class="d-flex align-items-center justify-content-center h-100" style="background: white;">
-                                    <i class="fas fa-image fa-3x text-muted"></i>
+                                <div class="modern-card-placeholder">
+                                    <i class="fas fa-image"></i>
                                 </div>
                             {% endif %}
                         </div>
-                        <div class="card-body p-3">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                {% if annuncio.tipo == 'offro' %}
-                                    <span class="badge bg-success px-2 py-1">
-                                        <i class="fas fa-gift me-1"></i>Offro
-                                    </span>
-                                {% else %}
-                                    <span class="badge bg-info px-2 py-1">
-                                        <i class="fas fa-search me-1"></i>Cerco
-                                    </span>
-                                {% endif %}
+                        <!-- Info essenziali -->
+                        <div class="modern-card-info">
+                            <h6 class="modern-card-title">{{ annuncio.titolo|truncatechars:40 }}</h6>
+                            <div class="modern-card-details">
+                                <span class="detail-item">{{ annuncio.categoria.nome }}</span>
                                 {% if annuncio.prezzo_stimato %}
-                                    <span class="badge bg-success-subtle text-success px-2 py-1">€{{ annuncio.prezzo_stimato }}</span>
+                                <span class="detail-item price">€{{ annuncio.prezzo_stimato }}</span>
                                 {% endif %}
                             </div>
-                            <h5 class="card-title text-polygonum-primary mb-2" style="font-size: 1.1rem;">{{ annuncio.titolo|truncatechars:50 }}</h5>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <small class="text-muted">
-                                    <i class="fas fa-tag me-1"></i>{{ annuncio.categoria.nome }}
-                                </small>
-                                <small class="text-muted">
-                                    <i class="fas fa-user me-1"></i>{{ annuncio.utente.username|truncatechars:15 }}
-                                </small>
-                            </div>
+                            <div class="modern-card-user">{{ annuncio.utente.username }}</div>
                         </div>
                     </div>
                 </a>
@@ -185,41 +266,27 @@
                 {% for annuncio in annunci_recenti %}
                 <div class="col-6 col-md-6 col-lg-4">
                     <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none">
-                        <div class="card h-100 border-0 shadow-sm card-hover" style="cursor: pointer; overflow: hidden;">
-                            <!-- Immagine annuncio -->
-                            <div class="card-img-container" style="height: 200px; overflow: hidden; background: #f8f9fa;">
+                        <div class="modern-card">
+                            <!-- Immagine annuncio con angoli arrotondati -->
+                            <div class="modern-card-img">
                                 {% if annuncio.immagine %}
-                                    <img src="{{ annuncio.immagine.url }}" alt="{{ annuncio.titolo }}" class="card-img-top" style="width: 100%; height: 100%; object-fit: cover;">
+                                    <img src="{{ annuncio.immagine.url }}" alt="{{ annuncio.titolo }}">
                                 {% else %}
-                                    <div class="d-flex align-items-center justify-content-center h-100" style="background: white;">
-                                        <i class="fas fa-image fa-3x text-muted"></i>
+                                    <div class="modern-card-placeholder">
+                                        <i class="fas fa-image"></i>
                                     </div>
                                 {% endif %}
                             </div>
-                            <div class="card-body p-3">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    {% if annuncio.tipo == 'offro' %}
-                                        <span class="badge bg-success px-2 py-1">
-                                            <i class="fas fa-gift me-1"></i>Offro
-                                        </span>
-                                    {% else %}
-                                        <span class="badge bg-info px-2 py-1">
-                                            <i class="fas fa-search me-1"></i>Cerco
-                                        </span>
-                                    {% endif %}
+                            <!-- Info essenziali -->
+                            <div class="modern-card-info">
+                                <h6 class="modern-card-title">{{ annuncio.titolo|truncatechars:40 }}</h6>
+                                <div class="modern-card-details">
+                                    <span class="detail-item">{{ annuncio.categoria.nome }}</span>
                                     {% if annuncio.prezzo_stimato %}
-                                        <span class="badge bg-success-subtle text-success px-2 py-1">€{{ annuncio.prezzo_stimato }}</span>
+                                    <span class="detail-item price">€{{ annuncio.prezzo_stimato }}</span>
                                     {% endif %}
                                 </div>
-                                <h5 class="card-title text-polygonum-primary mb-2" style="font-size: 1.1rem;">{{ annuncio.titolo|truncatechars:50 }}</h5>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <small class="text-muted">
-                                        <i class="fas fa-tag me-1"></i>{{ annuncio.categoria.nome }}
-                                    </small>
-                                    <small class="text-muted">
-                                        <i class="fas fa-user me-1"></i>{{ annuncio.utente.username|truncatechars:15 }}
-                                    </small>
-                                </div>
+                                <div class="modern-card-user">{{ annuncio.utente.username }}</div>
                             </div>
                         </div>
                     </a>
