@@ -87,13 +87,13 @@ from .forms import AnnuncioForm
 
 def home(request):
     """Vista principale del sito"""
-    from django.db.models import Count
+    from django.db.models import Count, Q
 
     annunci_recenti = Annuncio.objects.filter(attivo=True).order_by('-data_creazione')[:6]
 
     # Categorie ordinate per numero di annunci (più popolate e meno popolate)
     categorie_con_count = Categoria.objects.annotate(
-        num_annunci=Count('annuncio', filter=models.Q(annuncio__attivo=True))
+        num_annunci=Count('annuncio', filter=Q(annuncio__attivo=True))
     ).order_by('-num_annunci')
 
     # Top 4 categorie più popolate
