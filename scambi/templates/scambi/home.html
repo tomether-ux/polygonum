@@ -6,7 +6,13 @@
 {% block content %}
 <!-- Hero Section con Immagine -->
 <section class="hero-image-section">
+    <!-- Sfondo -->
     <img src="{% static 'img/homepage-hero.jpg' %}" alt="Polygonum - Community di Scambio" class="hero-image-bg">
+
+    <!-- Scritta overlay PNG trasparente -->
+    <img src="{% static 'img/scritta e logo alpha.png' %}" alt="Polygonum" class="hero-text-overlay">
+
+    <!-- Bottoni -->
     <div class="hero-content">
         <div class="d-flex flex-column flex-sm-row gap-4 justify-content-center">
             <a class="btn-hero-transparent btn-lg px-5 py-3" href="{% url 'crea_annuncio' %}">
@@ -41,9 +47,20 @@
     z-index: 1;
 }
 
+.hero-text-overlay {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 600px;
+    width: 80%;
+    z-index: 2;
+    pointer-events: none;
+}
+
 .hero-content {
     position: relative;
-    z-index: 2;
+    z-index: 3;
     padding: 0 20px 80px 20px;
     width: 100%;
     max-width: 600px;
@@ -76,6 +93,12 @@
 @media (max-width: 768px) {
     .hero-image-section {
         min-height: 50vh;
+    }
+
+    .hero-text-overlay {
+        width: 90%;
+        max-width: 400px;
+        top: 25%;
     }
 
     .hero-content {
