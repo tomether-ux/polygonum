@@ -87,8 +87,20 @@ from .forms import AnnuncioForm
 
 def home(request):
     """Vista principale del sito"""
+    from django.db.models import Count
+
     annunci_recenti = Annuncio.objects.filter(attivo=True).order_by('-data_creazione')[:6]
-    categorie = Categoria.objects.all()
+
+    # Categorie ordinate per numero di annunci (più popolate e meno popolate)
+    categorie_con_count = Categoria.objects.annotate(
+        num_annunci=Count('annuncio', filter=models.Q(annuncio__attivo=True))
+    ).order_by('-num_annunci')
+
+    # Top 4 categorie più popolate
+    categorie_popolari = categorie_con_count[:4]
+
+    # Top 4 categorie meno popolate (con almeno 1 annuncio)
+    categorie_da_scoprire = categorie_con_count.filter(num_annunci__gt=0).order_by('num_annunci')[:4]
 
     # Suggerimenti personalizzati basati sulle categorie degli annunci "cerco" dell'utente
     annunci_suggeriti = []
@@ -110,7 +122,8 @@ def home(request):
 
     return render(request, 'scambi/home.html', {
         'annunci_recenti': annunci_recenti,
-        'categorie': categorie,
+        'categorie_popolari': categorie_popolari,
+        'categorie_da_scoprire': categorie_da_scoprire,
         'annunci_suggeriti': annunci_suggeriti,
     })
 
