@@ -1543,13 +1543,14 @@ def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
         # Calcola categoria qualità basata sui dettagli
         categoria_qualita = calcola_categoria_qualita_da_dettagli(dettagli)
 
-        # Verifica se il ciclo usa sinonimi controllando i tipi di match
+        # Verifica se il ciclo usa sinonimi o match parziali controllando i tipi di match
         usa_sinonimi = False
+        ha_match_parziali = False
         if 'scambi' in dettagli:
             for scambio in dettagli['scambi']:
                 oggetti = scambio.get('oggetti', [])
                 for oggetto in oggetti:
-                    # Verifica se c'è un match tramite sinonimi ricalcolando
+                    # Verifica se c'è un match tramite sinonimi o parziali ricalcolando
                     try:
                         offerto_id = oggetto.get('offerto', {}).get('id')
                         richiesto_id = oggetto.get('richiesto', {}).get('id')
@@ -1567,10 +1568,11 @@ def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
                                 _, tipo_match = oggetti_compatibili_con_tipo(offerta_ann, richiesta_ann)
                                 if tipo_match == 'sinonimo':
                                     usa_sinonimi = True
-                                    break
+                                elif tipo_match == 'parziale':
+                                    ha_match_parziali = True
                     except:
                         pass
-                if usa_sinonimi:
+                if usa_sinonimi and ha_match_parziali:
                     break
 
         # Costruisci il mapping utente -> offerte/richieste dai dettagli scambi
@@ -1714,6 +1716,7 @@ def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
             'calcolato_at': ciclo_db.calcolato_at,
             'annunci_coinvolti': annunci_coinvolti,
             'usa_sinonimi': usa_sinonimi,  # Flag per filtraggio UI
+            'ha_match_parziali': ha_match_parziali,  # Flag per filtraggio match esatti
             'da_database': True  # Flag per identificare cicli pre-calcolati
         }
 
