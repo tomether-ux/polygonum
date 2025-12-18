@@ -112,4 +112,5 @@ urlpatterns = [
 
     # Regolamento e linee guida
     path('regolamento/', views.regolamento, name='regolamento'),
+    path('come-funziona/', views.come_funziona, name='come_funziona'),
 ]
