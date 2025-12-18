@@ -299,6 +299,17 @@
                     </div>
                 </div>
 
+                <!-- Opzione match esatti -->
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="soloMatchEsatti">
+                        <label class="form-check-label" for="soloMatchEsatti">
+                            <i class="fas fa-bullseye me-1"></i>
+                            <strong>Solo match esatti</strong>
+                        </label>
+                    </div>
+                </div>
+
                 <button id="searchButton" onclick="ricalcolaCatene()" class="btn btn-primary btn-lg">
                     <i class="fas fa-search me-2"></i>
                     <span id="buttonText">🔍 Cerca Catene</span>
@@ -638,29 +649,29 @@ function showStep(stepNumber) {
     }
 }
 
-// Filtra le catene in base al toggle dei sinonimi
+// Filtra le catene in base ai toggle di sinonimi e match esatti
 function filtraCateneSinonimi() {
     const includiSinonimi = document.getElementById('includiSinonimi').checked;
+    const soloMatchEsatti = document.getElementById('soloMatchEsatti').checked;
     const catene = document.querySelectorAll('.modern-chain-card');
 
     catene.forEach(catena => {
-        // Controlla se la catena usa sinonimi leggendo i dati dal DOM
         const usaSinonimi = catena.dataset.usaSinonimi === 'true';
+        const haMatchParziali = catena.dataset.haMatchParziali === 'true';
 
-        // Logica corretta:
-        // - Se includiSinonimi è TRUE: mostra TUTTE le catene (con e senza sinonimi)
-        // - Se includiSinonimi è FALSE: mostra SOLO le catene SENZA sinonimi (nascondi quelle con sinonimi)
-        if (includiSinonimi) {
-            // Mostra tutte le catene (con e senza sinonimi)
-            catena.style.display = '';
-        } else {
-            // Nascondi solo le catene che usano sinonimi
-            if (usaSinonimi) {
-                catena.style.display = 'none';
-            } else {
-                catena.style.display = '';
-            }
+        let mostra = true;
+
+        // Filtro sinonimi: se NON includiSinonimi, nascondi catene con sinonimi
+        if (!includiSinonimi && usaSinonimi) {
+            mostra = false;
         }
+
+        // Filtro match esatti: se soloMatchEsatti è ON, nascondi catene con match parziali o sinonimi
+        if (soloMatchEsatti && (haMatchParziali || usaSinonimi)) {
+            mostra = false;
+        }
+
+        catena.style.display = mostra ? '' : 'none';
     });
 
     // Aggiorna contatori
@@ -731,6 +742,12 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleSinonimi.addEventListener('change', filtraCateneSinonimi);
         // Applica filtro iniziale (nascondi sinonimi di default)
         filtraCateneSinonimi();
+    }
+
+    // Aggiungi listener per il toggle match esatti
+    const toggleMatchEsatti = document.getElementById('soloMatchEsatti');
+    if (toggleMatchEsatti) {
+        toggleMatchEsatti.addEventListener('change', filtraCateneSinonimi);
     }
 
     // Aggiungi listener per il dropdown annuncio
