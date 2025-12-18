@@ -11,8 +11,8 @@
 
     <!-- Box contenuto a sinistra -->
     <div class="hero-box-content">
-        <h1 class="hero-box-title">Polygonum</h1>
-        <p class="hero-box-text">save money, swap things.</p>
+        <h1 class="hero-box-title">POLYGONUM</h1>
+        <p class="hero-box-text">Save money<br>Swap things.</p>
 
         <!-- Call to Action -->
         <div class="hero-box-cta">
@@ -21,6 +21,13 @@
             </a>
             <a class="btn btn-outline-primary btn-lg px-4 py-3" href="{% url 'lista_annunci' %}">
                 <i class="fas fa-search me-2"></i>Esplora gli annunci
+            </a>
+        </div>
+
+        <!-- Link Come Funziona -->
+        <div class="text-center mt-3">
+            <a href="{% url 'come_funziona' %}" class="hero-info-link">
+                Come funziona
             </a>
         </div>
     </div>
@@ -53,8 +60,8 @@
     left: 40px;
     top: 60px;
     bottom: 60px;
-    max-width: 450px;
-    width: 30%;
+    max-width: 380px;
+    width: auto;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 16px;
@@ -90,6 +97,18 @@
 .hero-box-cta .btn {
     width: 100%;
     font-weight: 600;
+}
+
+.hero-info-link {
+    color: #4169E1;
+    text-decoration: underline;
+    font-size: 0.95rem;
+    transition: color 0.2s ease;
+}
+
+.hero-info-link:hover {
+    color: #2E4C9C;
+    text-decoration: underline;
 }
 
 @media (max-width: 768px) {
@@ -240,7 +259,7 @@
 
 <!-- Suggeriti per te -->
 {% if annunci_suggeriti %}
-<section class="py-3 bg-white">
+<section class="pt-5 pb-3 bg-white">
     <div class="container">
         <div class="row">
             <div class="col-12 text-center mb-3">

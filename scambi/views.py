@@ -2896,6 +2896,11 @@ def regolamento(request):
     })
 
 
+def come_funziona(request):
+    """Pagina informativa su come funziona l'algoritmo e ottimizzazione ricerche"""
+    return render(request, 'scambi/come_funziona.html')
+
+
 @login_required
 def premium_checkout(request):
     """Pagina di checkout per Premium con PayPal"""

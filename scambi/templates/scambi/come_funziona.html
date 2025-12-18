@@ -1,0 +1,200 @@
+{% extends 'scambi/base.html' %}
+{% load static %}
+
+{% block title %}Come Funziona - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+
+            <!-- Header -->
+            <div class="mb-5 pb-4 border-bottom border-dark">
+                <h1 class="mb-3" style="font-weight: 600; color: #000;">COME FUNZIONA POLYGONUM</h1>
+                <p class="mb-1" style="color: #333; font-size: 0.95rem;">Guida all'algoritmo e ottimizzazione delle ricerche</p>
+            </div>
+
+            <!-- Intro -->
+            <div class="mb-5">
+                <p style="color: #000; line-height: 1.8; font-size: 1.1rem;">
+                    Polygonum utilizza un algoritmo intelligente che trova automaticamente catene di scambio tra più utenti,
+                    permettendoti di ottenere ciò che cerchi anche se non hai esattamente quello che l'altra persona vuole.
+                </p>
+            </div>
+
+            <!-- Sezione 1: L'Algoritmo -->
+            <div class="mb-5">
+                <h2 class="mb-4 pb-2 border-bottom" style="font-weight: 600; color: #000; font-size: 1.5rem;">
+                    <i class="fas fa-brain me-2" style="color: #4169E1;"></i>1. COME FUNZIONA L'ALGORITMO
+                </h2>
+
+                <h3 class="mb-3" style="font-weight: 600; color: #000; font-size: 1.1rem;">Scambi Diretti (2 persone)</h3>
+                <p style="color: #000; line-height: 1.8;">
+                    Il caso più semplice: <strong>hai quello che cerca Mario, e Mario ha quello che cerchi tu</strong>.
+                    L'algoritmo identifica automaticamente questi match perfetti e te li propone.
+                </p>
+                <div class="bg-light p-3 rounded mb-4">
+                    <p class="mb-0" style="color: #333; font-family: monospace;">
+                        Tu (offri chitarra) ⟷ Mario (offri laptop)<br>
+                        Tu (cerchi laptop) ⟷ Mario (cerca chitarra)
+                    </p>
+                </div>
+
+                <h3 class="mb-3 mt-4" style="font-weight: 600; color: #000; font-size: 1.1rem;">Catene di Scambio (3+ persone)</h3>
+                <p style="color: #000; line-height: 1.8;">
+                    Il vero potere di Polygonum: <strong>trova catene circolari che coinvolgono più utenti</strong>.
+                    Anche se tu e Mario non avete un match diretto, l'algoritmo cerca altre persone che completano la catena.
+                </p>
+                <div class="bg-light p-3 rounded mb-4">
+                    <p class="mb-0" style="color: #333; font-family: monospace;">
+                        Tu (offri chitarra) → Mario (offri laptop) → Laura (offri bici) → Tu<br>
+                        Tu (cerchi bici) ← Mario (cerca chitarra) ← Laura (cerca laptop) ←
+                    </p>
+                </div>
+
+                <h3 class="mb-3 mt-4" style="font-weight: 600; color: #000; font-size: 1.1rem;">Calcolo Periodico</h3>
+                <p style="color: #000; line-height: 1.8;">
+                    L'algoritmo <strong>ricalcola le catene ogni 24 ore</strong> analizzando tutti gli annunci attivi.
+                    Questo significa che:
+                </p>
+                <ul style="color: #000; line-height: 1.8;">
+                    <li>Le nuove catene appaiono gradualmente (non istantaneamente)</li>
+                    <li>Più annunci crei, più aumentano le probabilità di trovare match</li>
+                    <li>Conviene mantenere gli annunci attivi per diversi giorni</li>
+                </ul>
+
+                <h3 class="mb-3 mt-4" style="font-weight: 600; color: #000; font-size: 1.1rem;">Criteri di Matching</h3>
+                <p style="color: #000; line-height: 1.8;">
+                    L'algoritmo verifica la compatibilità tra annunci considerando:
+                </p>
+                <ul style="color: #000; line-height: 1.8;">
+                    <li><strong>Categoria</strong>: Gli oggetti devono appartenere alla stessa categoria</li>
+                    <li><strong>Valore stimato</strong>: Il valore degli oggetti scambiati deve essere simile (±30%)</li>
+                    <li><strong>Località</strong>: Priorità a scambi nella stessa zona geografica</li>
+                    <li><strong>Stato dell'oggetto</strong>: Match preferenziali tra oggetti in condizioni simili</li>
+                </ul>
+            </div>
+
+            <!-- Sezione 2: Ottimizzazione -->
+            <div class="mb-5">
+                <h2 class="mb-4 pb-2 border-bottom" style="font-weight: 600; color: #000; font-size: 1.5rem;">
+                    <i class="fas fa-chart-line me-2" style="color: #4169E1;"></i>2. COME OTTIMIZZARE LE TUE RICERCHE
+                </h2>
+
+                <h3 class="mb-3" style="font-weight: 600; color: #000; font-size: 1.1rem;">✓ Crea Annunci Completi</h3>
+                <ul style="color: #000; line-height: 1.8;">
+                    <li><strong>Titolo chiaro</strong>: "Chitarra Fender Stratocaster" è meglio di "Chitarra"</li>
+                    <li><strong>Descrizione dettagliata</strong>: Includi marca, modello, anno, condizioni, difetti</li>
+                    <li><strong>Foto reali</strong>: Carica immagini di qualità dell'oggetto reale (non da internet)</li>
+                    <li><strong>Valore accurato</strong>: Indica il valore di mercato reale per match migliori</li>
+                    <li><strong>Categoria corretta</strong>: Scegli la categoria più specifica possibile</li>
+                </ul>
+
+                <h3 class="mb-3 mt-4" style="font-weight: 600; color: #000; font-size: 1.1rem;">✓ Pubblica Sia "Offro" che "Cerco"</h3>
+                <p style="color: #000; line-height: 1.8;">
+                    Non limitarti a pubblicare solo quello che offri! <strong>Crea anche annunci "Cerco"</strong> per aumentare
+                    esponenzialmente le possibilità di match. L'algoritmo lavora meglio quando sa sia cosa offri sia cosa vuoi.
+                </p>
+
+                <h3 class="mb-3 mt-4" style="font-weight: 600; color: #000; font-size: 1.1rem;">✓ Sii Flessibile</h3>
+                <ul style="color: #000; line-height: 1.8;">
+                    <li>Crea più annunci "Cerco" per oggetti simili o alternativi</li>
+                    <li>Non fissarti su un solo brand o modello specifico</li>
+                    <li>Considera anche categorie adiacenti alla tua ricerca principale</li>
+                </ul>
+
+                <h3 class="mb-3 mt-4" style="font-weight: 600; color: #000; font-size: 1.1rem;">✓ Mantieni Annunci Attivi</h3>
+                <p style="color: #000; line-height: 1.8;">
+                    Gli annunci disattivati <strong>non partecipano al calcolo delle catene</strong>.
+                    Lascia attivi tutti gli annunci finché non hai completato lo scambio.
+                </p>
+
+                <h3 class="mb-3 mt-4" style="font-weight: 600; color: #000; font-size: 1.1rem;">✓ Controlla "Suggeriti per Te"</h3>
+                <p style="color: #000; line-height: 1.8;">
+                    Nella homepage trovi annunci personalizzati basati sulle categorie che cerchi.
+                    Sono ottimi candidati per scambi diretti!
+                </p>
+
+                <h3 class="mb-3 mt-4" style="font-weight: 600; color: #000; font-size: 1.1rem;">✓ Usa i Filtri di Ricerca</h3>
+                <p style="color: #000; line-height: 1.8;">
+                    La <strong>ricerca avanzata</strong> ti permette di filtrare per:
+                </p>
+                <ul style="color: #000; line-height: 1.8;">
+                    <li>Categoria specifica</li>
+                    <li>Range di prezzo</li>
+                    <li>Zona geografica</li>
+                    <li>Stato dell'oggetto</li>
+                </ul>
+            </div>
+
+            <!-- Sezione 3: Best Practices -->
+            <div class="mb-5">
+                <h2 class="mb-4 pb-2 border-bottom" style="font-weight: 600; color: #000; font-size: 1.5rem;">
+                    <i class="fas fa-lightbulb me-2" style="color: #4169E1;"></i>3. CONSIGLI PRATICI
+                </h2>
+
+                <div class="alert alert-info">
+                    <h4 style="color: #000;"><i class="fas fa-rocket me-2"></i>Strategia Vincente</h4>
+                    <ol style="color: #000; line-height: 1.8; margin-bottom: 0;">
+                        <li>Crea 2-3 annunci "Offro" con oggetti che vuoi scambiare</li>
+                        <li>Crea 2-3 annunci "Cerco" con oggetti che desideri</li>
+                        <li>Aspetta 24-48 ore per il calcolo delle catene</li>
+                        <li>Controlla la sezione "Catene di Scambio" per vedere i match</li>
+                        <li>Contatta gli utenti coinvolti per organizzare lo scambio</li>
+                    </ol>
+                </div>
+
+                <h3 class="mb-3 mt-4" style="font-weight: 600; color: #000; font-size: 1.1rem;">⚠️ Errori da Evitare</h3>
+                <ul style="color: #000; line-height: 1.8;">
+                    <li><strong>Valore stimato troppo alto/basso</strong>: Riduce i match compatibili</li>
+                    <li><strong>Categoria sbagliata</strong>: L'algoritmo non troverà corrispondenze</li>
+                    <li><strong>Descrizione generica</strong>: Gli altri utenti non capiranno cosa offri</li>
+                    <li><strong>Foto assenti</strong>: Riduce drasticamente la fiducia e i contatti</li>
+                    <li><strong>Disattivare troppo presto</strong>: Aspetta almeno 48 ore prima di disattivare un annuncio</li>
+                </ul>
+            </div>
+
+            <!-- Sezione 4: FAQ -->
+            <div class="mb-5">
+                <h2 class="mb-4 pb-2 border-bottom" style="font-weight: 600; color: #000; font-size: 1.5rem;">
+                    <i class="fas fa-question-circle me-2" style="color: #4169E1;"></i>4. DOMANDE FREQUENTI
+                </h2>
+
+                <h3 class="mb-2" style="font-weight: 600; color: #000; font-size: 1rem;">Quanto tempo ci vuole per trovare un match?</h3>
+                <p style="color: #000; line-height: 1.8; margin-bottom: 2rem;">
+                    Dipende da quanti annunci ci sono nella tua categoria e zona. In media, i primi match appaiono entro 24-48 ore.
+                    Se dopo una settimana non hai risultati, prova a creare più annunci o ampliare le categorie cercate.
+                </p>
+
+                <h3 class="mb-2" style="font-weight: 600; color: #000; font-size: 1rem;">Posso vedere le catene in tempo reale?</h3>
+                <p style="color: #000; line-height: 1.8; margin-bottom: 2rem;">
+                    No, le catene vengono calcolate periodicamente (ogni 24 ore) per motivi di performance. Controlla la sezione
+                    "Catene di Scambio" regolarmente per vedere nuovi match.
+                </p>
+
+                <h3 class="mb-2" style="font-weight: 600; color: #000; font-size: 1rem;">Cosa succede se qualcuno si ritira dalla catena?</h3>
+                <p style="color: #000; line-height: 1.8; margin-bottom: 2rem;">
+                    Se un utente disattiva il suo annuncio o si ritira, l'intera catena si interrompe. Per questo è importante
+                    contattare tutti i partecipanti prima di impegnarsi, verificando che siano ancora interessati.
+                </p>
+
+                <h3 class="mb-2" style="font-weight: 600; color: #000; font-size: 1rem;">Posso proporre modifiche a una catena?</h3>
+                <p style="color: #000; line-height: 1.8; margin-bottom: 2rem;">
+                    L'algoritmo propone catene ottimali, ma puoi sempre comunicare direttamente con gli altri utenti per
+                    organizzare variazioni o accordi personalizzati.
+                </p>
+            </div>
+
+            <!-- CTA finale -->
+            <div class="text-center py-5 bg-light rounded">
+                <h3 class="mb-3" style="color: #000;">Pronto a trovare il tuo primo scambio?</h3>
+                <p class="mb-4" style="color: #666;">Inizia creando il tuo primo annuncio!</p>
+                <a href="{% url 'crea_annuncio' %}" class="btn btn-primary btn-lg px-5 py-3">
+                    <i class="fas fa-plus me-2"></i>Pubblica un Annuncio
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
