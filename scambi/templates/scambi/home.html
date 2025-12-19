@@ -12,20 +12,20 @@
     <!-- Box contenuto a sinistra -->
     <div class="hero-box-content">
         <h1 class="hero-box-title">POLYGONUM</h1>
-        <p class="hero-box-text">Save money<br>Swap things.</p>
+        <p class="hero-box-slogan">Save money,<br>Swap things.</p>
 
         <!-- Call to Action -->
         <div class="hero-box-cta">
-            <a class="btn btn-primary btn-lg px-4 py-3 mb-3" href="{% url 'crea_annuncio' %}">
-                <i class="fas fa-plus me-2"></i>Pubblica un annuncio
+            <a class="btn btn-primary btn-lg w-100" href="{% url 'crea_annuncio' %}">
+                + Pubblica un annuncio
             </a>
-            <a class="btn btn-outline-primary btn-lg px-4 py-3" href="{% url 'lista_annunci' %}">
+            <a class="btn btn-outline-primary btn-lg w-100" href="{% url 'lista_annunci' %}">
                 <i class="fas fa-search me-2"></i>Esplora gli annunci
             </a>
         </div>
 
         <!-- Link Come Funziona -->
-        <div class="text-center mt-3">
+        <div class="text-center">
             <a href="{% url 'come_funziona' %}" class="hero-info-link">
                 Come funziona
             </a>
@@ -77,26 +77,29 @@
     font-size: 2.5rem;
     font-weight: 700;
     color: #4A5568;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     line-height: 1.2;
 }
 
-.hero-box-text {
+.hero-box-slogan {
     font-size: 1.1rem;
     color: #6c757d;
-    margin-bottom: 30px;
+    margin-bottom: 40px;
     line-height: 1.6;
 }
 
 .hero-box-cta {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
 }
 
 .hero-box-cta .btn {
-    width: 100%;
     font-weight: 600;
+}
+
+.hero-box-cta + div {
+    margin-top: 24px;
 }
 
 .hero-info-link {
