@@ -213,21 +213,13 @@ def modifica_annuncio(request, annuncio_id):
     if request.method == 'POST':
         form = AnnuncioForm(request.POST, request.FILES, instance=annuncio)
         if form.is_valid():
-            annuncio_aggiornato = form.save(commit=False)
+            # Salva direttamente - il metodo save() del modello gestirà la moderazione automaticamente
+            annuncio_aggiornato = form.save()
 
-            # Controllo moderazione SOLO se viene caricata una nuova immagine
-            # (il testo è già validato automaticamente da AnnuncioForm.clean())
-            if 'immagine' in request.FILES:
-                # Nuova immagine → FORZA rimessa in moderazione
-                # (moderation_status='pending', attivo rimane True) e chiamerà trigger_moderation()
-                annuncio_aggiornato.moderation_status = 'pending'
-                annuncio_aggiornato.save()
-                # Triggera manualmente la moderazione per assicurarsi che funzioni
-                annuncio_aggiornato.trigger_moderation()
+            # Messaggio diverso se l'annuncio ha immagine in moderazione
+            if 'immagine' in request.FILES and annuncio_aggiornato.moderation_status == 'pending':
                 messages.warning(request, '⏳ Nuova immagine caricata. L\'annuncio è in moderazione. Riceverai una notifica quando sarà approvato.')
             else:
-                # Solo testo modificato → nessun controllo immagine necessario
-                annuncio_aggiornato.save()
                 messages.success(request, 'Annuncio modificato con successo!')
 
             return redirect('profilo_utente', username=request.user.username)
