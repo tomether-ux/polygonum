@@ -153,7 +153,17 @@
             <div class="row">
                 {% for annuncio in annunci_offro %}
                 <div class="col-md-6 col-lg-4 mb-3">
-                    <div class="card border-success h-100 d-flex flex-column">
+                    <div class="card border-success h-100 d-flex flex-column" style="position: relative;">
+                        <!-- Edit icon floating in top-right corner -->
+                        {% if is_own_profile %}
+                        <a href="{% url 'modifica_annuncio' annuncio.id %}"
+                           class="btn btn-primary btn-sm"
+                           style="position: absolute; top: 10px; right: 10px; z-index: 10; border-radius: 50%; width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"
+                           title="Modifica annuncio"
+                           onclick="event.stopPropagation();">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        {% endif %}
                         <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none text-dark" style="flex-grow: 1;">
                             <div class="card-body d-flex flex-column p-3" style="height: 100%;">
                                 <!-- Header: Titolo + prima riga descrizione -->
@@ -235,7 +245,17 @@
             <div class="row">
                 {% for annuncio in annunci_cerco %}
                 <div class="col-md-6 col-lg-4 mb-3">
-                    <div class="card border-info h-100 d-flex flex-column">
+                    <div class="card border-info h-100 d-flex flex-column" style="position: relative;">
+                        <!-- Edit icon floating in top-right corner -->
+                        {% if is_own_profile %}
+                        <a href="{% url 'modifica_annuncio' annuncio.id %}"
+                           class="btn btn-primary btn-sm"
+                           style="position: absolute; top: 10px; right: 10px; z-index: 10; border-radius: 50%; width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"
+                           title="Modifica annuncio"
+                           onclick="event.stopPropagation();">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        {% endif %}
                         <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none text-dark" style="flex-grow: 1;">
                             <div class="card-body d-flex flex-column p-3" style="height: 100%;">
                                 <!-- Header: Titolo + prima riga descrizione -->
