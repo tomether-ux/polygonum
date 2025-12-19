@@ -22,18 +22,35 @@ class AnnuncioAdmin(admin.ModelAdmin):
     list_display = ['titolo', 'utente', 'tipo', 'categoria', 'moderation_status', 'attivo', 'data_creazione']
     list_filter = ['tipo', 'categoria', 'attivo', 'moderation_status']
     search_fields = ['titolo', 'descrizione']
-    actions = ['approve_annunci', 'reject_annunci', 'resend_moderation_email']
+    actions = ['approve_annunci', 'reject_annunci', 'force_pending', 'resend_moderation_email']
+
+    @admin.action(description='⏳ Forza stato "In moderazione"')
+    def force_pending(self, request, queryset):
+        """Forza lo stato pending senza triggerare auto-approvazione"""
+        updated = 0
+        for annuncio in queryset:
+            if annuncio.moderation_status != 'pending':
+                annuncio.moderation_status = 'pending'
+                # Usa update_fields per evitare la logica di trigger_moderation()
+                annuncio.save(update_fields=['moderation_status'])
+                updated += 1
+
+        self.message_user(
+            request,
+            f'{updated} annuncio/i messo/i in moderazione. Ora puoi approvarli con l\'azione "✅ Approva annunci selezionati".',
+            level='warning'
+        )
 
     @admin.action(description='✅ Approva annunci selezionati')
     def approve_annunci(self, request, queryset):
-        """Approva manualmente gli annunci selezionati"""
+        """Approva manualmente gli annunci selezionati (anche se già approvati, per ri-validare immagini)"""
         updated = 0
         for annuncio in queryset:
-            if annuncio.moderation_status != 'approved':
-                annuncio.moderation_status = 'approved'
-                annuncio.attivo = True
-                annuncio.save(update_fields=['moderation_status', 'attivo'])
-                updated += 1
+            # Approva sempre, anche se già approvato (utile per ri-approvare dopo cambio immagine)
+            annuncio.moderation_status = 'approved'
+            annuncio.attivo = True
+            annuncio.save(update_fields=['moderation_status', 'attivo'])
+            updated += 1
 
         self.message_user(
             request,
