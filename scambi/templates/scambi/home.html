@@ -132,7 +132,7 @@
 
     .hero-box-title {
         font-size: 2.2rem;
-        margin-top: 0;
+        margin-top: 15px;
         margin-bottom: 8px;
         line-height: 1.2;
     }
@@ -148,23 +148,20 @@
     }
 
     .hero-box-cta + div {
-        margin-top: 25px;
+        margin-top: 18px;
     }
 
-    .hero-box-cta .btn {
-        font-size: 1rem;
-        padding: 12px 20px !important;
-        line-height: 1.5 !important;
-        width: 100%;
-        height: auto;
-    }
-
-    /* Forza stessa dimensione per entrambi i bottoni */
-    .hero-box-cta .btn-primary,
-    .hero-box-cta .btn-outline-primary {
-        padding: 12px 20px !important;
+    /* Forza stessa dimensione per entrambi i bottoni - sovrascrivi Bootstrap */
+    .hero-box-cta .btn-lg {
         font-size: 1rem !important;
+        padding: 12px 20px !important;
         line-height: 1.5 !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 48px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
 
     .hero-info-link {
