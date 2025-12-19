@@ -16,56 +16,55 @@
                     <!-- Alert Limiti Annunci -->
                     {% if not profilo.is_premium %}
                     <div class="alert alert-info mb-4">
-                        <h6 class="alert-heading">
-                            <i class="fas fa-info-circle me-2"></i>Limiti Annunci
+                        <h6 class="alert-heading d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#limitiCollapse" aria-expanded="true" aria-controls="limitiCollapse">
+                            <span>
+                                <i class="fas fa-info-circle me-2"></i>Limiti Annunci
+                            </span>
+                            <i class="fas fa-chevron-up" id="limitiChevron"></i>
                         </h6>
-                        <div class="row text-center">
-                            <div class="col-md-6">
-                                <strong>Annunci "Offro"</strong>
-                                <div class="progress mt-2 mb-2">
-                                    {% widthratio count_offro limite_offro 100 as percentuale_offro %}
-                                    <div class="progress-bar {% if count_offro >= limite_offro %}bg-danger{% elif count_offro >= limite_offro|add:'-1' %}bg-warning{% else %}bg-success{% endif %}"
-                                         role="progressbar"
-                                         style="width: {{ percentuale_offro }}%"
-                                         aria-valuenow="{{ count_offro }}"
-                                         aria-valuemin="0"
-                                         aria-valuemax="{{ limite_offro }}">
+                        <div class="collapse show" id="limitiCollapse">
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <strong class="d-block mb-2">Annunci "Offro"</strong>
+                                <div class="d-flex align-items-center gap-2">
+                                    <small class="text-nowrap fw-bold" style="min-width: 45px;">{{ count_offro }}/{{ limite_offro }}</small>
+                                    <div class="progress flex-grow-1" style="height: 20px;">
+                                        {% widthratio count_offro limite_offro 100 as percentuale_offro %}
+                                        <div class="progress-bar {% if count_offro >= limite_offro %}bg-danger{% elif count_offro >= limite_offro|add:'-1' %}bg-warning{% else %}bg-success{% endif %}"
+                                             role="progressbar"
+                                             style="width: {{ percentuale_offro }}%"
+                                             aria-valuenow="{{ count_offro }}"
+                                             aria-valuemin="0"
+                                             aria-valuemax="{{ limite_offro }}">
+                                        </div>
                                     </div>
                                 </div>
-                                <small>{{ count_offro }} / {{ limite_offro }} utilizzati</small>
-                                {% if rimanenti_offro > 0 %}
-                                    <br><small class="text-success">Ancora {{ rimanenti_offro }} disponibili</small>
-                                {% else %}
-                                    <br><small class="text-danger"><strong>Limite raggiunto!</strong></small>
-                                {% endif %}
                             </div>
-                            <div class="col-md-6">
-                                <strong>Annunci "Cerco"</strong>
-                                <div class="progress mt-2 mb-2">
-                                    {% widthratio count_cerco limite_cerco 100 as percentuale_cerco %}
-                                    <div class="progress-bar {% if count_cerco >= limite_cerco %}bg-danger{% elif count_cerco >= limite_cerco|add:'-1' %}bg-warning{% else %}bg-success{% endif %}"
-                                         role="progressbar"
-                                         style="width: {{ percentuale_cerco }}%"
-                                         aria-valuenow="{{ count_cerco }}"
-                                         aria-valuemin="0"
-                                         aria-valuemax="{{ limite_cerco }}">
+                            <div class="col-md-6 mb-2">
+                                <strong class="d-block mb-2">Annunci "Cerco"</strong>
+                                <div class="d-flex align-items-center gap-2">
+                                    <small class="text-nowrap fw-bold" style="min-width: 45px;">{{ count_cerco }}/{{ limite_cerco }}</small>
+                                    <div class="progress flex-grow-1" style="height: 20px;">
+                                        {% widthratio count_cerco limite_cerco 100 as percentuale_cerco %}
+                                        <div class="progress-bar {% if count_cerco >= limite_cerco %}bg-danger{% elif count_cerco >= limite_cerco|add:'-1' %}bg-warning{% else %}bg-success{% endif %}"
+                                             role="progressbar"
+                                             style="width: {{ percentuale_cerco }}%"
+                                             aria-valuenow="{{ count_cerco }}"
+                                             aria-valuemin="0"
+                                             aria-valuemax="{{ limite_cerco }}">
+                                        </div>
                                     </div>
                                 </div>
-                                <small>{{ count_cerco }} / {{ limite_cerco }} utilizzati</small>
-                                {% if rimanenti_cerco > 0 %}
-                                    <br><small class="text-success">Ancora {{ rimanenti_cerco }} disponibili</small>
-                                {% else %}
-                                    <br><small class="text-danger"><strong>Limite raggiunto!</strong></small>
-                                {% endif %}
                             </div>
                         </div>
                         <hr>
                         <p class="mb-0 text-center">
                             <small>
                                 <i class="fas fa-crown text-warning me-1"></i>
-                                Passa a <strong>Premium</strong> per annunci illimitati!
+                                Passa a <a href="{% url 'pricing' %}" class="fw-bold text-decoration-none">Premium</a> per annunci illimitati!
                             </small>
                         </p>
+                        </div>
                     </div>
                     {% else %}
                     <div class="alert alert-success mb-4">
@@ -292,6 +291,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // Esegui al caricamento
     toggleCercaPerCategoria();
     toggleTitoloField();
+
+    // Animazione chevron per collapse limiti
+    const limitiCollapse = document.getElementById('limitiCollapse');
+    const limitiChevron = document.getElementById('limitiChevron');
+
+    if (limitiCollapse && limitiChevron) {
+        limitiCollapse.addEventListener('show.bs.collapse', function () {
+            limitiChevron.classList.remove('fa-chevron-down');
+            limitiChevron.classList.add('fa-chevron-up');
+        });
+
+        limitiCollapse.addEventListener('hide.bs.collapse', function () {
+            limitiChevron.classList.remove('fa-chevron-up');
+            limitiChevron.classList.add('fa-chevron-down');
+        });
+    }
 });
 </script>
 {% endblock %}
