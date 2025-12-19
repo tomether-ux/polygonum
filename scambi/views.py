@@ -211,10 +211,21 @@ def modifica_annuncio(request, annuncio_id):
     annuncio = get_object_or_404(Annuncio, id=annuncio_id, utente=request.user)
 
     if request.method == 'POST':
+        print(f"📝 Modifica annuncio #{annuncio.id} - POST ricevuto")
+        print(f"   request.FILES: {list(request.FILES.keys())}")
+        print(f"   'immagine' in FILES: {'immagine' in request.FILES}")
+
         form = AnnuncioForm(request.POST, request.FILES, instance=annuncio)
+
         if form.is_valid():
+            print(f"✅ Form valido - procedendo al salvataggio")
+
             # Salva direttamente - il metodo save() del modello gestirà la moderazione automaticamente
             annuncio_aggiornato = form.save()
+
+            print(f"💾 Annuncio salvato - ID: {annuncio_aggiornato.id}")
+            print(f"   Immagine dopo save: {annuncio_aggiornato.immagine}")
+            print(f"   Moderation status: {annuncio_aggiornato.moderation_status}")
 
             # Messaggio diverso se l'annuncio ha immagine in moderazione
             if 'immagine' in request.FILES and annuncio_aggiornato.moderation_status == 'pending':
@@ -223,6 +234,10 @@ def modifica_annuncio(request, annuncio_id):
                 messages.success(request, 'Annuncio modificato con successo!')
 
             return redirect('profilo_utente', username=request.user.username)
+        else:
+            print(f"❌ Form NON valido - Errori:")
+            print(f"   {form.errors}")
+            messages.error(request, 'Errore nel salvataggio. Controlla i campi del form.')
     else:
         form = AnnuncioForm(instance=annuncio)
 
