@@ -73,7 +73,7 @@ main.container {
     border-bottom: 1px solid #e5e7eb;
     position: sticky;
     top: 56px; /* Altezza navbar principale */
-    z-index: 1000;
+    z-index: 100; /* Ridotto per non coprire dropdown navbar principale */
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
@@ -86,6 +86,7 @@ main.container {
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE/Edge */
     padding: 0;
+    justify-content: space-evenly; /* Distribuisce uniformemente */
 }
 
 .secondary-navbar-scroll::-webkit-scrollbar {
@@ -95,7 +96,7 @@ main.container {
 .secondary-navbar .nav-item {
     display: inline-flex;
     align-items: center;
-    padding: 12px 20px;
+    padding: 12px 24px; /* Aumentato padding orizzontale */
     color: #4A5568;
     text-decoration: none;
     font-size: 0.95rem;
