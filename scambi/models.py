@@ -227,7 +227,8 @@ class Annuncio(models.Model):
 
         # Triggera moderazione contenuto se c'è un'immagine nuova/modificata
         # MA SOLO se lo status è 'pending' (non se è già stata approvata/rifiutata)
-        if image_changed and self.immagine and self.moderation_status == 'pending':
+        # E SOLO se NON è una modifica manuale dall'admin
+        if image_changed and self.immagine and self.moderation_status == 'pending' and not is_admin_moderation:
             self.trigger_moderation()
 
     def _get_optimized_url(self, width=800, quality='auto'):
@@ -282,19 +283,21 @@ class Annuncio(models.Model):
 
     def trigger_moderation(self):
         """
-        Richiede moderazione contenuto dell'immagine tramite Cloudinary.
-        Esegue in background per non bloccare la pubblicazione.
+        Richiede moderazione contenuto dell'immagine.
+        - Se CLOUDINARY_MODERATION_ENABLED=True: usa AWS Rekognition via Cloudinary
+        - Se CLOUDINARY_MODERATION_ENABLED=False: invia email all'admin per moderazione manuale
         """
         from django.conf import settings
         import threading
 
-        if not self.immagine or not settings.CLOUDINARY_MODERATION_ENABLED:
-            # Nessuna immagine o moderazione disabilitata, approva automaticamente
+        if not self.immagine:
+            # Nessuna immagine, approva automaticamente
             self.moderation_status = 'approved'
             self.save(update_fields=['moderation_status'])
             return
 
         # Avvia moderazione in thread separato per non bloccare la pubblicazione
+        # (sia per Cloudinary che per email manuale)
         thread = threading.Thread(
             target=self._perform_moderation_sync,
             args=(self.id, str(self.immagine)),
