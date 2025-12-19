@@ -8,14 +8,14 @@
 <nav class="secondary-navbar">
     <div class="secondary-navbar-scroll">
         <a href="#" class="nav-item">
-            <i class="fas fa-sparkles me-1"></i>Novità
+            Novità
         </a>
         {% if user.is_authenticated %}
         <a href="{% url 'lista_preferiti' %}" class="nav-item">
-            <i class="fas fa-heart me-1"></i>Preferiti
+            Preferiti
         </a>
         <a href="{% url 'profilo_utente' username=user.username %}" class="nav-item">
-            <i class="fas fa-user me-1"></i>I miei annunci
+            I miei annunci
         </a>
         {% endif %}
         {% for categoria in categorie_popolari %}
@@ -24,10 +24,10 @@
         </a>
         {% endfor %}
         <a href="{% url 'come_funziona' %}" class="nav-item">
-            <i class="fas fa-info-circle me-1"></i>Come funziona
+            Come funziona
         </a>
         <a href="#" class="nav-item">
-            <i class="fas fa-gavel me-1"></i>Regole del sito
+            Regole del sito
         </a>
     </div>
 </nav>
@@ -109,10 +109,6 @@ main.container {
     color: #4169E1;
     background: #f8f9fa;
     border-bottom-color: #4169E1;
-}
-
-.secondary-navbar .nav-item i {
-    font-size: 0.9rem;
 }
 
 /* Hero Section con Box a Sinistra */
