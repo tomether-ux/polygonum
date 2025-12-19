@@ -137,6 +137,23 @@
                                         <small class="form-text text-muted">Valore indicativo per facilitare scambi equi</small>
                                     </div>
                                     <div class="col-md-6 mb-3">
+                                        <label for="{{ form.condizione.id_for_label }}" class="form-label text-polygonum-primary fw-bold">
+                                            <i class="fas fa-star me-2"></i>{{ form.condizione.label }}
+                                        </label>
+                                        {{ form.condizione }}
+                                        {% if form.condizione.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {% for error in form.condizione.errors %}
+                                                    <small class="text-danger">{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                        <small class="form-text text-muted">Condizioni dell'oggetto</small>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
                                         <label for="{{ form.metodo_scambio.id_for_label }}" class="form-label text-polygonum-primary fw-bold">
                                             <i class="fas fa-truck me-2"></i>{{ form.metodo_scambio.label }}
                                         </label>
@@ -149,21 +166,20 @@
                                             </div>
                                         {% endif %}
                                     </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="{{ form.distanza_massima_km.id_for_label }}" class="form-label text-polygonum-primary fw-bold">
-                                        <i class="fas fa-map-marker-alt me-2"></i>{{ form.distanza_massima_km.label }}
-                                    </label>
-                                    {{ form.distanza_massima_km }}
-                                    {% if form.distanza_massima_km.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {% for error in form.distanza_massima_km.errors %}
-                                                <small class="text-danger">{{ error }}</small>
-                                            {% endfor %}
-                                        </div>
-                                    {% endif %}
-                                    <small class="form-text text-muted">Solo per scambi a mano. Lascia vuoto se disponibile per spedizione</small>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.distanza_massima_km.id_for_label }}" class="form-label text-polygonum-primary fw-bold">
+                                            <i class="fas fa-map-marker-alt me-2"></i>{{ form.distanza_massima_km.label }}
+                                        </label>
+                                        {{ form.distanza_massima_km }}
+                                        {% if form.distanza_massima_km.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {% for error in form.distanza_massima_km.errors %}
+                                                    <small class="text-danger">{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                        <small class="form-text text-muted">Solo per scambi a mano. Lascia vuoto se disponibile per spedizione</small>
+                                    </div>
                                 </div>
                             </div>
 
