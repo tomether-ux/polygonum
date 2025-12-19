@@ -196,7 +196,7 @@ class Annuncio(models.Model):
         # Verifica se è un'approvazione/rifiuto manuale dall'admin
         # L'admin usa save(update_fields=['moderation_status']), l'utente no
         update_fields = kwargs.get('update_fields')
-        is_admin_moderation = update_fields and 'moderation_status' in update_fields
+        is_admin_action = update_fields and 'moderation_status' in update_fields
 
         # Verifica se è un nuovo annuncio o se l'immagine è cambiata
         is_new = self.pk is None
@@ -206,6 +206,13 @@ class Annuncio(models.Model):
         old_image_url = str(old_annuncio.immagine) if (old_annuncio and old_annuncio.immagine) else None
         new_image_url = str(self.immagine) if self.immagine else None
         image_changed = is_new or (old_image_url != new_image_url)
+
+        # Verifica se il moderation_status è stato cambiato manualmente
+        old_status = old_annuncio.moderation_status if old_annuncio else None
+        status_changed_manually = old_status and old_status != self.moderation_status
+
+        # Se lo status è cambiato manualmente O è un'azione admin, preserva il valore
+        is_admin_moderation = is_admin_action or status_changed_manually
 
         # Gestione moderation_status
         if not is_admin_moderation:
