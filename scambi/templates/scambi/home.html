@@ -11,10 +11,10 @@
             <i class="fas fa-sparkles me-1"></i>Novità
         </a>
         {% if user.is_authenticated %}
-        <a href="{% url 'preferiti' %}" class="nav-item">
+        <a href="{% url 'lista_preferiti' %}" class="nav-item">
             <i class="fas fa-heart me-1"></i>Preferiti
         </a>
-        <a href="{% url 'profilo_utente' user.username %}" class="nav-item">
+        <a href="{% url 'profilo_utente' username=user.username %}" class="nav-item">
             <i class="fas fa-user me-1"></i>I miei annunci
         </a>
         {% endif %}
