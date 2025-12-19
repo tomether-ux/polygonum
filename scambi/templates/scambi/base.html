@@ -399,6 +399,8 @@
         </div>
     </nav>
 
+    {% block secondary_navbar %}{% endblock %}
+
     <main class="container my-4">
         {% if messages %}
             {% for message in messages %}
