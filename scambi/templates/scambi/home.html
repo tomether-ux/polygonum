@@ -499,7 +499,7 @@ main.container {
                     {% for categoria in categorie_popolari %}
                         <a href="{% url 'lista_annunci' %}?categoria={{ categoria.id }}"
                            class="btn btn-outline-primary d-flex justify-content-between align-items-center px-3 py-2"
-                           style="min-width: 160px;">
+                           style="min-width: 133px;">
                             <span>{{ categoria.nome }}</span>
                             <span class="fw-bold">{{ categoria.num_annunci }}</span>
                         </a>
@@ -522,13 +522,13 @@ main.container {
         </div>
         <div class="row justify-content-center">
             <div class="col-lg-10">
-                <div class="d-flex flex-wrap gap-3 justify-content-center">
+                <div class="d-flex flex-wrap gap-2 justify-content-center">
                     {% for categoria in categorie_da_scoprire %}
                         <a href="{% url 'lista_annunci' %}?categoria={{ categoria.id }}"
-                           class="btn btn-outline-secondary btn-lg px-4 py-3"
-                           style="min-width: 180px;">
-                            {{ categoria.nome }}
-                            <span class="badge bg-secondary ms-2">{{ categoria.num_annunci }}</span>
+                           class="btn btn-outline-secondary d-flex justify-content-between align-items-center px-3 py-2"
+                           style="min-width: 133px;">
+                            <span>{{ categoria.nome }}</span>
+                            <span class="fw-bold">{{ categoria.num_annunci }}</span>
                         </a>
                     {% endfor %}
                 </div>

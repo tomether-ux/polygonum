@@ -231,7 +231,26 @@
 
                     <!-- Actions -->
                     <div class="d-grid gap-2">
-                        {% if user.is_authenticated and user != annuncio.utente %}
+                        {% if user.is_authenticated and user == annuncio.utente %}
+                            <!-- Pulsanti per il proprietario dell'annuncio -->
+                            <a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-edit me-2"></i>Modifica Annuncio
+                            </a>
+                            {% if annuncio.attivo %}
+                            <a href="{% url 'disattiva_annuncio' annuncio.id %}" class="btn btn-outline-warning btn-lg">
+                                <i class="fas fa-pause me-2"></i>Disattiva Annuncio
+                            </a>
+                            {% else %}
+                            <a href="{% url 'attiva_annuncio' annuncio.id %}" class="btn btn-outline-success btn-lg">
+                                <i class="fas fa-play me-2"></i>Attiva Annuncio
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'elimina_annuncio' annuncio.id %}" class="btn btn-outline-danger btn-lg"
+                               onclick="return confirm('Sei sicuro di voler eliminare questo annuncio?')">
+                                <i class="fas fa-trash me-2"></i>Elimina Annuncio
+                            </a>
+                        {% elif user.is_authenticated %}
+                            <!-- Pulsanti per altri utenti -->
                             <button id="btnPreferito" class="btn btn-outline-danger" onclick="togglePreferito({{ annuncio.id }})">
                                 <i class="fas fa-heart me-2"></i>
                                 <span id="txtPreferito">Aggiungi ai Preferiti</span>
