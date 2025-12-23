@@ -1,0 +1,135 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}FAQ - Domande Frequenti - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="display-4 text-polygonum-primary mb-4">Domande Frequenti (FAQ)</h1>
+
+            <div class="accordion" id="faqAccordion">
+                <!-- Cosa sono le catene di scambio -->
+                <div class="accordion-item mb-3 border-0 shadow-sm">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                            Cosa sono le catene di scambio?
+                        </button>
+                    </h2>
+                    <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Le catene di scambio sono sequenze di scambi che coinvolgono più utenti. Ad esempio: A scambia con B, B scambia con C, e C scambia con A. In questo modo tutti ottengono ciò che cercano anche se non c'è una corrispondenza diretta tra due persone. Il nostro sistema analizza automaticamente tutti gli annunci per identificare queste opportunità.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Come funziona il calcolo -->
+                <div class="accordion-item mb-3 border-0 shadow-sm">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                            Ogni quanto vengono calcolate le catene di scambio?
+                        </button>
+                    </h2>
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Le catene di scambio vengono ricalcolate periodicamente dal sistema. Se pubblichi un nuovo annuncio, potrebbe essere necessario attendere la prossima scansione prima di vedere risultati nella sezione "Trova Scambi Possibili". Sii paziente e controlla regolarmente!
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Limiti annunci -->
+                <div class="accordion-item mb-3 border-0 shadow-sm">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                            Quanti annunci posso pubblicare?
+                        </button>
+                    </h2>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Gli utenti gratuiti possono pubblicare fino a 5 annunci "Offro" e 5 annunci "Cerco". Gli utenti Premium non hanno limiti. Puoi verificare il tuo stato nella sezione di creazione annuncio dove viene mostrata una barra di progresso.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Moderazione -->
+                <div class="accordion-item mb-3 border-0 shadow-sm">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                            Cos'è il sistema di moderazione?
+                        </button>
+                    </h2>
+                    <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Polygonum utilizza un sistema a 3 strike per garantire il rispetto delle regole. Al primo strike ricevi un avviso e l'annuncio viene rimosso. Al secondo strike l'account viene sospeso per 7 giorni. Al terzo strike l'account viene bannato permanentemente. Le immagini caricate vengono moderate prima di essere pubblicate.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sicurezza scambi -->
+                <div class="accordion-item mb-3 border-0 shadow-sm">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                            Gli scambi sono sicuri?
+                        </button>
+                    </h2>
+                    <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Polygonum facilita il contatto tra utenti, ma gli scambi avvengono tra privati. Ti raccomandiamo sempre di: incontrare in luoghi pubblici, non condividere dati sensibili, verificare lo stato degli oggetti prima di accettare lo scambio, e fidarti del tuo istinto. Leggi la nostra guida agli scambi sicuri per maggiori informazioni.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modificare annunci -->
+                <div class="accordion-item mb-3 border-0 shadow-sm">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq6">
+                            Posso modificare un annuncio già pubblicato?
+                        </button>
+                    </h2>
+                    <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Sì! Accedi al tuo profilo, trova l'annuncio che vuoi modificare e clicca sul pulsante "Modifica". Potrai aggiornare qualsiasi informazione. Se modifichi l'immagine, questa dovrà essere nuovamente approvata dalla moderazione prima di essere visibile.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Eliminar annunci -->
+                <div class="accordion-item mb-3 border-0 shadow-sm">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq7">
+                            Come faccio a eliminare un annuncio?
+                        </button>
+                    </h2>
+                    <div id="faq7" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Vai al tuo profilo, trova l'annuncio e clicca sul pulsante "Elimina". Ti verrà chiesta conferma prima di procedere. Puoi anche disattivare temporaneamente un annuncio senza eliminarlo, usando il pulsante "Disattiva".
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Premium -->
+                <div class="accordion-item mb-3 border-0 shadow-sm">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq8">
+                            Cosa offre l'abbonamento Premium?
+                        </button>
+                    </h2>
+                    <div id="faq8" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            L'abbonamento Premium ti permette di pubblicare annunci illimitati (sia "Offro" che "Cerco"), senza i limiti previsti per gli account gratuiti. Visita la pagina Pricing per scoprire le opzioni disponibili.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-body p-4 text-center">
+                    <h5 class="text-polygonum-primary mb-3">Non hai trovato la risposta?</h5>
+                    <p>Contattaci e saremo felici di aiutarti!</p>
+                    <a href="{% url 'contatti' %}" class="btn btn-primary">Vai ai Contatti</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
