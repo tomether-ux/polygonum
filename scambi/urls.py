@@ -113,4 +113,19 @@ urlpatterns = [
     # Regolamento e linee guida
     path('regolamento/', views.regolamento, name='regolamento'),
     path('come-funziona/', views.come_funziona, name='come_funziona'),
+
+    # Pagine informative
+    path('chi-siamo/', views.chi_siamo, name='chi_siamo'),
+    path('contatti/', views.contatti, name='contatti'),
+    path('faq/', views.faq, name='faq'),
+    path('guida/catene-scambio/', views.guida_catene_scambio, name='guida_catene_scambio'),
+    path('guida/annunci/', views.guida_annunci, name='guida_annunci'),
+    path('guida/scambi-sicuri/', views.consigli_scambi_sicuri, name='consigli_scambi_sicuri'),
+    path('sistema-moderazione/', views.sistema_moderazione, name='sistema_moderazione'),
+
+    # Pagine legali
+    path('termini-condizioni/', views.termini_condizioni, name='termini_condizioni'),
+    path('privacy/', views.privacy_policy, name='privacy_policy'),
+    path('cookie/', views.cookie_policy, name='cookie_policy'),
+    path('note-legali/', views.note_legali, name='note_legali'),
 ]

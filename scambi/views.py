@@ -3212,3 +3212,53 @@ def moderazione_reject(request, token):
         return render(request, 'scambi/moderazione_result.html', {
             'error': str(e)
         })
+
+
+# ==================== PAGINE INFORMATIVE ====================
+
+def chi_siamo(request):
+    """Pagina Chi Siamo"""
+    return render(request, 'scambi/chi_siamo.html')
+
+def contatti(request):
+    """Pagina Contatti"""
+    return render(request, 'scambi/contatti.html')
+
+def faq(request):
+    """Pagina FAQ - Domande Frequenti"""
+    return render(request, 'scambi/faq.html')
+
+def guida_catene_scambio(request):
+    """Guida alle Catene di Scambio"""
+    return render(request, 'scambi/guida_catene_scambio.html')
+
+def guida_annunci(request):
+    """Guida Come Creare un Buon Annuncio"""
+    return render(request, 'scambi/guida_annunci.html')
+
+def consigli_scambi_sicuri(request):
+    """Consigli per Scambi Sicuri"""
+    return render(request, 'scambi/consigli_scambi_sicuri.html')
+
+def sistema_moderazione(request):
+    """Informazioni sul Sistema di Moderazione"""
+    return render(request, 'scambi/sistema_moderazione.html')
+
+
+# ==================== PAGINE LEGALI ====================
+
+def termini_condizioni(request):
+    """Termini e Condizioni d'Uso"""
+    return render(request, 'scambi/termini_condizioni.html')
+
+def privacy_policy(request):
+    """Informativa sulla Privacy"""
+    return render(request, 'scambi/privacy_policy.html')
+
+def cookie_policy(request):
+    """Cookie Policy"""
+    return render(request, 'scambi/cookie_policy.html')
+
+def note_legali(request):
+    """Note Legali"""
+    return render(request, 'scambi/note_legali.html')

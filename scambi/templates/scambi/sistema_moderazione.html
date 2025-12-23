@@ -1,0 +1,138 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Sistema di Moderazione - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="display-4 text-polygonum-primary mb-4">Sistema di Moderazione</h1>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Perché serve la moderazione</h3>
+                    <p class="lead">Polygonum si impegna a mantenere un ambiente sicuro, rispettoso e affidabile per tutti gli utenti. Il sistema di moderazione serve a garantire che gli annunci rispettino le regole e che i contenuti siano appropriati.</p>
+
+                    <p>La moderazione protegge la community da contenuti inappropriati, truffe, spam e violazioni del regolamento, mantenendo alta la qualità complessiva della piattaforma.</p>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Il sistema a 3 strike</h3>
+                    <p>Polygonum utilizza un sistema progressivo di sanzioni per garantire equità e dare agli utenti la possibilità di correggere i propri errori.</p>
+
+                    <div class="row mt-4">
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-warning">
+                                <div class="card-body text-center">
+                                    <div class="display-1 text-warning">1</div>
+                                    <h5 class="card-title mt-3">Primo Strike</h5>
+                                    <p class="card-text">Avviso formale e rimozione dell'annuncio non conforme. L'utente può continuare a utilizzare la piattaforma.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-danger">
+                                <div class="card-body text-center">
+                                    <div class="display-1 text-danger">2</div>
+                                    <h5 class="card-title mt-3">Secondo Strike</h5>
+                                    <p class="card-text">Sospensione dell'account per 7 giorni. Durante questo periodo non sarà possibile accedere alla piattaforma.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 border-dark">
+                                <div class="card-body text-center">
+                                    <div class="display-1 text-dark">3</div>
+                                    <h5 class="card-title mt-3">Terzo Strike</h5>
+                                    <p class="card-text">Ban permanente dalla piattaforma. L'account viene chiuso definitivamente senza possibilità di recupero.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Moderazione delle immagini</h3>
+                    <p>Tutte le immagini caricate sugli annunci passano attraverso un processo di moderazione:</p>
+
+                    <ol>
+                        <li class="mb-3">
+                            <strong>Upload:</strong> L'utente carica un'immagine durante la creazione o modifica di un annuncio.
+                        </li>
+                        <li class="mb-3">
+                            <strong>Stato "In attesa":</strong> L'immagine viene messa in coda per la revisione. Durante questo periodo, solo il proprietario vede un placeholder.
+                        </li>
+                        <li class="mb-3">
+                            <strong>Revisione:</strong> Il team di moderazione o un sistema automatico verifica che l'immagine sia appropriata e rispetti le linee guida.
+                        </li>
+                        <li class="mb-3">
+                            <strong>Approvazione/Rifiuto:</strong> Se approvata, l'immagine diventa visibile pubblicamente. Se rifiutata, l'utente riceve una notifica e può caricare una nuova immagine.
+                        </li>
+                    </ol>
+
+                    <div class="alert alert-info">
+                        <strong>💡 Nota:</strong> Il processo di moderazione può richiedere da poche ore a 24-48 ore a seconda del volume di richieste.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Cosa viene moderato</h3>
+                    <p>La moderazione si concentra su:</p>
+                    <ul>
+                        <li><strong>Contenuti inappropriati:</strong> Immagini esplicite, violente, offensive o inadatte a un pubblico generale</li>
+                        <li><strong>Testi offensivi:</strong> Linguaggio volgare, discriminatorio, minaccioso o inappropriato</li>
+                        <li><strong>Spam:</strong> Annunci duplicati, pubblicità non autorizzata, link esterni sospetti</li>
+                        <li><strong>Contenuti vietati:</strong> Oggetti illegali, pericolosi o non conformi al regolamento</li>
+                        <li><strong>Truffe:</strong> Annunci falsi o ingannevoli</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Come evitare sanzioni</h3>
+                    <p>Per mantenere il tuo account in regola:</p>
+                    <ul>
+                        <li>Leggi attentamente il <a href="{% url 'regolamento' %}" class="text-polygonum-primary">regolamento completo</a></li>
+                        <li>Crea annunci onesti e dettagliati</li>
+                        <li>Carica solo foto reali e appropriate dell'oggetto</li>
+                        <li>Usa un linguaggio rispettoso nelle descrizioni e nei messaggi</li>
+                        <li>Non pubblicare contenuti vietati o inappropriati</li>
+                        <li>Rispondi in modo costruttivo alle richieste di chiarimento dei moderatori</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Contestare una sanzione</h3>
+                    <p>Se ritieni di aver ricevuto uno strike ingiustamente:</p>
+                    <ol>
+                        <li>Leggi attentamente la motivazione ricevuta via email o notifica</li>
+                        <li>Contatta il supporto spiegando il tuo punto di vista</li>
+                        <li>Fornisci eventuali prove o chiarimenti necessari</li>
+                        <li>Attendi la revisione del caso da parte del team</li>
+                    </ol>
+                    <p class="mb-0">Il team di moderazione esaminerà il caso e risponderà entro 3-5 giorni lavorativi.</p>
+                    <div class="mt-3">
+                        <a href="{% url 'contatti' %}" class="btn btn-outline-primary">Contatta il Supporto</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-success">
+                <h5 class="alert-heading">✓ Obiettivo finale</h5>
+                <p class="mb-0">L'obiettivo del sistema di moderazione non è punire, ma proteggere e mantenere una community sana e affidabile per tutti. Con un po' di attenzione e rispetto delle regole, tutti possono godere di un'esperienza positiva su Polygonum!</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

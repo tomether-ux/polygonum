@@ -1,0 +1,122 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Consigli per Scambi Sicuri - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="display-4 text-polygonum-primary mb-4">Consigli per Scambi Sicuri</h1>
+
+            <div class="alert alert-warning">
+                <h5 class="alert-heading">⚠️ Premessa Importante</h5>
+                <p class="mb-0">Polygonum facilita il contatto tra utenti, ma non gestisce direttamente gli scambi. La responsabilità e la sicurezza degli scambi sono a carico degli utenti coinvolti. Segui questi consigli per proteggerti.</p>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Prima dello scambio</h3>
+                    <ul>
+                        <li class="mb-3">
+                            <strong>Comunica tramite la piattaforma:</strong>
+                            Utilizza sempre il sistema di messaggistica di Polygonum per le comunicazioni iniziali. Questo crea una traccia verificabile in caso di problemi.
+                        </li>
+                        <li class="mb-3">
+                            <strong>Chiedi foto aggiuntive:</strong>
+                            Non esitare a richiedere foto supplementari o dettagli sull'oggetto. Un venditore onesto sarà felice di fornirle.
+                        </li>
+                        <li class="mb-3">
+                            <strong>Verifica il profilo:</strong>
+                            Controlla da quanto tempo è registrato l'utente e quanti scambi ha completato (quando questa funzionalità sarà disponibile).
+                        </li>
+                        <li class="mb-3">
+                            <strong>Concordate i dettagli:</strong>
+                            Chiarite in anticipo: luogo e ora dell'incontro, condizioni esatte degli oggetti, eventuali accessori inclusi.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Durante l'incontro</h3>
+                    <ul>
+                        <li class="mb-3">
+                            <strong>Luogo pubblico:</strong>
+                            Incontrare sempre in luoghi pubblici e frequentati (centri commerciali, piazze, bar). Mai in luoghi isolati o abitazioni private al primo incontro.
+                        </li>
+                        <li class="mb-3">
+                            <strong>Orario diurno:</strong>
+                            Preferisci orari di luce quando possibile, specialmente per il primo incontro.
+                        </li>
+                        <li class="mb-3">
+                            <strong>Porta un accompagnatore:</strong>
+                            Se possibile, fatti accompagnare da un amico o familiare, soprattutto per oggetti di valore.
+                        </li>
+                        <li class="mb-3">
+                            <strong>Verifica l'oggetto accuratamente:</strong>
+                            Controlla che l'oggetto corrisponda alla descrizione, testalo se possibile, verifica che non ci siano difetti nascosti.
+                        </li>
+                        <li class="mb-3">
+                            <strong>Fidati del tuo istinto:</strong>
+                            Se qualcosa non ti convince o ti senti a disagio, è perfettamente accettabile annullare lo scambio.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Cosa NON fare mai</h3>
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            <li>Non condividere dati personali sensibili (numero documento, coordinate bancarie, password)</li>
+                            <li>Non inviare denaro in anticipo</li>
+                            <li>Non accettare di spedire prima di ricevere</li>
+                            <li>Non incontrare in luoghi isolati o case private</li>
+                            <li>Non dare informazioni sulla tua abitazione o routine</li>
+                            <li>Non lasciare che l'altra persona ti metta fretta o pressione</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Scambi con spedizione</h3>
+                    <p>Se optate per la spedizione invece dell'incontro di persona:</p>
+                    <ul>
+                        <li class="mb-2">Concordate chiaramente chi paga le spese di spedizione</li>
+                        <li class="mb-2">Utilizzate servizi di spedizione tracciabili</li>
+                        <li class="mb-2">Fotografate l'oggetto prima di imballarlo come prova</li>
+                        <li class="mb-2">Imballate con cura per evitare danni durante il trasporto</li>
+                        <li class="mb-2">Considerate una spedizione simultanea se entrambi vi fidate reciprocamente</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Segnalare comportamenti sospetti</h3>
+                    <p>Se noti comportamenti inappropriati, truffe o violazioni del regolamento:</p>
+                    <ul class="mb-3">
+                        <li>Segnala immediatamente l'utente tramite la piattaforma</li>
+                        <li>Conserva screenshot delle conversazioni come prova</li>
+                        <li>Contatta il nostro supporto fornendo tutti i dettagli</li>
+                        <li>Non esitare a contattare le autorità se necessario</li>
+                    </ul>
+                    <a href="{% url 'contatti' %}" class="btn btn-outline-danger">Contatta il Supporto</a>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm bg-success text-white">
+                <div class="card-body p-4">
+                    <h3 class="text-white mb-3">✓ Ricorda</h3>
+                    <p class="mb-2"><strong>La maggior parte degli utenti su Polygonum è onesta e affidabile.</strong></p>
+                    <p class="mb-0">Seguendo queste semplici precauzioni, puoi goderti l'esperienza di scambio in totale sicurezza. Buon scambio!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

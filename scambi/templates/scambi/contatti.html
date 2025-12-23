@@ -1,0 +1,61 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Contatti - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="display-4 text-polygonum-primary mb-4">Contatti</h1>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Come possiamo aiutarti?</h3>
+                    <p class="lead">Siamo qui per rispondere alle tue domande e risolvere eventuali problemi. Scegli il canale di comunicazione più adatto alle tue esigenze.</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <h5 class="text-polygonum-primary mb-3">Email</h5>
+                            <p>Per richieste generali, assistenza o segnalazioni:</p>
+                            <p class="mb-0">
+                                <a href="mailto:noreply@polygonum.onrender.com" class="text-polygonum-primary fw-bold">noreply@polygonum.onrender.com</a>
+                            </p>
+                            <small class="text-muted">Tempo di risposta: entro 24-48 ore</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <h5 class="text-polygonum-primary mb-3">FAQ</h5>
+                            <p>Consulta le nostre domande frequenti per trovare risposta immediata ai dubbi più comuni.</p>
+                            <a href="{% url 'faq' %}" class="btn btn-outline-primary">Vai alle FAQ</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Segnalazioni e abusi</h3>
+                    <p>Se riscontri contenuti inappropriati, comportamenti scorretti o violazioni del regolamento, ti preghiamo di segnalarceli immediatamente.</p>
+                    <p class="mb-0">Email per segnalazioni: <a href="mailto:noreply@polygonum.onrender.com?subject=Segnalazione" class="text-danger fw-bold">noreply@polygonum.onrender.com</a></p>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Suggerimenti e feedback</h3>
+                    <p>La tua opinione è importante per noi! Se hai suggerimenti per migliorare Polygonum o vuoi condividere la tua esperienza, scrivici.</p>
+                    <p class="mb-0">Aiutaci a crescere: le tue idee possono fare la differenza nella nostra community.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

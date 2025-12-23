@@ -1,0 +1,81 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Guida alle Catene di Scambio - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="display-4 text-polygonum-primary mb-4">Guida alle Catene di Scambio</h1>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Cos'è una catena di scambio?</h3>
+                    <p class="lead">Una catena di scambio è una sequenza di scambi tra più utenti che permette a tutti di ottenere ciò che cercano, anche quando non esiste una corrispondenza diretta.</p>
+
+                    <p>Immagina questa situazione:</p>
+                    <ul>
+                        <li><strong>Mario</strong> ha una chitarra e cerca un laptop</li>
+                        <li><strong>Giulia</strong> ha un laptop e cerca una bicicletta</li>
+                        <li><strong>Luca</strong> ha una bicicletta e cerca una chitarra</li>
+                    </ul>
+
+                    <p>Nessuno di loro può fare uno scambio diretto, ma attraverso una catena di scambio tutti possono essere soddisfatti: Mario dà la chitarra a Luca, Luca dà la bicicletta a Giulia, e Giulia dà il laptop a Mario. Tutti ottengono ciò che cercavano!</p>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Come funziona su Polygonum</h3>
+                    <p>Il nostro algoritmo analizza automaticamente tutti gli annunci attivi sulla piattaforma e identifica possibili catene di scambio. Ecco come:</p>
+
+                    <ol>
+                        <li class="mb-3">
+                            <strong>Analisi degli annunci:</strong> Il sistema confronta continuamente tutti gli annunci "Offro" e "Cerco" pubblicati dagli utenti.
+                        </li>
+                        <li class="mb-3">
+                            <strong>Identificazione delle catene:</strong> Quando trova una sequenza compatibile di scambi, crea una proposta di catena.
+                        </li>
+                        <li class="mb-3">
+                            <strong>Visualizzazione:</strong> Le catene trovate vengono mostrate nella sezione "Trova Scambi Possibili", dove puoi vedere tutti i passaggi e gli utenti coinvolti.
+                        </li>
+                        <li class="mb-3">
+                            <strong>Coordinamento:</strong> Sta agli utenti coinvolti coordinarsi tramite messaggi per realizzare effettivamente gli scambi.
+                        </li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Come partecipare</h3>
+                    <p>Per aumentare le tue possibilità di trovare catene di scambio vantaggiose:</p>
+
+                    <ul>
+                        <li class="mb-2"><strong>Pubblica più annunci:</strong> Più annunci hai attivi, maggiori sono le possibilità di trovare corrispondenze.</li>
+                        <li class="mb-2"><strong>Sii flessibile:</strong> Considera di accettare oggetti di valore simile anche se non sono esattamente ciò che cercavi inizialmente.</li>
+                        <li class="mb-2"><strong>Controlla regolarmente:</strong> Le catene vengono ricalcolate periodicamente, quindi torna spesso a controllare nuove opportunità.</li>
+                        <li class="mb-2"><strong>Comunica chiaramente:</strong> Quando trovi una catena interessante, contatta subito gli altri utenti per coordinarvi.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h3 class="text-polygonum-primary mb-3">Suggerimenti pratici</h3>
+                    <p><strong>Coordinarsi con gli altri:</strong> Nelle catene con più di 2 persone, è importante comunicare per decidere l'ordine degli scambi. Ad esempio, potreste accordarvi per incontrarvi tutti insieme in un luogo pubblico.</p>
+
+                    <p><strong>Verificare gli oggetti:</strong> Prima di completare uno scambio in catena, assicurati che tutti gli oggetti siano conformi alle descrizioni negli annunci.</p>
+
+                    <p><strong>Essere affidabili:</strong> Se ti impegni in una catena di scambio, porta a termine il tuo impegno. Altri utenti dipendono da te!</p>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <h5 class="alert-heading">💡 Consiglio</h5>
+                <p class="mb-0">Le catene più lunghe (con più partecipanti) offrono più opportunità ma richiedono maggiore coordinamento. Inizia con catene semplici a 2-3 persone per prendere confidenza con il sistema!</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

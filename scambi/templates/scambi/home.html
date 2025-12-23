@@ -516,7 +516,7 @@ main.container {
         <div class="row">
             <div class="col-12 text-center mb-3">
                 <h2 class="display-6 fw-bold text-polygonum-primary text-uppercase">
-                    <i class="fas fa-compass me-2"></i>Da Scoprire
+                    Da Scoprire
                 </h2>
             </div>
         </div>
@@ -525,10 +525,9 @@ main.container {
                 <div class="d-flex flex-wrap gap-2 justify-content-center">
                     {% for categoria in categorie_da_scoprire %}
                         <a href="{% url 'lista_annunci' %}?categoria={{ categoria.id }}"
-                           class="btn btn-outline-secondary d-flex justify-content-between align-items-center px-3 py-2"
+                           class="btn btn-outline-primary px-3 py-2"
                            style="min-width: 133px;">
-                            <span>{{ categoria.nome }}</span>
-                            <span class="fw-bold">{{ categoria.num_annunci }}</span>
+                            {{ categoria.nome }}
                         </a>
                     {% endfor %}
                 </div>
@@ -545,61 +544,60 @@ main.container {
                 <div class="accordion" id="regolamentoAccordion">
                     <div class="accordion-item border-0 shadow-sm">
                         <h2 class="accordion-header" id="headingRegolamento">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRegolamento" aria-expanded="false" aria-controls="collapseRegolamento" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold;">
-                                📜 Regole e Linee Guida di Polygonum
+                            <button class="accordion-button collapsed text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRegolamento" aria-expanded="false" aria-controls="collapseRegolamento" style="background-color: #2c3e50; font-weight: 600; font-size: 1.1rem;">
+                                Regole e Linee Guida di Polygonum
                             </button>
                         </h2>
                         <div id="collapseRegolamento" class="accordion-collapse collapse" aria-labelledby="headingRegolamento" data-bs-parent="#regolamentoAccordion">
-                            <div class="accordion-body">
-                                <h5 class="text-primary mb-3">👋 Benvenuto nella community!</h5>
-                                <p>Polygonum è una piattaforma di scambio basata sulla fiducia e il rispetto reciproco. Ecco le regole fondamentali:</p>
+                            <div class="accordion-body" style="line-height: 1.8;">
+                                <p class="lead mb-4">Polygonum è una piattaforma di scambio basata sulla fiducia e sul rispetto reciproco tra gli utenti. Di seguito le regole fondamentali da rispettare:</p>
 
-                                <h6 class="text-primary mt-4">📝 Creazione Annunci</h6>
-                                <ul>
-                                    <li><strong>Sii chiaro</strong>: Descrivi accuratamente cosa offri o cerchi</li>
-                                    <li><strong>Sii onesto</strong>: Indica eventuali difetti o problemi</li>
-                                    <li><strong>Usa foto reali</strong>: Se carichi immagini, devono rappresentare veramente l'oggetto</li>
-                                    <li><strong>Categoria giusta</strong>: Aiuta gli altri a trovare il tuo annuncio facilmente</li>
+                                <h6 class="text-dark fw-bold mt-4 mb-3">Creazione Annunci</h6>
+                                <ul class="mb-4">
+                                    <li>Descrivi accuratamente cosa offri o cerchi</li>
+                                    <li>Indica eventuali difetti o problemi dell'oggetto</li>
+                                    <li>Carica solo foto reali e rappresentative dell'oggetto</li>
+                                    <li>Seleziona la categoria appropriata per facilitare la ricerca</li>
                                 </ul>
 
-                                <h6 class="text-primary mt-4">🤝 Comportamento</h6>
-                                <ul>
-                                    <li><strong>Rispetto</strong>: Tratta gli altri con gentilezza e cortesia</li>
-                                    <li><strong>Affidabilità</strong>: Se ti impegni in uno scambio, portalo a termine</li>
-                                    <li><strong>Pazienza</strong>: Le catene di scambio vengono calcolate periodicamente - se non vedi subito il tuo annuncio nelle catene, aspetta la prossima scansione</li>
-                                    <li><strong>Comunicazione</strong>: Rispondi ai messaggi in modo tempestivo</li>
+                                <h6 class="text-dark fw-bold mt-4 mb-3">Norme di Comportamento</h6>
+                                <ul class="mb-4">
+                                    <li>Tratta gli altri utenti con rispetto e cortesia</li>
+                                    <li>Porta a termine gli scambi concordati in modo affidabile</li>
+                                    <li>Le catene di scambio vengono calcolate periodicamente - attendi la prossima scansione se non vedi immediatamente i risultati</li>
+                                    <li>Rispondi ai messaggi in modo tempestivo</li>
                                 </ul>
 
-                                <h6 class="text-primary mt-4">⚖️ Sistema di Moderazione</h6>
-                                <p>Polygonum usa un sistema a 3 strike:</p>
-                                <ul>
-                                    <li><strong>1° Strike</strong>: Warning - l'annuncio viene rimosso</li>
-                                    <li><strong>2° Strike</strong>: Sospensione di 7 giorni</li>
-                                    <li><strong>3° Strike</strong>: Ban permanente</li>
+                                <h6 class="text-dark fw-bold mt-4 mb-3">Sistema di Moderazione</h6>
+                                <p class="mb-2">La piattaforma utilizza un sistema a 3 strike per garantire il rispetto delle regole:</p>
+                                <ul class="mb-4">
+                                    <li><strong>Primo Strike</strong>: Avviso formale e rimozione dell'annuncio</li>
+                                    <li><strong>Secondo Strike</strong>: Sospensione dell'account per 7 giorni</li>
+                                    <li><strong>Terzo Strike</strong>: Ban permanente dalla piattaforma</li>
                                 </ul>
 
-                                <h6 class="text-primary mt-4">🔒 Sicurezza</h6>
-                                <ul>
-                                    <li>Polygonum facilita solo il contatto, gli scambi avvengono tra privati</li>
-                                    <li>Incontra sempre in luoghi pubblici e sicuri</li>
-                                    <li>Non condividere dati personali sensibili</li>
-                                    <li>Fidati del tuo istinto</li>
+                                <h6 class="text-dark fw-bold mt-4 mb-3">Sicurezza e Privacy</h6>
+                                <ul class="mb-4">
+                                    <li>Polygonum facilita esclusivamente il contatto tra utenti; gli scambi avvengono tra privati</li>
+                                    <li>Si raccomanda di incontrare sempre in luoghi pubblici e sicuri</li>
+                                    <li>Non condividere dati personali sensibili (coordinate bancarie, documenti, ecc.)</li>
+                                    <li>In caso di dubbi o situazioni sospette, interrompi la trattativa</li>
                                 </ul>
 
-                                <h6 class="text-primary mt-4">❌ Contenuti Vietati</h6>
-                                <p>Non puoi pubblicare:</p>
-                                <ul>
-                                    <li>Contenuti illegali, violenti o inappropriati</li>
-                                    <li>Animali vivi, farmaci, armi</li>
-                                    <li>Documenti personali o accessi ad account</li>
-                                    <li>Prodotti contraffatti</li>
+                                <h6 class="text-dark fw-bold mt-4 mb-3">Contenuti Vietati</h6>
+                                <p class="mb-2">È vietata la pubblicazione di:</p>
+                                <ul class="mb-4">
+                                    <li>Contenuti illegali, violenti, offensivi o inappropriati</li>
+                                    <li>Animali vivi, farmaci, armi e sostanze pericolose</li>
+                                    <li>Documenti personali, accessi ad account o credenziali</li>
+                                    <li>Prodotti contraffatti o di dubbia provenienza</li>
                                 </ul>
 
-                                <div class="alert alert-info mt-4 mb-0">
-                                    <p class="mb-2"><strong>📧 Hai domande?</strong></p>
-                                    <p class="mb-2">Contattaci: <a href="mailto:noreply@polygonum.onrender.com">noreply@polygonum.onrender.com</a></p>
+                                <div class="border-top pt-4 mt-4">
+                                    <p class="mb-2"><strong>Per ulteriori informazioni</strong></p>
+                                    <p class="mb-2">Contatto: <a href="mailto:noreply@polygonum.onrender.com" class="text-decoration-none">noreply@polygonum.onrender.com</a></p>
                                     <p class="mb-0">
-                                        <a href="{% url 'regolamento' %}" class="text-decoration-underline fw-bold">Leggi il regolamento completo</a>
+                                        <a href="{% url 'regolamento' %}" class="text-decoration-none fw-bold">Consulta il regolamento completo</a>
                                     </p>
                                 </div>
                             </div>
