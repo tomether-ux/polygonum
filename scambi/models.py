@@ -58,6 +58,24 @@ class Annuncio(models.Model):
         verbose_name="Prezzo stimato (€)",
         help_text="Valore indicativo dell'oggetto per facilitare scambi equi"
     )
+
+    # Fascia di prezzo per matching equo
+    FASCIA_PREZZO_CHOICES = [
+        ('economico', 'Economico (€0-20)'),
+        ('basso', 'Basso (€20-50)'),
+        ('medio', 'Medio (€50-150)'),
+        ('alto', 'Alto (€150-500)'),
+        ('premium', 'Premium (€500+)'),
+    ]
+    fascia_prezzo = models.CharField(
+        max_length=20,
+        choices=FASCIA_PREZZO_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Fascia di prezzo",
+        help_text="Calcolata automaticamente dal prezzo stimato per facilitare match equi"
+    )
+
     metodo_scambio = models.CharField(
         max_length=15,
         choices=METODO_SCAMBIO_CHOICES,
@@ -146,6 +164,39 @@ class Annuncio(models.Model):
         }
         return short_labels.get(self.condizione, 'Usato')
 
+    def calcola_fascia_prezzo(self):
+        """Calcola automaticamente la fascia di prezzo basata sul prezzo_stimato"""
+        if not self.prezzo_stimato:
+            return None
+
+        prezzo = float(self.prezzo_stimato)
+
+        if prezzo < 20:
+            return 'economico'
+        elif prezzo < 50:
+            return 'basso'
+        elif prezzo < 150:
+            return 'medio'
+        elif prezzo < 500:
+            return 'alto'
+        else:
+            return 'premium'
+
+    def get_fascia_display_badge(self):
+        """Restituisce HTML badge per la fascia di prezzo"""
+        if not self.fascia_prezzo:
+            return ''
+
+        colors = {
+            'economico': 'secondary',
+            'basso': 'info',
+            'medio': 'primary',
+            'alto': 'warning',
+            'premium': 'danger'
+        }
+
+        return f'<span class="badge bg-{colors.get(self.fascia_prezzo, "secondary")}">{self.get_fascia_prezzo_display()}</span>'
+
     def clean(self):
         """
         Validazione del contenuto testuale dell'annuncio.
@@ -179,6 +230,9 @@ class Annuncio(models.Model):
         #         )
         #     except Exception as e:
         #         print(f"Errore nell'ottimizzazione immagine: {e}")
+
+        # Calcola automaticamente fascia di prezzo
+        self.fascia_prezzo = self.calcola_fascia_prezzo()
 
         # Genera titolo automatico per annunci "cerco per categoria"
         if self.tipo == 'cerco' and self.cerca_per_categoria and self.categoria:
