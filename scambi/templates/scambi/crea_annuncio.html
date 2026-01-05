@@ -134,23 +134,30 @@
                                 <i class="fas fa-handshake me-2"></i>Modalità di Scambio
                             </h5>
 
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">{{ form.prezzo_stimato.label_tag }}</label>
-                                    <div class="input-group">
-                                        {{ form.prezzo_stimato }}
-                                        <span class="input-group-text">€</span>
-                                    </div>
-                                    <small class="form-text text-muted">Valore indicativo per scambi equi (opzionale)</small>
+                            <div class="mb-3">
+                                <label class="form-label d-block">{{ form.fascia_prezzo.label }}</label>
+                                <small class="form-text text-muted d-block mb-3">Seleziona la fascia di valore per facilitare scambi equi</small>
+                                <div class="fascia-selector">
+                                    {% for choice in form.fascia_prezzo %}
+                                        <label class="fascia-option">
+                                            {{ choice.tag }}
+                                            <span class="fascia-badge-clickable {% if choice.choice_value %}fascia-{{ choice.choice_value }}{% endif %}">
+                                                <i class="fas fa-coins me-2"></i>
+                                                <span class="fascia-text">{{ choice.choice_label }}</span>
+                                            </span>
+                                        </label>
+                                    {% endfor %}
                                 </div>
+                            </div>
 
-                                <div class="col-md-4 mb-3">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
                                     <label class="form-label">{{ form.condizione.label_tag }}</label>
                                     {{ form.condizione }}
                                     <small class="form-text text-muted">Indica lo stato dell'oggetto</small>
                                 </div>
 
-                                <div class="col-md-4 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <label class="form-label">{{ form.metodo_scambio.label_tag }}</label>
                                     {{ form.metodo_scambio }}
                                 </div>
@@ -309,4 +316,71 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<style>
+/* Selettore fasce prezzo */
+.fascia-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.fascia-option {
+    cursor: pointer;
+    margin: 0;
+}
+
+/* Nascondi radio button nativi */
+.fascia-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* Badge cliccabile */
+.fascia-badge-clickable {
+    display: inline-flex;
+    align-items: center;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    min-width: 250px;
+}
+
+.fascia-badge-clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Stato selezionato */
+.fascia-option input[type="radio"]:checked + .fascia-badge-clickable {
+    border: 2px solid #333;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    transform: scale(1.05);
+}
+
+/* Badge opzione vuota (Nessuna) */
+.fascia-option input[value=""] + .fascia-badge-clickable {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    color: #6c757d;
+}
+
+.fascia-option input[value=""]:checked + .fascia-badge-clickable {
+    border-color: #6c757d;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .fascia-badge-clickable {
+        min-width: 100%;
+        font-size: 0.9rem;
+        padding: 10px 16px;
+    }
+}
+</style>
 {% endblock %}

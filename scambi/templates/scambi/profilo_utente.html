@@ -166,13 +166,18 @@
                                     </small>
                                 </div>
 
-                                <!-- Categoria e Foto -->
+                                <!-- Categoria, Foto e Fascia Prezzo -->
                                 <div class="mb-2">
                                     <span class="badge bg-secondary me-1">{{ annuncio.categoria.nome }}</span>
                                     {% if annuncio.immagine %}
                                     <span class="badge bg-primary"><i class="fas fa-camera me-1"></i>Foto</span>
                                     {% else %}
                                     <span class="badge bg-light text-dark"><i class="fas fa-image me-1"></i>Nessuna foto</span>
+                                    {% endif %}
+                                    {% if annuncio.fascia_prezzo %}
+                                    <span class="fascia-badge-small fascia-{{ annuncio.fascia_prezzo }} ms-1 d-inline-block"
+                                          style="vertical-align: middle;"
+                                          title="{{ annuncio.get_fascia_prezzo_display }}"></span>
                                     {% endif %}
                                 </div>
 
@@ -248,13 +253,18 @@
                                     </small>
                                 </div>
 
-                                <!-- Categoria e Foto -->
+                                <!-- Categoria, Foto e Fascia Prezzo -->
                                 <div class="mb-2">
                                     <span class="badge bg-secondary me-1">{{ annuncio.categoria.nome }}</span>
                                     {% if annuncio.immagine %}
                                     <span class="badge bg-primary"><i class="fas fa-camera me-1"></i>Foto</span>
                                     {% else %}
                                     <span class="badge bg-light text-dark"><i class="fas fa-image me-1"></i>Nessuna foto</span>
+                                    {% endif %}
+                                    {% if annuncio.fascia_prezzo %}
+                                    <span class="fascia-badge-small fascia-{{ annuncio.fascia_prezzo }} ms-1 d-inline-block"
+                                          style="vertical-align: middle;"
+                                          title="{{ annuncio.get_fascia_prezzo_display }}"></span>
                                     {% endif %}
                                 </div>
 

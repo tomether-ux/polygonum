@@ -98,7 +98,7 @@ class AnnuncioForm(forms.ModelForm):
     class Meta:
         model = Annuncio
         fields = ['titolo', 'descrizione', 'categoria', 'tipo', 'cerca_per_categoria', 'immagine',
-                 'prezzo_stimato', 'condizione', 'metodo_scambio', 'distanza_massima_km']
+                 'fascia_prezzo', 'condizione', 'metodo_scambio', 'distanza_massima_km']
         widgets = {
             'titolo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Es: Chitarra elettrica Fender'}),
             'descrizione': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Descrivi il tuo annuncio...'}),
@@ -110,12 +110,7 @@ class AnnuncioForm(forms.ModelForm):
                 'accept': 'image/*',
                 'onchange': 'previewImage(this);'
             }),
-            'prezzo_stimato': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': '0.00',
-                'step': '0.01',
-                'min': '0'
-            }),
+            'fascia_prezzo': forms.RadioSelect(attrs={'class': 'fascia-prezzo-radio'}),
             'condizione': forms.Select(attrs={'class': 'form-control'}),
             'metodo_scambio': forms.Select(attrs={'class': 'form-control'}),
             'distanza_massima_km': forms.NumberInput(attrs={
@@ -132,7 +127,7 @@ class AnnuncioForm(forms.ModelForm):
             'tipo': 'Tipo annuncio',
             'cerca_per_categoria': 'Cerco qualsiasi cosa in questa categoria',
             'immagine': 'Foto dell\'oggetto (opzionale)',
-            'prezzo_stimato': 'Valore stimato (€)',
+            'fascia_prezzo': 'Fascia di valore (opzionale)',
             'condizione': 'Condizioni dell\'oggetto',
             'metodo_scambio': 'Come preferisci scambiare?',
             'distanza_massima_km': 'Distanza massima per incontro (km)'
@@ -174,6 +169,31 @@ class AnnuncioForm(forms.ModelForm):
             logger.info(f"✅ Validazione contenuto passata")
 
         return cleaned_data
+
+    def save(self, commit=True):
+        """Calcola prezzo_stimato dalla fascia scelta"""
+        instance = super().save(commit=False)
+
+        # Mappa fascia → prezzo medio della fascia
+        fascia_to_prezzo = {
+            'economico': 10,    # Centro di 0-20
+            'basso': 35,        # Centro di 20-50
+            'medio': 100,       # Centro di 50-150
+            'alto': 325,        # Centro di 150-500
+            'premium': 750,     # Valore rappresentativo per 500+
+        }
+
+        # Se è stata scelta una fascia, calcola il prezzo_stimato
+        if instance.fascia_prezzo:
+            instance.prezzo_stimato = fascia_to_prezzo.get(instance.fascia_prezzo)
+        else:
+            # Se non è stata scelta una fascia, imposta prezzo_stimato a None
+            instance.prezzo_stimato = None
+
+        if commit:
+            instance.save()
+
+        return instance
 
 class UserProfileForm(forms.ModelForm):
     class Meta:
