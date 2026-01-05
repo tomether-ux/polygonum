@@ -94,12 +94,19 @@
                     </div>
                     {% endif %}
 
-                    <!-- Prezzo -->
+                    <!-- Prezzo e Fascia -->
                     {% if annuncio.prezzo_stimato %}
                     <div class="position-absolute top-0 end-0 m-3">
-                        <span class="badge bg-dark px-4 py-3 shadow fs-5">
-                            €{{ annuncio.prezzo_stimato }}
-                        </span>
+                        <div class="d-flex flex-column gap-2 align-items-end">
+                            <span class="badge bg-dark px-4 py-3 shadow fs-5">
+                                €{{ annuncio.prezzo_stimato }}
+                            </span>
+                            {% if annuncio.fascia_prezzo %}
+                            <span class="fascia-badge-full fascia-{{ annuncio.fascia_prezzo }} shadow">
+                                <i class="fas fa-coins me-2"></i>{{ annuncio.get_fascia_prezzo_display }}
+                            </span>
+                            {% endif %}
+                        </div>
                     </div>
                     {% endif %}
                 </div>

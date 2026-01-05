@@ -85,55 +85,48 @@ Prezzo: €100.00 - Fascia: Medio (€50-150)
 
 Da ora in poi:
 
-1. **Creazione nuovo annuncio**: Se l'utente inserisce `prezzo_stimato = 75`, la fascia viene calcolata automaticamente come `"medio"`
+1. **Creazione nuovo annuncio**: L'utente seleziona una fascia di prezzo (es. "Medio (€50-150)") tramite badge colorati. Il sistema calcola automaticamente `prezzo_stimato = 100` (centro della fascia).
 
-2. **Modifica annuncio**: Se l'utente cambia il prezzo da €45 a €55, la fascia passa automaticamente da `"basso"` a `"medio"`
+2. **Modifica annuncio**: L'utente vede la fascia attualmente selezionata e può cambiarla cliccando su un altro badge. Il `prezzo_stimato` viene ricalcolato automaticamente.
 
-3. **Annunci senza prezzo**: Avranno `fascia_prezzo = None` (compatibili con tutte le fasce)
+3. **Annunci senza prezzo**: L'utente può non selezionare alcuna fascia (opzione "Nessuna fascia"). In questo caso `fascia_prezzo = None` e `prezzo_stimato = None`.
 
-## Prossimi step (opzionali)
+### Mappatura fascia → prezzo
 
-### 1. Mostrare la fascia nell'UI
+Il sistema calcola il prezzo dal centro della fascia:
 
-In `crea_annuncio.html`, aggiungi un badge dinamico:
+- **Economico (€0-20)** → prezzo_stimato = €10
+- **Basso (€20-50)** → prezzo_stimato = €35
+- **Medio (€50-150)** → prezzo_stimato = €100
+- **Alto (€150-500)** → prezzo_stimato = €325
+- **Premium (€500+)** → prezzo_stimato = €750
 
-```html
-<div class="mb-3">
-    <label>Prezzo Stimato (€)</label>
-    <input type="number" id="id_prezzo_stimato" name="prezzo_stimato">
+## Interfaccia utente
 
-    <!-- Badge fascia -->
-    <div id="fascia-preview" class="mt-2"></div>
-</div>
+### ✅ Selettore fasce in creazione/modifica annuncio
 
-<script>
-document.getElementById('id_prezzo_stimato').addEventListener('input', function(e) {
-    const prezzo = parseFloat(e.target.value);
-    let fascia = '';
-    let color = '';
+Il campo prezzo numerico è stato sostituito con un selettore visuale che mostra **badge metallici cliccabili**:
 
-    if (prezzo < 20) {
-        fascia = 'Economico (€0-20)';
-        color = 'secondary';
-    } else if (prezzo < 50) {
-        fascia = 'Basso (€20-50)';
-        color = 'info';
-    } else if (prezzo < 150) {
-        fascia = 'Medio (€50-150)';
-        color = 'primary';
-    } else if (prezzo < 500) {
-        fascia = 'Alto (€150-500)';
-        color = 'warning';
-    } else {
-        fascia = 'Premium (€500+)';
-        color = 'danger';
-    }
+- **Economico (€0-20)**: Grigio acciaio
+- **Basso (€20-50)**: Bronzo
+- **Medio (€50-150)**: Argento
+- **Alto (€150-500)**: Oro
+- **Premium (€500+)**: Platino con effetto luminoso
 
-    document.getElementById('fascia-preview').innerHTML =
-        `<small class="text-muted">Fascia:</small> <span class="badge bg-${color}">${fascia}</span>`;
-});
-</script>
-```
+L'utente clicca sul badge desiderato e il sistema calcola automaticamente il `prezzo_stimato`.
+
+### ✅ Badge nelle liste e dettagli
+
+**Lista annunci** (`lista_annunci.html`):
+- Quadratino colorato 12x12px accanto al prezzo
+- Tooltip al passaggio del mouse con la fascia completa
+
+**Dettaglio annuncio** (`dettaglio_annuncio.html`):
+- Badge completo con icona + nome + range di prezzo
+- Posizionato sotto il prezzo nell'angolo superiore destro
+
+**Profilo utente** (`profilo_utente.html`):
+- Quadratino colorato nelle card degli annunci
 
 ### 2. Implementare filtro nelle catene di scambio
 

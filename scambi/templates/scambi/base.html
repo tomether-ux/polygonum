@@ -14,6 +14,55 @@
     {% load static %}
     <link href="{% static 'css/polygonum.css' %}" rel="stylesheet">
     {% block extra_css %}{% endblock %}
+
+    <style>
+        /* Colori metallici per fasce di prezzo */
+        .fascia-economico {
+            background: linear-gradient(135deg, #8b8b8b 0%, #6c757d 100%);
+            color: white;
+        }
+        .fascia-basso {
+            background: linear-gradient(135deg, #cd7f32 0%, #b8722e 100%);
+            color: white;
+        }
+        .fascia-medio {
+            background: linear-gradient(135deg, #d4d4d4 0%, #a8a8a8 100%);
+            color: #333;
+        }
+        .fascia-alto {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #333;
+        }
+        .fascia-premium {
+            background: linear-gradient(135deg, #e5e4e2 0%, #b9f2ff 100%);
+            color: #333;
+            box-shadow: 0 0 10px rgba(181, 242, 255, 0.5);
+        }
+
+        /* Quadratino piccolo per liste */
+        .fascia-badge-small {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* Badge completo per dettaglio */
+        .fascia-badge-full {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .fascia-badge-full i {
+            margin-right: 6px;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-polygonum">

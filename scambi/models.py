@@ -231,8 +231,10 @@ class Annuncio(models.Model):
         #     except Exception as e:
         #         print(f"Errore nell'ottimizzazione immagine: {e}")
 
-        # Calcola automaticamente fascia di prezzo
-        self.fascia_prezzo = self.calcola_fascia_prezzo()
+        # Calcola automaticamente fascia di prezzo SOLO se non è già impostata
+        # (per annunci esistenti che non hanno ancora la fascia)
+        if not self.fascia_prezzo and self.prezzo_stimato:
+            self.fascia_prezzo = self.calcola_fascia_prezzo()
 
         # Genera titolo automatico per annunci "cerco per categoria"
         if self.tipo == 'cerco' and self.cerca_per_categoria and self.categoria:
