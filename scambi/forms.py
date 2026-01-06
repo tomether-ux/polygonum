@@ -110,7 +110,7 @@ class AnnuncioForm(forms.ModelForm):
                 'accept': 'image/*',
                 'onchange': 'previewImage(this);'
             }),
-            'fascia_prezzo': forms.RadioSelect(attrs={'class': 'fascia-prezzo-radio'}),
+            'fascia_prezzo': forms.Select(attrs={'class': 'form-control fascia-prezzo-select'}),
             'condizione': forms.Select(attrs={'class': 'form-control'}),
             'metodo_scambio': forms.Select(attrs={'class': 'form-control'}),
             'distanza_massima_km': forms.NumberInput(attrs={
