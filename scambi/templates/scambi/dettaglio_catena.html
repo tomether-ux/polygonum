@@ -110,8 +110,12 @@
                                                         </h6>
                                                         <div class="fw-bold">{{ partecipazione.annuncio_da_dare.titolo }}</div>
                                                         <small class="text-muted">{{ partecipazione.annuncio_da_dare.categoria.nome }}</small>
-                                                        {% if partecipazione.annuncio_da_dare.prezzo_stimato %}
-                                                            <div class="text-success fw-bold mt-1">€{{ partecipazione.annuncio_da_dare.prezzo_stimato }}</div>
+                                                        {% if partecipazione.annuncio_da_dare.fascia_prezzo %}
+                                                            <div class="mt-1">
+                                                                <span class="fascia-badge-small fascia-{{ partecipazione.annuncio_da_dare.fascia_prezzo }}"
+                                                                      title="{{ partecipazione.annuncio_da_dare.get_fascia_prezzo_display }}"></span>
+                                                                <span class="ms-1 text-muted" style="font-size: 0.75rem;">{{ partecipazione.annuncio_da_dare.get_fascia_prezzo_display }}</span>
+                                                            </div>
                                                         {% endif %}
                                                     </div>
                                                 </div>
@@ -122,8 +126,12 @@
                                                         </h6>
                                                         <div class="fw-bold">{{ partecipazione.annuncio_da_ricevere.titolo }}</div>
                                                         <small class="text-muted">{{ partecipazione.annuncio_da_ricevere.categoria.nome }}</small>
-                                                        {% if partecipazione.annuncio_da_ricevere.prezzo_stimato %}
-                                                            <div class="text-info fw-bold mt-1">€{{ partecipazione.annuncio_da_ricevere.prezzo_stimato }}</div>
+                                                        {% if partecipazione.annuncio_da_ricevere.fascia_prezzo %}
+                                                            <div class="mt-1">
+                                                                <span class="fascia-badge-small fascia-{{ partecipazione.annuncio_da_ricevere.fascia_prezzo }}"
+                                                                      title="{{ partecipazione.annuncio_da_ricevere.get_fascia_prezzo_display }}"></span>
+                                                                <span class="ms-1 text-muted" style="font-size: 0.75rem;">{{ partecipazione.annuncio_da_ricevere.get_fascia_prezzo_display }}</span>
+                                                            </div>
                                                         {% endif %}
                                                     </div>
                                                 </div>

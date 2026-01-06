@@ -458,8 +458,12 @@ main.container {
                                     {% else %}
                                     <span class="detail-item">{{ annuncio.categoria.nome }}</span>
                                     {% endif %}
-                                    {% if annuncio.prezzo_stimato %}
-                                    <span class="detail-item price">€{{ annuncio.prezzo_stimato }}</span>
+                                    {% if annuncio.fascia_prezzo %}
+                                    <span class="detail-item">
+                                        <span class="fascia-badge-small fascia-{{ annuncio.fascia_prezzo }}"
+                                              title="{{ annuncio.get_fascia_prezzo_display }}"></span>
+                                        <span class="ms-1 text-muted" style="font-size: 0.75rem;">{{ annuncio.get_fascia_prezzo_display }}</span>
+                                    </span>
                                     {% endif %}
                                 </div>
                                 <div class="modern-card-user">{{ annuncio.utente.username }}</div>

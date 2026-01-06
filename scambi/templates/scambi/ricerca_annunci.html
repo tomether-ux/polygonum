@@ -213,10 +213,12 @@
                                                                 </small>
                                                             {% endif %}
                                                         </div>
-                                                        {% if annuncio.prezzo_stimato %}
+                                                        {% if annuncio.fascia_prezzo %}
                                                             <div class="text-end">
-                                                                <small class="text-polygonum-primary fw-bold">
-                                                                    ~€{{ annuncio.prezzo_stimato }}
+                                                                <small>
+                                                                    <span class="fascia-badge-small fascia-{{ annuncio.fascia_prezzo }}"
+                                                                          title="{{ annuncio.get_fascia_prezzo_display }}"></span>
+                                                                    <span class="ms-1 text-muted" style="font-size: 0.7rem;">{{ annuncio.get_fascia_prezzo_display }}</span>
                                                                 </small>
                                                             </div>
                                                         {% endif %}
