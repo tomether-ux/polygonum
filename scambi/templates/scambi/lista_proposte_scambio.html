@@ -79,8 +79,12 @@
                                                 <h6 class="text-success">Ti offre:</h6>
                                                 <div class="border p-2 rounded bg-light">
                                                     <strong>{{ proposta.annuncio_offerto.titolo }}</strong>
-                                                    {% if proposta.annuncio_offerto.prezzo_stimato %}
-                                                        <br><small class="text-muted">€{{ proposta.annuncio_offerto.prezzo_stimato }}</small>
+                                                    {% if proposta.annuncio_offerto.fascia_prezzo %}
+                                                        <br><small>
+                                                            <span class="fascia-badge-small fascia-{{ proposta.annuncio_offerto.fascia_prezzo }}"
+                                                                  title="{{ proposta.annuncio_offerto.get_fascia_prezzo_display }}"></span>
+                                                            <span class="ms-1 text-muted" style="font-size: 0.7rem;">{{ proposta.annuncio_offerto.get_fascia_prezzo_display }}</span>
+                                                        </small>
                                                     {% endif %}
                                                 </div>
                                             </div>
@@ -88,8 +92,12 @@
                                                 <h6 class="text-info">Per il tuo:</h6>
                                                 <div class="border p-2 rounded bg-light">
                                                     <strong>{{ proposta.annuncio_richiesto.titolo }}</strong>
-                                                    {% if proposta.annuncio_richiesto.prezzo_stimato %}
-                                                        <br><small class="text-muted">€{{ proposta.annuncio_richiesto.prezzo_stimato }}</small>
+                                                    {% if proposta.annuncio_richiesto.fascia_prezzo %}
+                                                        <br><small>
+                                                            <span class="fascia-badge-small fascia-{{ proposta.annuncio_richiesto.fascia_prezzo }}"
+                                                                  title="{{ proposta.annuncio_richiesto.get_fascia_prezzo_display }}"></span>
+                                                            <span class="ms-1 text-muted" style="font-size: 0.7rem;">{{ proposta.annuncio_richiesto.get_fascia_prezzo_display }}</span>
+                                                        </small>
                                                     {% endif %}
                                                 </div>
                                             </div>
@@ -153,8 +161,12 @@
                                                 <h6 class="text-success">Hai offerto:</h6>
                                                 <div class="border p-2 rounded bg-light">
                                                     <strong>{{ proposta.annuncio_offerto.titolo }}</strong>
-                                                    {% if proposta.annuncio_offerto.prezzo_stimato %}
-                                                        <br><small class="text-muted">€{{ proposta.annuncio_offerto.prezzo_stimato }}</small>
+                                                    {% if proposta.annuncio_offerto.fascia_prezzo %}
+                                                        <br><small>
+                                                            <span class="fascia-badge-small fascia-{{ proposta.annuncio_offerto.fascia_prezzo }}"
+                                                                  title="{{ proposta.annuncio_offerto.get_fascia_prezzo_display }}"></span>
+                                                            <span class="ms-1 text-muted" style="font-size: 0.7rem;">{{ proposta.annuncio_offerto.get_fascia_prezzo_display }}</span>
+                                                        </small>
                                                     {% endif %}
                                                 </div>
                                             </div>
@@ -162,8 +174,12 @@
                                                 <h6 class="text-info">Per il suo:</h6>
                                                 <div class="border p-2 rounded bg-light">
                                                     <strong>{{ proposta.annuncio_richiesto.titolo }}</strong>
-                                                    {% if proposta.annuncio_richiesto.prezzo_stimato %}
-                                                        <br><small class="text-muted">€{{ proposta.annuncio_richiesto.prezzo_stimato }}</small>
+                                                    {% if proposta.annuncio_richiesto.fascia_prezzo %}
+                                                        <br><small>
+                                                            <span class="fascia-badge-small fascia-{{ proposta.annuncio_richiesto.fascia_prezzo }}"
+                                                                  title="{{ proposta.annuncio_richiesto.get_fascia_prezzo_display }}"></span>
+                                                            <span class="ms-1 text-muted" style="font-size: 0.7rem;">{{ proposta.annuncio_richiesto.get_fascia_prezzo_display }}</span>
+                                                        </small>
                                                     {% endif %}
                                                 </div>
                                             </div>

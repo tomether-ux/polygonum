@@ -57,9 +57,11 @@
                                         <small class="text-muted">
                                             <i class="fas fa-user me-1"></i>{{ preferito.annuncio.utente.username }}
                                         </small>
-                                        {% if preferito.annuncio.prezzo_stimato %}
-                                            <small class="text-polygonum-primary fw-bold">
-                                                ~€{{ preferito.annuncio.prezzo_stimato }}
+                                        {% if preferito.annuncio.fascia_prezzo %}
+                                            <small>
+                                                <span class="fascia-badge-small fascia-{{ preferito.annuncio.fascia_prezzo }}"
+                                                      title="{{ preferito.annuncio.get_fascia_prezzo_display }}"></span>
+                                                <span class="ms-1 text-muted" style="font-size: 0.7rem;">{{ preferito.annuncio.get_fascia_prezzo_display }}</span>
                                             </small>
                                         {% endif %}
                                     </div>
