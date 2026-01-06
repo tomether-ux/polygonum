@@ -175,9 +175,11 @@
                                     <span class="badge bg-light text-dark"><i class="fas fa-image me-1"></i>Nessuna foto</span>
                                     {% endif %}
                                     {% if annuncio.fascia_prezzo %}
-                                    <span class="fascia-badge-small fascia-{{ annuncio.fascia_prezzo }} ms-1 d-inline-block"
-                                          style="vertical-align: middle;"
-                                          title="{{ annuncio.get_fascia_prezzo_display }}"></span>
+                                    <br><small class="text-muted">
+                                        <span class="fascia-badge-small fascia-{{ annuncio.fascia_prezzo }} me-1 d-inline-block"
+                                              style="vertical-align: middle;"></span>
+                                        {{ annuncio.get_fascia_prezzo_display }}
+                                    </small>
                                     {% endif %}
                                 </div>
 
@@ -262,9 +264,11 @@
                                     <span class="badge bg-light text-dark"><i class="fas fa-image me-1"></i>Nessuna foto</span>
                                     {% endif %}
                                     {% if annuncio.fascia_prezzo %}
-                                    <span class="fascia-badge-small fascia-{{ annuncio.fascia_prezzo }} ms-1 d-inline-block"
-                                          style="vertical-align: middle;"
-                                          title="{{ annuncio.get_fascia_prezzo_display }}"></span>
+                                    <br><small class="text-muted">
+                                        <span class="fascia-badge-small fascia-{{ annuncio.fascia_prezzo }} me-1 d-inline-block"
+                                              style="vertical-align: middle;"></span>
+                                        {{ annuncio.get_fascia_prezzo_display }}
+                                    </small>
                                     {% endif %}
                                 </div>
 
