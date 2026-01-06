@@ -652,9 +652,23 @@ def catene_scambio(request):
     # Ordina per lunghezza e punteggio
     catene_specifiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
 
-    # Aggiungi flag per i preferiti e hash se l'utente è autenticato
-    if request.user.is_authenticated:
-        for catena in catene_specifiche:
+    # Aggiungi flag per i preferiti, hash e fasce pari
+    for catena in catene_specifiche:
+        # Calcola se tutti gli annunci hanno la stessa fascia di prezzo
+        fasce = set()
+        for utente_info in catena.get('utenti', []):
+            # Raccogli le fasce da richiede e offerta
+            if utente_info.get('richiede') and hasattr(utente_info['richiede'], 'fascia_prezzo'):
+                if utente_info['richiede'].fascia_prezzo:
+                    fasce.add(utente_info['richiede'].fascia_prezzo)
+            if utente_info.get('offerta') and hasattr(utente_info['offerta'], 'fascia_prezzo'):
+                if utente_info['offerta'].fascia_prezzo:
+                    fasce.add(utente_info['offerta'].fascia_prezzo)
+
+        # Se c'è una sola fascia (o nessuna), gli scambi sono alla pari
+        catena['fasce_pari'] = len(fasce) <= 1
+
+        if request.user.is_authenticated:
             # Riordina la catena in modo che l'utente loggato sia sempre il primo
             riordina_catena_per_utente(catena, request.user)
 
@@ -1109,8 +1123,22 @@ def le_mie_catene(request):
         catene_alta_qualita.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
         catene_generiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
 
-        # Aggiungi flag per preferiti
+        # Aggiungi flag per preferiti e fasce pari
         for catena in catene_alta_qualita + catene_generiche:
+            # Calcola se tutti gli annunci hanno la stessa fascia di prezzo
+            fasce = set()
+            for utente_info in catena.get('utenti', []):
+                # Raccogli le fasce da richiede e offerta
+                if utente_info.get('richiede') and hasattr(utente_info['richiede'], 'fascia_prezzo'):
+                    if utente_info['richiede'].fascia_prezzo:
+                        fasce.add(utente_info['richiede'].fascia_prezzo)
+                if utente_info.get('offerta') and hasattr(utente_info['offerta'], 'fascia_prezzo'):
+                    if utente_info['offerta'].fascia_prezzo:
+                        fasce.add(utente_info['offerta'].fascia_prezzo)
+
+            # Se c'è una sola fascia (o nessuna), gli scambi sono alla pari
+            catena['fasce_pari'] = len(fasce) <= 1
+
             catena['is_favorita'] = is_catena_preferita(request.user, catena)
             catena['json_data'] = json.dumps(catena, default=str)
 
@@ -1234,9 +1262,23 @@ def le_mie_catene(request):
         catene_alta_qualita.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
         catene_generiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
 
-        # Aggiungi flag per i preferiti e hash se l'utente è autenticato
-        if request.user.is_authenticated:
-            for catena in catene_alta_qualita + catene_generiche:
+        # Aggiungi flag per i preferiti, hash e fasce pari
+        for catena in catene_alta_qualita + catene_generiche:
+            # Calcola se tutti gli annunci hanno la stessa fascia di prezzo
+            fasce = set()
+            for utente_info in catena.get('utenti', []):
+                # Raccogli le fasce da richiede e offerta
+                if utente_info.get('richiede') and hasattr(utente_info['richiede'], 'fascia_prezzo'):
+                    if utente_info['richiede'].fascia_prezzo:
+                        fasce.add(utente_info['richiede'].fascia_prezzo)
+                if utente_info.get('offerta') and hasattr(utente_info['offerta'], 'fascia_prezzo'):
+                    if utente_info['offerta'].fascia_prezzo:
+                        fasce.add(utente_info['offerta'].fascia_prezzo)
+
+            # Se c'è una sola fascia (o nessuna), gli scambi sono alla pari
+            catena['fasce_pari'] = len(fasce) <= 1
+
+            if request.user.is_authenticated:
                 catena['is_favorita'] = is_catena_preferita(request.user, catena)
                 catena['hash_catena'] = genera_hash_catena(catena)
                 # Converti la catena in JSON string per il template
