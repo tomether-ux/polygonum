@@ -324,8 +324,24 @@ def catene_scambio(request):
             'not_authenticated': True,  # Flag per mostrare avviso login
         })
 
+    # Check se richiesto clear session (pulsante Reset)
+    if request.GET.get('clear_session') == 'true':
+        request.session.pop('catene_loaded', None)
+        request.session.pop('catene_timestamp', None)
+        messages.info(request, 'Sessione resettata. Clicca "Cerca Catene" per una nuova ricerca.')
+
     # Check se richiesto caricamento catene
     load_chains = request.GET.get('load') == 'true'
+
+    # NUOVA LOGICA SESSIONE: Se l'utente ha già caricato catene in precedenza, ricarica automaticamente
+    has_session = request.session.get('catene_loaded', False)
+
+    # Se non è richiesto esplicitamente load ma c'è una sessione attiva, carica automaticamente
+    if not load_chains and has_session:
+        load_chains = True
+
+    # Controlla se c'è un ciclo_id specifico da evidenziare (per link da notifiche)
+    highlight_ciclo_id = request.GET.get('ciclo_id')
 
     # Controlla se è stato richiesto un filtro per annuncio specifico
     annuncio_id = request.GET.get('annuncio_id')
@@ -336,7 +352,7 @@ def catene_scambio(request):
         except Annuncio.DoesNotExist:
             pass
 
-    # Se non richiesto caricamento, mostra pagina vuota con solo il bottone
+    # Se non richiesto caricamento E non c'è sessione, mostra pagina vuota con solo il bottone
     if not load_chains:
         # Passa annunci utente per il filtro JavaScript (anche se non ci sono catene)
         miei_annunci = []
@@ -700,6 +716,12 @@ def catene_scambio(request):
             ).values_list('proposta__ciclo_id', flat=True)
         )
 
+    # SALVA IN SESSIONE: Catene caricate con successo
+    if len(catene_specifiche) > 0:
+        request.session['catene_loaded'] = True
+        from django.utils import timezone
+        request.session['catene_timestamp'] = timezone.now().isoformat()
+
     return render(request, 'scambi/catene_scambio.html', {
         'catene_specifiche': catene_specifiche,
         'catene_2': catene_2,
@@ -713,6 +735,8 @@ def catene_scambio(request):
         'miei_annunci': miei_annunci,
         'annuncio_selezionato': annuncio_selezionato,
         'cicli_interessati': cicli_interessati,  # IDs dei cicli per cui l'utente ha già mostrato interesse
+        'highlight_ciclo_id': highlight_ciclo_id,  # ID ciclo da evidenziare (per link notifiche)
+        'from_session': has_session and not request.GET.get('load'),  # Flag per indicare caricamento da sessione
     })
 
 # La funzione test_matching rimane uguale...
