@@ -176,6 +176,24 @@
         <!-- Main Content -->
         <div id="mainContent">
 
+            <!-- Banner informativo: catene caricate da sessione -->
+            {% if from_session and not highlight_ciclo_id %}
+            <div class="alert alert-info alert-dismissible fade show mb-4" role="alert">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Catene già caricate!</strong> Stai visualizzando le catene dalla tua ultima ricerca.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endif %}
+
+            <!-- Banner: scroll a catena specifica da notifica -->
+            {% if highlight_ciclo_id %}
+            <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                <i class="fas fa-bell me-2"></i>
+                <strong>Catena evidenziata!</strong> Scrolling alla catena dalla tua notifica...
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endif %}
+
             <!-- Sezione Catene Preferite (solo per 'Le mie catene') -->
             {% if personalizzato and catene_preferite %}
             <div class="mb-4">
@@ -327,11 +345,11 @@
                     <span id="buttonText">🔍 Cerca Catene</span>
                 </button>
                 {% if personalizzato %}
-                <a href="{% url 'le_mie_catene' %}" class="btn btn-outline-secondary ms-2">
+                <a href="{% url 'le_mie_catene' %}?clear_session=true" class="btn btn-outline-secondary ms-2">
                     <i class="fas fa-refresh me-2"></i>Reset
                 </a>
                 {% else %}
-                <a href="{% url 'catene_scambio' %}" class="btn btn-outline-secondary ms-2">
+                <a href="{% url 'catene_scambio' %}?clear_session=true" class="btn btn-outline-secondary ms-2">
                     <i class="fas fa-refresh me-2"></i>Reset
                 </a>
                 {% endif %}
@@ -2180,5 +2198,53 @@ document.addEventListener('DOMContentLoaded', function() {
         padding: 0.5rem 1rem !important;
     }
 }
+
+/* Evidenziazione catena da notifica */
+.highlight-chain {
+    animation: highlightPulse 2s ease-in-out;
+    border: 3px solid #4169E1 !important;
+}
+
+@keyframes highlightPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(65, 105, 225, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 20px rgba(65, 105, 225, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(65, 105, 225, 0);
+    }
+}
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Scroll automatico a catena specifica (per link da notifiche)
+    {% if highlight_ciclo_id %}
+    const targetCiclo = document.getElementById('ciclo-{{ highlight_ciclo_id }}');
+    if (targetCiclo) {
+        // Aggiungi classe per evidenziare
+        targetCiclo.classList.add('highlight-chain');
+
+        // Scroll con offset per navbar
+        setTimeout(() => {
+            const yOffset = -100; // Offset per navbar
+            const y = targetCiclo.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({top: y, behavior: 'smooth'});
+        }, 500);
+
+        // Rimuovi evidenziazione dopo 5 secondi
+        setTimeout(() => {
+            targetCiclo.classList.remove('highlight-chain');
+        }, 5000);
+    }
+    {% endif %}
+
+    // Messaggio informativo per caricamento da sessione
+    {% if from_session and not highlight_ciclo_id %}
+    console.log('🔄 Catene caricate dalla sessione precedente');
+    {% endif %}
+});
+</script>
 {% endblock %}
