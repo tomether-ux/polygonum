@@ -322,6 +322,7 @@ def catene_scambio(request):
             'miei_annunci': [],
             'annuncio_selezionato': None,
             'not_authenticated': True,  # Flag per mostrare avviso login
+            'cicli_interessati': set(),  # Set vuoto - utente non autenticato
         })
 
     # Check se richiesto clear session (pulsante Reset)
@@ -372,6 +373,7 @@ def catene_scambio(request):
             'miei_annunci': miei_annunci,
             'annuncio_selezionato': annuncio_selezionato,
             'empty_state': True,  # Flag per mostrare stato vuoto
+            'cicli_interessati': set(),  # Set vuoto - nessuna catena
         })
 
     # Check se richiesto ricalcolo parziale
@@ -709,8 +711,9 @@ def catene_scambio(request):
     cicli_interessati = set()
     if request.user.is_authenticated:
         from .models import RispostaProposta
+        # Converti in stringhe per match con id_ciclo nel template (che è stringa)
         cicli_interessati = set(
-            RispostaProposta.objects.filter(
+            str(cid) for cid in RispostaProposta.objects.filter(
                 utente=request.user,
                 risposta='interessato'
             ).values_list('proposta__ciclo_id', flat=True)
@@ -1178,6 +1181,15 @@ def le_mie_catene(request):
         catene_5 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 5]
         catene_6 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 6]
 
+        # Carica i cicli per cui l'utente ha già espresso interesse
+        from .models import RispostaProposta
+        cicli_interessati = set(
+            str(cid) for cid in RispostaProposta.objects.filter(
+                utente=request.user,
+                risposta='interessato'
+            ).values_list('proposta__ciclo_id', flat=True)
+        )
+
         context = {
             'catene_alta_qualita': catene_alta_qualita,
             'catene_generiche': catene_generiche,
@@ -1197,6 +1209,7 @@ def le_mie_catene(request):
             'catene_4': catene_4,
             'catene_5': catene_5,
             'catene_6': catene_6,
+            'cicli_interessati': cicli_interessati,  # Set di cicli dove l'utente ha espresso interesse
             'caricamento_db': True,  # Flag per indicare caricamento dal DB
         }
 
@@ -1322,6 +1335,15 @@ def le_mie_catene(request):
         catene_5 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 5]
         catene_6 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 6]
 
+        # Carica i cicli per cui l'utente ha già espresso interesse
+        from .models import RispostaProposta
+        cicli_interessati = set(
+            str(cid) for cid in RispostaProposta.objects.filter(
+                utente=request.user,
+                risposta='interessato'
+            ).values_list('proposta__ciclo_id', flat=True)
+        )
+
         context = {
             'catene_alta_qualita': catene_alta_qualita,
             'catene_generiche': catene_generiche,
@@ -1342,6 +1364,7 @@ def le_mie_catene(request):
             'catene_4': catene_4,
             'catene_5': catene_5,
             'catene_6': catene_6,
+            'cicli_interessati': cicli_interessati,  # Set di cicli dove l'utente ha espresso interesse
         }
 
     elif cerca_nuove and not ha_annunci:
@@ -1363,6 +1386,7 @@ def le_mie_catene(request):
             'personalizzato': True,
             'nessun_annuncio': True,
             'miei_annunci': annunci_utente,
+            'cicli_interessati': set(),  # Set vuoto - nessuna catena
         }
         messages.warning(request, 'Non hai annunci attivi! Pubblica un annuncio per trovare opportunità di scambio.')
     else:
@@ -1377,6 +1401,7 @@ def le_mie_catene(request):
             'ha_annunci': ha_annunci,
             'catene_preferite': catene_preferite,
             'miei_annunci': annunci_utente,
+            'cicli_interessati': set(),  # Set vuoto - nessuna catena
         }
 
     return render(request, 'scambi/catene_scambio.html', context)
@@ -2799,11 +2824,11 @@ def stato_proposta_catena(request, ciclo_id):
     """Vista per ottenere lo stato di una proposta per una catena (MVP)"""
     try:
         ciclo = get_object_or_404(CicloScambio, id=ciclo_id, valido=True)
-        
-        # Cerca proposta attiva per questa catena
+
+        # Cerca proposta per questa catena (include anche annullate/rifiutate per mostrare stato)
         proposta = PropostaCatena.objects.filter(
             ciclo=ciclo,
-            stato__in=['in_attesa', 'tutti_interessati']
+            stato__in=['in_attesa', 'tutti_interessati', 'annullata', 'rifiutata']
         ).first()
         
         if not proposta:

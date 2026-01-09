@@ -1049,13 +1049,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         badge.style.display = 'inline-flex';
                     });
 
-                    // Aggiorna tutti i bottoni se l'utente è interessato
+                    // Aggiorna tutti i bottoni in base alla risposta dell'utente
                     if (data.mia_risposta === 'interessato') {
                         buttons.forEach(btn => {
                             btn.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
                             btn.classList.add('interested');
                         });
-                        // Button rimane cliccabile per permettere toggle
+                    } else if (data.mia_risposta === 'non_interessato' || data.mia_risposta === 'in_attesa') {
+                        // Assicura che il pulsante sia nello stato default
+                        buttons.forEach(btn => {
+                            btn.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
+                            btn.classList.remove('interested');
+                        });
                     }
 
                     // Mostra scadenza se presente
