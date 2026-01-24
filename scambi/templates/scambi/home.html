@@ -389,13 +389,7 @@ main.container {
                     <div class="modern-card">
                         <!-- Immagine annuncio con angoli arrotondati -->
                         <div class="modern-card-img">
-                            {% if annuncio.immagine %}
-                                <img src="{{ annuncio.immagine.url }}" alt="{{ annuncio.titolo }}">
-                            {% else %}
-                                <div class="modern-card-placeholder">
-                                    <i class="fas fa-image"></i>
-                                </div>
-                            {% endif %}
+                            {% include 'scambi/partials/annuncio_thumbnail.html' with annuncio=annuncio css_class="" %}
                         </div>
                         <!-- Info essenziali -->
                         <div class="modern-card-info">
@@ -441,13 +435,7 @@ main.container {
                         <div class="modern-card">
                             <!-- Immagine annuncio con angoli arrotondati -->
                             <div class="modern-card-img">
-                                {% if annuncio.immagine %}
-                                    <img src="{{ annuncio.immagine.url }}" alt="{{ annuncio.titolo }}">
-                                {% else %}
-                                    <div class="modern-card-placeholder">
-                                        <i class="fas fa-image"></i>
-                                    </div>
-                                {% endif %}
+                                {% include 'scambi/partials/annuncio_thumbnail.html' with annuncio=annuncio css_class="" %}
                             </div>
                             <!-- Info essenziali -->
                             <div class="modern-card-info">
