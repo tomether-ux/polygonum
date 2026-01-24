@@ -242,7 +242,7 @@ LOGGING = {
 # Production settings
 if os.environ.get('RENDER'):
     DEBUG = False
-    ALLOWED_HOSTS = ['.onrender.com']
+    ALLOWED_HOSTS = ['.onrender.com', 'polygonum.io', 'www.polygonum.io']
 
     # Database in production
     import dj_database_url
@@ -260,7 +260,7 @@ if os.environ.get('RENDER'):
 
     # CSRF settings for HTTPS
     CSRF_COOKIE_SECURE = True
-    CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com']
+    CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com', 'https://polygonum.io', 'https://www.polygonum.io']
 
     # Session security
     SESSION_COOKIE_SECURE = True
