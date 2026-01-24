@@ -140,7 +140,7 @@ CLOUDINARY_MODERATION_ENABLED = os.environ.get('CLOUDINARY_MODERATION_ENABLED', 
 CLOUDINARY_MODERATION_KIND = 'aws_rek'  # AWS Rekognition per content moderation
 
 # Site URL per webhook (necessario per notification_url di Cloudinary)
-SITE_URL = os.environ.get('SITE_URL', 'https://polygonum.onrender.com')
+SITE_URL = os.environ.get('SITE_URL', 'https://polygonum.io')
 
 # DEBUG: Verifica variabili ambiente Cloudinary
 print("=" * 60)
@@ -179,7 +179,7 @@ EMAIL_PORT = 2525
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'apikey'
 EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY', '')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'polygonum.noreply@gmail.com')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@polygonum.io')
 
 # Admin email per moderazione contenuti
 ADMIN_MODERATION_EMAIL = os.environ.get('ADMIN_MODERATION_EMAIL', 'tom.ether@live.com')
