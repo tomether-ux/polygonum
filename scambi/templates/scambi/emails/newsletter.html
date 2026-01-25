@@ -31,9 +31,12 @@
                     <!-- Contenuto principale -->
                     <tr>
                         <td style="padding: 40px 30px;">
-                            <h2 style="color: #4169E1; margin-top: 0; font-size: 24px; font-family: 'Roboto', sans-serif;">Ciao {{ nome_utente }}! 👋</h2>
+                            <h2 style="margin-top: 0; font-size: 26px; font-family: 'Roboto', sans-serif;">
+                                <span style="color: #000000; font-weight: 400;">Ciao</span>
+                                <a href="{{ profilo_url }}" style="color: #4169E1; font-weight: 600; text-decoration: none;">{{ nome_utente }}</a><span style="color: #000000; font-weight: 400;">! 👋</span>
+                            </h2>
 
-                            <div style="color: #333333; font-size: 16px; line-height: 1.6;">
+                            <div style="color: #333333; font-size: 18px; line-height: 1.6;">
                                 {{ messaggio|safe }}
                             </div>
 
@@ -58,7 +61,7 @@
                             </table>
                             {% endif %}
 
-                            <p style="color: #666666; font-size: 14px; margin-top: 30px; font-family: 'Roboto', sans-serif;">
+                            <p style="color: #666666; font-size: 16px; margin-top: 30px; font-family: 'Roboto', sans-serif;">
                                 A presto,<br>
                                 <strong style="color: #4169E1;">Il team di Polygonum</strong>
                             </p>
@@ -68,17 +71,17 @@
                     <!-- Footer -->
                     <tr>
                         <td style="background-color: #f9f9f9; padding: 30px; text-align: center; border-top: 1px solid #e0e0e0;">
-                            <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">
+                            <p style="color: #999999; font-size: 14px; margin: 0 0 10px 0;">
                                 Hai ricevuto questa email perché sei registrato su Polygonum
                             </p>
-                            <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0; font-family: 'Roboto', sans-serif;">
+                            <p style="color: #999999; font-size: 14px; margin: 0 0 10px 0; font-family: 'Roboto', sans-serif;">
                                 <a href="https://polygonum.io" style="color: #4169E1; text-decoration: none;">polygonum.io</a>
                                 •
                                 <a href="https://polygonum.io/note-legali/" style="color: #4169E1; text-decoration: none;">Note Legali</a>
                                 •
                                 <a href="https://polygonum.io/termini-condizioni/" style="color: #4169E1; text-decoration: none;">Termini e Condizioni</a>
                             </p>
-                            <p style="color: #999999; font-size: 11px; margin: 0; font-family: 'Roboto', sans-serif;">
+                            <p style="color: #999999; font-size: 13px; margin: 0; font-family: 'Roboto', sans-serif;">
                                 Non vuoi più ricevere queste email?
                                 <a href="{{ unsubscribe_url }}" style="color: #6c757d; text-decoration: underline;">Disiscriviti qui</a>
                             </p>

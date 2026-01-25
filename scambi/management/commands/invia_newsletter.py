@@ -155,6 +155,7 @@ class Command(BaseCommand):
             # URL base
             base_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://polygonum.io')
             unsubscribe_url = f"{base_url}/newsletter/unsubscribe/{unsubscribe_token}/"
+            profilo_url = f"{base_url}/profilo/{user.username}/"
 
             # Prepara contesto per template
             context = {
@@ -164,6 +165,7 @@ class Command(BaseCommand):
                 'link_cta': options.get('link_cta', ''),
                 'testo_cta': options.get('testo_cta', 'Visita il sito'),
                 'unsubscribe_url': unsubscribe_url,
+                'profilo_url': profilo_url,
             }
 
             # Renderizza template HTML
