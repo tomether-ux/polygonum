@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
+from django.core.signing import Signer
+import os
 
 
 class Command(BaseCommand):
@@ -108,6 +110,9 @@ class Command(BaseCommand):
         # Filtra utenti
         users = User.objects.filter(is_active=True)
 
+        # Filtra solo utenti con newsletter abilitata
+        users = users.filter(userprofile__newsletter_enabled=True)
+
         if options['solo_verificati']:
             users = users.filter(userprofile__email_verified=True)
 
@@ -143,6 +148,14 @@ class Command(BaseCommand):
     def send_newsletter(self, user, options):
         """Invia la newsletter a un singolo utente"""
         try:
+            # Genera token firmato per unsubscribe
+            signer = Signer()
+            unsubscribe_token = signer.sign(str(user.id))
+
+            # URL base
+            base_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://polygonum.io')
+            unsubscribe_url = f"{base_url}/newsletter/unsubscribe/{unsubscribe_token}/"
+
             # Prepara contesto per template
             context = {
                 'nome_utente': user.username,
@@ -150,6 +163,7 @@ class Command(BaseCommand):
                 'messaggio': options['messaggio'],
                 'link_cta': options.get('link_cta', ''),
                 'testo_cta': options.get('testo_cta', 'Visita il sito'),
+                'unsubscribe_url': unsubscribe_url,
             }
 
             # Renderizza template HTML

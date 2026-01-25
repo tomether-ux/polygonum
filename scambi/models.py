@@ -666,6 +666,13 @@ class UserProfile(models.Model):
     email_verified = models.BooleanField(default=False, verbose_name="Email Verificata")
     email_verification_token = models.CharField(max_length=100, blank=True, null=True)
 
+    # Newsletter preferences
+    newsletter_enabled = models.BooleanField(
+        default=True,
+        verbose_name="Ricevi Newsletter",
+        help_text="Vuoi ricevere email dalla community Polygonum?"
+    )
+
     # Premium membership
     is_premium = models.BooleanField(default=False, verbose_name="Utente Premium")
     premium_scadenza = models.DateTimeField(null=True, blank=True, verbose_name="Scadenza Premium")

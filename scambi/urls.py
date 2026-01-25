@@ -128,4 +128,7 @@ urlpatterns = [
     path('privacy/', views.privacy_policy, name='privacy_policy'),
     path('cookie/', views.cookie_policy, name='cookie_policy'),
     path('note-legali/', views.note_legali, name='note_legali'),
+
+    # Newsletter
+    path('newsletter/unsubscribe/<str:token>/', views.newsletter_unsubscribe, name='newsletter_unsubscribe'),
 ]

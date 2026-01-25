@@ -3353,3 +3353,38 @@ def cookie_policy(request):
 def note_legali(request):
     """Note Legali"""
     return render(request, 'scambi/note_legali.html')
+
+
+# === NEWSLETTER UNSUBSCRIBE ===
+
+def newsletter_unsubscribe(request, token):
+    """
+    Gestisce la disiscrizione dalla newsletter tramite token firmato
+    URL: /newsletter/unsubscribe/<token>/
+    """
+    from django.core.signing import Signer, BadSignature
+    from django.contrib.auth.models import User
+    from .models import UserProfile
+    from django.shortcuts import render, redirect
+
+    try:
+        # Verifica il token
+        signer = Signer()
+        user_id = signer.unsign(token)
+
+        # Trova l'utente
+        user = User.objects.get(id=user_id)
+        profile = user.userprofile
+
+        # Disabilita newsletter
+        profile.newsletter_enabled = False
+        profile.save()
+
+        return render(request, 'scambi/newsletter_unsubscribe_success.html', {
+            'user': user,
+        })
+
+    except (BadSignature, User.DoesNotExist, UserProfile.DoesNotExist):
+        return render(request, 'scambi/newsletter_unsubscribe_error.html', {
+            'error': 'Link non valido o scaduto'
+        })
