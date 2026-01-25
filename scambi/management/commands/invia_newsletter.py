@@ -3,8 +3,6 @@ from django.contrib.auth.models import User
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
-import cloudinary.uploader
-import os
 
 
 class Command(BaseCommand):
@@ -56,10 +54,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('📧 INVIO NEWSLETTER POLYGONUM'))
         self.stdout.write("=" * 60 + "\n")
 
-        # 1. Upload logo su Cloudinary (se non già fatto)
-        logo_url = self.get_or_upload_logo()
-
-        # 2. Ottieni lista utenti
+        # 1. Ottieni lista utenti
         users = self.get_users(options)
 
         if not users:
@@ -85,7 +80,7 @@ class Command(BaseCommand):
 
         for user in users:
             try:
-                if self.send_newsletter(user, logo_url, options):
+                if self.send_newsletter(user, options):
                     sent_count += 1
                 else:
                     failed_count += 1
@@ -100,29 +95,6 @@ class Command(BaseCommand):
         if failed_count > 0:
             self.stdout.write(self.style.WARNING(f"  ⚠️  Fallite: {failed_count}"))
         self.stdout.write("=" * 60 + "\n")
-
-    def get_or_upload_logo(self):
-        """Ottiene l'URL del logo, uploadandolo su Cloudinary se necessario"""
-        try:
-            # Prova a verificare se il logo esiste già su Cloudinary
-            logo_public_id = "brand/polygonum-logo"
-
-            # Costruisci URL Cloudinary
-            cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME')
-            if cloud_name:
-                logo_url = f"https://res.cloudinary.com/{cloud_name}/image/upload/{logo_public_id}.png"
-                self.stdout.write(f"🖼️  Logo URL: {logo_url}")
-                return logo_url
-            else:
-                # Fallback: usa logo dal sito
-                logo_url = "https://polygonum.io/static/img/polygonum-logo.png"
-                self.stdout.write(self.style.WARNING(f"⚠️  Cloudinary non configurato, uso logo dal sito"))
-                self.stdout.write(f"🖼️  Logo URL: {logo_url}")
-                return logo_url
-
-        except Exception as e:
-            self.stdout.write(self.style.WARNING(f"⚠️  Errore logo Cloudinary: {e}"))
-            return "https://polygonum.io/static/img/polygonum-logo.png"
 
     def get_users(self, options):
         """Ottiene la lista di utenti a cui inviare"""
@@ -168,7 +140,7 @@ class Command(BaseCommand):
         if len(users) > 5:
             self.stdout.write(f"  ... e altri {len(users) - 5} utenti")
 
-    def send_newsletter(self, user, logo_url, options):
+    def send_newsletter(self, user, options):
         """Invia la newsletter a un singolo utente"""
         try:
             # Prepara contesto per template
@@ -176,7 +148,6 @@ class Command(BaseCommand):
                 'nome_utente': user.username,
                 'oggetto': options['oggetto'],
                 'messaggio': options['messaggio'],
-                'logo_url': logo_url,
                 'link_cta': options.get('link_cta', ''),
                 'testo_cta': options.get('testo_cta', 'Visita il sito'),
             }

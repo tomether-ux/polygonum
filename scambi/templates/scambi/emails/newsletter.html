@@ -4,25 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ oggetto }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
-<body style="margin: 0; padding: 0; font-family: 'Arial', 'Helvetica', sans-serif; background-color: #f4f4f4;">
+<body style="margin: 0; padding: 0; font-family: 'Roboto', 'Arial', sans-serif; background-color: #f4f4f4;">
     <table role="presentation" style="width: 100%; border-collapse: collapse;">
         <tr>
             <td align="center" style="padding: 40px 0;">
                 <table role="presentation" style="width: 600px; max-width: 100%; border-collapse: collapse; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
 
-                    <!-- Header con logo e gradiente -->
+                    <!-- Header con logo e gradiente blu Polygonum -->
                     <tr>
-                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
-                            <img src="{{ logo_url }}" alt="POLYGONUM" style="height: 40px; width: auto; margin-bottom: 10px;">
-                            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">POLYGONUM</h1>
+                        <td style="background: linear-gradient(135deg, #4169E1 0%, #2E4BC7 100%); padding: 20px 30px;">
+                            <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="vertical-align: middle; text-align: left;">
+                                        <img src="https://polygonum.io/static/img/polygonum-logo.png" alt="POLYGONUM" style="height: 28px; width: auto; vertical-align: middle; margin-right: 15px; display: inline-block;">
+                                        <span style="color: #ffffff; font-size: 1.8rem; font-weight: 500; font-family: 'Roboto', sans-serif; vertical-align: middle; display: inline-block;">POLYGONUM</span>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
 
                     <!-- Contenuto principale -->
                     <tr>
                         <td style="padding: 40px 30px;">
-                            <h2 style="color: #667eea; margin-top: 0; font-size: 24px;">Ciao {{ nome_utente }}! 👋</h2>
+                            <h2 style="color: #4169E1; margin-top: 0; font-size: 24px; font-family: 'Roboto', sans-serif;">Ciao {{ nome_utente }}! 👋</h2>
 
                             <div style="color: #333333; font-size: 16px; line-height: 1.6;">
                                 {{ messaggio|safe }}
@@ -33,14 +40,15 @@
                                 <tr>
                                     <td style="text-align: center;">
                                         <a href="{{ link_cta }}"
-                                           style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                           style="background: linear-gradient(135deg, #4169E1 0%, #2E4BC7 100%);
                                                   color: #ffffff;
                                                   padding: 15px 40px;
                                                   text-decoration: none;
                                                   border-radius: 8px;
                                                   font-weight: bold;
+                                                  font-family: 'Roboto', sans-serif;
                                                   display: inline-block;
-                                                  box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">
+                                                  box-shadow: 0 4px 6px rgba(65, 105, 225, 0.3);">
                                             {{ testo_cta|default:"Visita il sito" }}
                                         </a>
                                     </td>
@@ -48,9 +56,9 @@
                             </table>
                             {% endif %}
 
-                            <p style="color: #666666; font-size: 14px; margin-top: 30px;">
+                            <p style="color: #666666; font-size: 14px; margin-top: 30px; font-family: 'Roboto', sans-serif;">
                                 A presto,<br>
-                                <strong style="color: #667eea;">Il team di Polygonum</strong>
+                                <strong style="color: #4169E1;">Il team di Polygonum</strong>
                             </p>
                         </td>
                     </tr>
@@ -61,12 +69,12 @@
                             <p style="color: #999999; font-size: 12px; margin: 0 0 10px 0;">
                                 Hai ricevuto questa email perché sei registrato su Polygonum
                             </p>
-                            <p style="color: #999999; font-size: 12px; margin: 0;">
-                                <a href="https://polygonum.io" style="color: #667eea; text-decoration: none;">polygonum.io</a>
+                            <p style="color: #999999; font-size: 12px; margin: 0; font-family: 'Roboto', sans-serif;">
+                                <a href="https://polygonum.io" style="color: #4169E1; text-decoration: none;">polygonum.io</a>
                                 •
-                                <a href="https://polygonum.io/note-legali/" style="color: #667eea; text-decoration: none;">Note Legali</a>
+                                <a href="https://polygonum.io/note-legali/" style="color: #4169E1; text-decoration: none;">Note Legali</a>
                                 •
-                                <a href="https://polygonum.io/termini-condizioni/" style="color: #667eea; text-decoration: none;">Termini e Condizioni</a>
+                                <a href="https://polygonum.io/termini-condizioni/" style="color: #4169E1; text-decoration: none;">Termini e Condizioni</a>
                             </p>
                         </td>
                     </tr>
