@@ -88,6 +88,68 @@
                             </table>
                             {% endif %}
 
+                            <!-- Annunci in evidenza -->
+                            {% if annunci_evidenza %}
+                            <div style="margin: 50px 0 30px 0;">
+                                <h3 style="color: #4169E1; font-size: 20px; font-family: 'Roboto', sans-serif; margin-bottom: 20px;">
+                                    🔥 Annunci in evidenza
+                                </h3>
+                                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                                    <tr>
+                                        {% for annuncio in annunci_evidenza %}
+                                        {% if forloop.counter0 < 4 %}
+                                        <td style="width: 25%; padding: 10px; vertical-align: top;">
+                                            <a href="{{ annuncio.url }}" style="text-decoration: none; display: block;">
+                                                <img src="{{ annuncio.thumbnail_url }}" alt="{{ annuncio.titolo }}"
+                                                     style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;">
+                                                <p style="color: #333333; font-size: 14px; margin: 0 0 4px 0; font-weight: 500; line-height: 1.3;">
+                                                    {{ annuncio.titolo|truncatechars:40 }}
+                                                </p>
+                                                <p style="color: #999999; font-size: 12px; margin: 0;">
+                                                    {{ annuncio.username }}
+                                                </p>
+                                            </a>
+                                        </td>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </tr>
+                                </table>
+                            </div>
+                            {% endif %}
+
+                            <!-- Tip della settimana -->
+                            {% if tip %}
+                            <div style="background: linear-gradient(135deg, #E8F0FE 0%, #D6E4FF 100%); padding: 20px; border-radius: 8px; border-left: 4px solid #4169E1; margin: 30px 0;">
+                                <h4 style="color: #4169E1; font-size: 16px; font-family: 'Roboto', sans-serif; margin: 0 0 10px 0; font-weight: 600;">
+                                    {{ tip.titolo }}
+                                </h4>
+                                <p style="color: #333333; font-size: 14px; margin: 0; line-height: 1.6;">
+                                    {{ tip.testo }}
+                                </p>
+                            </div>
+                            {% endif %}
+
+                            <!-- CTA Pubblica Annuncio -->
+                            <table role="presentation" style="margin: 40px 0 30px 0; width: 100%;">
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <a href="{{ crea_annuncio_url }}"
+                                           style="background: linear-gradient(135deg, #4169E1 0%, #2E4BC7 100%);
+                                                  color: #ffffff;
+                                                  padding: 18px 50px;
+                                                  text-decoration: none;
+                                                  border-radius: 8px;
+                                                  font-weight: bold;
+                                                  font-size: 16px;
+                                                  font-family: 'Roboto', sans-serif;
+                                                  display: inline-block;
+                                                  box-shadow: 0 4px 8px rgba(65, 105, 225, 0.4);">
+                                            ➕ Pubblica un annuncio
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
                             <p style="color: #666666; font-size: 16px; margin-top: 30px; font-family: 'Roboto', sans-serif;" class="mobile-signature">
                                 A presto,<br>
                                 <strong style="color: #4169E1;">Il team di Polygonum</strong>
