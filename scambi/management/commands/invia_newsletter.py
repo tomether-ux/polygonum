@@ -26,18 +26,6 @@ class Command(BaseCommand):
             help='Corpo del messaggio (HTML supportato)'
         )
         parser.add_argument(
-            '--link-cta',
-            type=str,
-            default='',
-            help='Link per il bottone Call-To-Action (opzionale)'
-        )
-        parser.add_argument(
-            '--testo-cta',
-            type=str,
-            default='Visita il sito',
-            help='Testo del bottone CTA (default: "Visita il sito")'
-        )
-        parser.add_argument(
             '--dry-run',
             action='store_true',
             help='Simula l\'invio senza inviare realmente le email'
@@ -135,9 +123,6 @@ class Command(BaseCommand):
         if options['solo_verificati']:
             self.stdout.write("  ✅ Solo utenti verificati")
 
-        if options['link_cta']:
-            self.stdout.write(f"  🔗 CTA: {options['testo_cta']} → {options['link_cta']}")
-
         # Mostra primi 5 destinatari
         self.stdout.write(f"\n👥 Primi destinatari:")
         for user in users[:5]:
@@ -186,11 +171,10 @@ class Command(BaseCommand):
                 'nome_utente': user.username,
                 'oggetto': options['oggetto'],
                 'messaggio': options['messaggio'],
-                'link_cta': options.get('link_cta', ''),
-                'testo_cta': options.get('testo_cta', 'Visita il sito'),
                 'unsubscribe_url': unsubscribe_url,
                 'profilo_url': profilo_url,
                 'crea_annuncio_url': crea_annuncio_url,
+                'base_url': base_url,
                 'tip': tip,
                 'annunci_evidenza': annunci_data,
             }

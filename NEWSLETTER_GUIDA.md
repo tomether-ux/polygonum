@@ -7,8 +7,6 @@
 python manage.py invia_newsletter \
   --oggetto "Polygonum cambia indirizzo!" \
   --messaggio "<p>Polygonum ha un nuovo indirizzo: <strong>polygonum.io</strong>!</p><p>Aggiorna i tuoi bookmark e continua a scambiare con la community.</p>" \
-  --link-cta "https://polygonum.io" \
-  --testo-cta "Visita il nuovo sito" \
   --dry-run
 ```
 
@@ -23,8 +21,8 @@ python manage.py invia_newsletter \
 ### 3. Invio REALE a tutti
 ```bash
 python manage.py invia_newsletter \
-  --oggetto "Polygonum cambia indirizzo!" \
-  --messaggio "<p>Ciao! Polygonum ha un nuovo indirizzo...</p>"
+  --oggetto "Novità su Polygonum!" \
+  --messaggio "<p>Ciao! Abbiamo grandi novità da condividere con te...</p>"
 ```
 
 ### 4. Solo utenti con email verificata
@@ -41,28 +39,27 @@ python manage.py invia_newsletter \
 |-----------|------|--------------|-------------|
 | `--oggetto` | Testo | ✅ Sì | Oggetto della email |
 | `--messaggio` | HTML | ✅ Sì | Corpo del messaggio (HTML supportato) |
-| `--link-cta` | URL | ❌ No | Link per il bottone Call-To-Action |
-| `--testo-cta` | Testo | ❌ No | Testo del bottone (default: "Visita il sito") |
 | `--dry-run` | Flag | ❌ No | Simula senza inviare |
 | `--solo-verificati` | Flag | ❌ No | Solo utenti con email verificata |
 | `--test-email` | Email | ❌ No | Invia solo a questo indirizzo |
+
+## Contenuti automatici inclusi
+
+La newsletter include automaticamente:
+- **Saluto personalizzato** con link al profilo utente
+- **Firma** del team Polygonum
+- **CTA "Pubblica un annuncio"** → link a /crea-annuncio/
+- **TIPS casuale** (10 tips a rotazione)
+- **Annunci in evidenza** (ultimi 4 con immagini)
+- **CTA "Tutti gli annunci"** → link a /annunci/
+- **Link di disiscrizione** nel footer
 
 ## Esempio messaggio HTML personalizzato
 
 ```bash
 python manage.py invia_newsletter \
-  --oggetto "🎉 Novità su Polygonum!" \
-  --messaggio "
-<p>Abbiamo grandi novità per te:</p>
-<ul>
-  <li><strong>Nuovo dominio:</strong> polygonum.io</li>
-  <li><strong>Design migliorato</strong></li>
-  <li><strong>Nuove funzionalità</strong></li>
-</ul>
-<p>Continua a scambiare con la community!</p>
-" \
-  --link-cta "https://polygonum.io" \
-  --testo-cta "Scopri di più"
+  --oggetto "Novità su Polygonum!" \
+  --messaggio "<p>Abbiamo grandi novità per te:</p><ul><li><strong>Nuovo dominio:</strong> polygonum.io</li><li><strong>Design migliorato</strong></li><li><strong>Nuove funzionalità</strong></li></ul><p>Continua a scambiare con la community!</p>"
 ```
 
 ## Come eseguire su Render
