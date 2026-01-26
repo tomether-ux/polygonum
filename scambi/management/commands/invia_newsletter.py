@@ -4,6 +4,8 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.core.signing import Signer
+from .newsletter_tips import get_random_tip
+from scambi.models import Annuncio
 import os
 
 
@@ -156,6 +158,28 @@ class Command(BaseCommand):
             base_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://polygonum.io')
             unsubscribe_url = f"{base_url}/newsletter/unsubscribe/{unsubscribe_token}/"
             profilo_url = f"{base_url}/profilo/{user.username}/"
+            crea_annuncio_url = f"{base_url}/crea-annuncio/"
+
+            # Prendi tip casuale
+            tip = get_random_tip()
+
+            # Prendi ultimi 4 annunci in evidenza (con immagine, approvati)
+            annunci_evidenza = Annuncio.objects.filter(
+                attivo=True,
+                moderation_status='approved',
+                immagine__isnull=False
+            ).exclude(immagine='').order_by('-data_creazione')[:4]
+
+            # Prepara dati annunci per template
+            annunci_data = []
+            for annuncio in annunci_evidenza:
+                annunci_data.append({
+                    'id': annuncio.id,
+                    'titolo': annuncio.titolo,
+                    'thumbnail_url': annuncio.get_thumbnail_url(),
+                    'username': annuncio.utente.username,
+                    'url': f"{base_url}/annuncio/{annuncio.id}/",
+                })
 
             # Prepara contesto per template
             context = {
@@ -166,6 +190,9 @@ class Command(BaseCommand):
                 'testo_cta': options.get('testo_cta', 'Visita il sito'),
                 'unsubscribe_url': unsubscribe_url,
                 'profilo_url': profilo_url,
+                'crea_annuncio_url': crea_annuncio_url,
+                'tip': tip,
+                'annunci_evidenza': annunci_data,
             }
 
             # Renderizza template HTML
