@@ -15,7 +15,7 @@ python manage.py invia_newsletter \
 python manage.py invia_newsletter \
   --oggetto "Test Newsletter" \
   --messaggio "<p>Questa è una prova</p>" \
-  --test-email "tom.ether@live.com"
+  --test-email "admin@polygonum.io"
 ```
 
 ### 3. Invio REALE a tutti
