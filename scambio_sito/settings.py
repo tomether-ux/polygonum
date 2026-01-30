@@ -182,7 +182,7 @@ EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@polygonum.io')
 
 # Admin email per moderazione contenuti
-ADMIN_MODERATION_EMAIL = os.environ.get('ADMIN_MODERATION_EMAIL', 'polygonum.noreply@gmail.com')
+ADMIN_MODERATION_EMAIL = os.environ.get('ADMIN_MODERATION_EMAIL', 'tom.ether@live.com')
 
 # Email backend logic
 if os.environ.get('SENDGRID_API_KEY'):
