@@ -344,6 +344,10 @@ def catene_scambio(request):
     # Controlla se c'è un ciclo_id specifico da evidenziare (per link da notifiche)
     highlight_ciclo_id = request.GET.get('ciclo_id')
 
+    # Se c'è un ciclo_id specifico (da notifica), abilita auto-load
+    if highlight_ciclo_id and not load_chains:
+        load_chains = True
+
     # Controlla se è stato richiesto un filtro per annuncio specifico
     annuncio_id = request.GET.get('annuncio_id')
     annuncio_selezionato = None
