@@ -2229,15 +2229,32 @@ document.addEventListener('DOMContentLoaded', function() {
     {% if highlight_ciclo_id %}
     const targetCiclo = document.getElementById('ciclo-{{ highlight_ciclo_id }}');
     if (targetCiclo) {
+        // Trova il gruppo parent (group-2, group-3, etc.)
+        const groupContent = targetCiclo.closest('.chain-group-content');
+        if (groupContent) {
+            const groupId = groupContent.id; // es: 'group-3'
+            const chainGroup = groupContent.closest('.chain-group');
+            const header = chainGroup.querySelector('.chain-group-header');
+            const chevron = header.querySelector('.chevron-icon');
+
+            // Apri il gruppo se è chiuso
+            if (!groupContent.style.maxHeight || groupContent.style.maxHeight === '0px') {
+                groupContent.style.maxHeight = groupContent.scrollHeight + 'px';
+                chevron.style.transform = 'rotate(180deg)';
+                chainGroup.classList.add('expanded');
+                console.log('📂 Gruppo', groupId, 'aperto automaticamente');
+            }
+        }
+
         // Aggiungi classe per evidenziare
         targetCiclo.classList.add('highlight-chain');
 
-        // Scroll con offset per navbar
+        // Scroll con offset per navbar (aumentato timeout per dare tempo al gruppo di aprirsi)
         setTimeout(() => {
             const yOffset = -100; // Offset per navbar
             const y = targetCiclo.getBoundingClientRect().top + window.pageYOffset + yOffset;
             window.scrollTo({top: y, behavior: 'smooth'});
-        }, 500);
+        }, 600);
 
         // Rimuovi evidenziazione dopo 5 secondi
         setTimeout(() => {
