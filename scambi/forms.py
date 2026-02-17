@@ -127,7 +127,7 @@ class AnnuncioForm(forms.ModelForm):
             'tipo': 'Tipo annuncio',
             'cerca_per_categoria': 'Cerco qualsiasi cosa in questa categoria',
             'immagine': 'Foto dell\'oggetto (opzionale)',
-            'fascia_prezzo': 'Fascia di valore (opzionale)',
+            'fascia_prezzo': 'Fascia di valore dell\'oggetto *',
             'condizione': 'Condizioni dell\'oggetto',
             'metodo_scambio': 'Come preferisci scambiare?',
             'distanza_massima_km': 'Distanza massima per incontro (km)'
@@ -161,6 +161,11 @@ class AnnuncioForm(forms.ModelForm):
                 self.add_error('titolo', 'Il titolo è obbligatorio.')
             elif len(titolo.strip()) < 3:
                 self.add_error('titolo', 'Il titolo deve contenere almeno 3 caratteri per permettere il matching con altri annunci.')
+
+        # Fascia di valore obbligatoria
+        fascia_prezzo = cleaned_data.get('fascia_prezzo')
+        if not fascia_prezzo:
+            self.add_error('fascia_prezzo', 'Inserisci la fascia di valore dell\'oggetto.')
 
         # Validazione contenuto testuale (parole vietate e pattern inappropriati)
         if titolo or descrizione:
