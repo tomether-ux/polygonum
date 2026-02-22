@@ -207,6 +207,9 @@
                         <li><a class="dropdown-item" href="{% url 'profilo_utente' user.username %}">
                             <i class="fas fa-user me-2"></i>Il Mio Profilo
                         </a></li>
+                        <li><a class="dropdown-item" href="{% url 'miei_annunci' %}">
+                            <i class="fas fa-bullhorn me-2"></i>I Miei Annunci
+                        </a></li>
                         <li><a class="dropdown-item" href="{% url 'lista_preferiti' %}">
                             <i class="fas fa-heart me-2"></i>I Miei Preferiti
                         </a></li>
@@ -416,6 +419,9 @@
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="{% url 'profilo_utente' user.username %}">
                                     <i class="fas fa-user me-2"></i>Il Mio Profilo
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'miei_annunci' %}">
+                                    <i class="fas fa-bullhorn me-2"></i>I Miei Annunci
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{% url 'lista_preferiti' %}">

@@ -6,6 +6,7 @@ from .views import register, CustomLoginView, verify_email, profilo_utente, modi
 urlpatterns = [
     path('', views.home, name='home'),
     path('annunci/', views.lista_annunci, name='lista_annunci'),
+    path('miei-annunci/', views.miei_annunci, name='miei_annunci'),
     path('annuncio/<int:annuncio_id>/', views.dettaglio_annuncio, name='dettaglio_annuncio'),
     path('crea-annuncio/', views.crea_annuncio, name='crea_annuncio'),
     path('modifica-annuncio/<int:annuncio_id>/', views.modifica_annuncio, name='modifica_annuncio'),
