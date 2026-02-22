@@ -131,21 +131,55 @@ def lista_annunci(request):
     """Mostra tutti gli annunci"""
     tipo_filtro = request.GET.get('tipo')
     categoria_filtro = request.GET.get('categoria')
-    
+
     annunci = Annuncio.objects.filter(attivo=True)
-    
+
     if tipo_filtro:
         annunci = annunci.filter(tipo=tipo_filtro)
     if categoria_filtro:
         annunci = annunci.filter(categoria_id=categoria_filtro)
-    
+
     categorie = Categoria.objects.all()
-    
+
     return render(request, 'scambi/lista_annunci.html', {
         'annunci': annunci,
         'categorie': categorie,
         'tipo_filtro': tipo_filtro,
         'categoria_filtro': categoria_filtro
+    })
+
+@login_required
+def miei_annunci(request):
+    """Mostra tutti gli annunci dell'utente corrente"""
+    tipo_filtro = request.GET.get('tipo')
+    categoria_filtro = request.GET.get('categoria')
+    stato_filtro = request.GET.get('stato', 'attivi')  # Default: mostra solo annunci attivi
+
+    # Filtra per utente corrente
+    annunci = Annuncio.objects.filter(utente=request.user)
+
+    # Filtro per stato (attivi/disattivati/tutti)
+    if stato_filtro == 'attivi':
+        annunci = annunci.filter(attivo=True)
+    elif stato_filtro == 'disattivati':
+        annunci = annunci.filter(attivo=False)
+    # Se stato_filtro == 'tutti', non filtra per attivo
+
+    if tipo_filtro:
+        annunci = annunci.filter(tipo=tipo_filtro)
+    if categoria_filtro:
+        annunci = annunci.filter(categoria_id=categoria_filtro)
+
+    annunci = annunci.order_by('-data_creazione')
+
+    categorie = Categoria.objects.all()
+
+    return render(request, 'scambi/miei_annunci.html', {
+        'annunci': annunci,
+        'categorie': categorie,
+        'tipo_filtro': tipo_filtro,
+        'categoria_filtro': categoria_filtro,
+        'stato_filtro': stato_filtro
     })
 
 def dettaglio_annuncio(request, annuncio_id):

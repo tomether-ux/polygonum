@@ -1,6 +1,6 @@
 {% extends 'scambi/base.html' %}
 
-{% block title %}Annunci - Polygonum{% endblock %}
+{% block title %}I Miei Annunci - Polygonum{% endblock %}
 
 {% block content %}
 <!-- Header Section -->
@@ -9,19 +9,14 @@
         <div class="row align-items-center">
             <div class="col-lg-6">
                 <h1 class="display-5 fw-bold text-polygonum-primary mb-2">
-                    Tutti gli Annunci
+                    I Miei Annunci
                 </h1>
-                <p class="lead text-muted mb-0">Scopri cosa offrono e cercano gli altri utenti</p>
+                <p class="lead text-muted mb-0">Gestisci i tuoi annunci di scambio</p>
             </div>
             <div class="col-lg-6 text-lg-end">
                 <div class="d-flex flex-column flex-sm-row gap-2 justify-content-lg-end">
-                    {% if user.is_authenticated %}
-                    <a href="{% url 'miei_annunci' %}" class="btn btn-outline-secondary btn-lg d-flex align-items-center justify-content-center">
-                        <i class="fas fa-bullhorn me-2"></i>I Miei Annunci
-                    </a>
-                    {% endif %}
-                    <a href="{% url 'ricerca_annunci' %}" class="btn btn-outline-primary btn-lg d-flex align-items-center justify-content-center">
-                        <i class="fas fa-search me-2"></i>Ricerca Avanzata
+                    <a href="{% url 'lista_annunci' %}" class="btn btn-outline-secondary btn-lg d-flex align-items-center justify-content-center">
+                        <i class="fas fa-list me-2"></i>Tutti gli Annunci
                     </a>
                     <a href="{% url 'crea_annuncio' %}" class="btn btn-primary btn-lg d-flex align-items-center justify-content-center">
                         <i class="fas fa-plus me-2"></i>Crea Nuovo Annuncio
@@ -36,7 +31,15 @@
 <section class="py-4 border-bottom">
     <div class="container">
         <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <label for="stato" class="form-label">Stato Annuncio</label>
+                <select name="stato" id="stato" class="form-select">
+                    <option value="attivi" {% if stato_filtro == 'attivi' %}selected{% endif %}>Solo Attivi</option>
+                    <option value="disattivati" {% if stato_filtro == 'disattivati' %}selected{% endif %}>Solo Disattivati</option>
+                    <option value="tutti" {% if stato_filtro == 'tutti' %}selected{% endif %}>Tutti</option>
+                </select>
+            </div>
+            <div class="col-md-3">
                 <label for="tipo" class="form-label">Tipo Annuncio</label>
                 <select name="tipo" id="tipo" class="form-select">
                     <option value="">Tutti i tipi</option>
@@ -44,7 +47,7 @@
                     <option value="cerco" {% if tipo_filtro == 'cerco' %}selected{% endif %}>Solo Cerco</option>
                 </select>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label for="categoria" class="form-label">Categoria</label>
                 <select name="categoria" id="categoria" class="form-select">
                     <option value="">Tutte le categorie</option>
@@ -55,12 +58,12 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-filter me-2"></i>Filtra
                     </button>
-                    <a href="{% url 'lista_annunci' %}" class="btn btn-outline-secondary">
+                    <a href="{% url 'miei_annunci' %}" class="btn btn-outline-secondary">
                         <i class="fas fa-times me-2"></i>Reset
                     </a>
                 </div>
@@ -88,23 +91,25 @@
             <!-- Grid Annunci -->
             <div class="row g-4">
                 {% for annuncio in annunci %}
-                <div class="col-6 col-md-6 col-lg-4">
-                    <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none">
-                        <div class="modern-card">
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="modern-card {% if not annuncio.attivo %}modern-card-disabled{% endif %}">
+                        <!-- Link al dettaglio annuncio -->
+                        <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none">
                             <!-- Immagine annuncio con angoli arrotondati -->
                             <div class="modern-card-img">
                                 {% include 'scambi/partials/annuncio_thumbnail.html' with annuncio=annuncio css_class="" %}
+                                {% if not annuncio.attivo %}
+                                <div class="card-overlay">
+                                    <span class="badge bg-warning text-dark">Disattivato</span>
+                                </div>
+                                {% endif %}
                             </div>
                             <!-- Info essenziali -->
                             <div class="modern-card-info">
                                 <h6 class="modern-card-title">{{ annuncio.titolo|truncatechars:40 }}</h6>
                                 <p class="modern-card-description">{{ annuncio.descrizione|truncatechars:60 }}</p>
                                 <div class="modern-card-details">
-                                    {% if annuncio.utente.userprofile.citta %}
-                                    <span class="detail-item">{{ annuncio.utente.userprofile.citta }} ({{ annuncio.utente.userprofile.provincia_obj.sigla }})</span>
-                                    {% else %}
                                     <span class="detail-item">{{ annuncio.categoria.nome }}</span>
-                                    {% endif %}
                                     {% if annuncio.fascia_prezzo %}
                                     <span class="detail-item">
                                         <span class="fascia-badge-small fascia-{{ annuncio.fascia_prezzo }}"
@@ -113,10 +118,29 @@
                                     </span>
                                     {% endif %}
                                 </div>
-                                <div class="modern-card-user">{{ annuncio.utente.username }}</div>
+                                <div class="modern-card-user">Creato il {{ annuncio.data_creazione|date:"d/m/Y" }}</div>
                             </div>
+                        </a>
+
+                        <!-- Pulsanti Azioni -->
+                        <div class="card-actions">
+                            <a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-sm btn-outline-primary" title="Modifica">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% if annuncio.attivo %}
+                            <a href="{% url 'disattiva_annuncio' annuncio.id %}" class="btn btn-sm btn-outline-warning" title="Disattiva" onclick="return confirm('Sei sicuro di voler disattivare questo annuncio?')">
+                                <i class="fas fa-eye-slash"></i>
+                            </a>
+                            {% else %}
+                            <a href="{% url 'attiva_annuncio' annuncio.id %}" class="btn btn-sm btn-outline-success" title="Attiva">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'elimina_annuncio' annuncio.id %}" class="btn btn-sm btn-outline-danger" title="Elimina" onclick="return confirm('Sei sicuro di voler eliminare questo annuncio? Questa azione è irreversibile.')">
+                                <i class="fas fa-trash"></i>
+                            </a>
                         </div>
-                    </a>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -125,15 +149,15 @@
             <!-- Empty State -->
             <div class="text-center py-5">
                 <div class="bg-light rounded-3 p-5 mx-auto" style="max-width: 500px;">
-                    <i class="fas fa-search fa-3x text-muted mb-4"></i>
+                    <i class="fas fa-inbox fa-3x text-muted mb-4"></i>
                     <h4 class="text-muted mb-3">Nessun annuncio trovato</h4>
-                    <p class="text-muted mb-4">Non ci sono annunci che corrispondono ai tuoi filtri.</p>
+                    <p class="text-muted mb-4">Non hai ancora creato annunci o non ci sono annunci che corrispondono ai tuoi filtri.</p>
                     <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
-                        <a href="{% url 'lista_annunci' %}" class="btn btn-outline-secondary">
+                        <a href="{% url 'miei_annunci' %}" class="btn btn-outline-secondary">
                             <i class="fas fa-times me-2"></i>Rimuovi filtri
                         </a>
                         <a href="{% url 'crea_annuncio' %}" class="btn btn-primary">
-                            <i class="fas fa-plus me-2"></i>Crea il primo annuncio
+                            <i class="fas fa-plus me-2"></i>Crea il tuo primo annuncio
                         </a>
                     </div>
                 </div>
@@ -142,53 +166,12 @@
     </div>
 </section>
 
-<!-- Stats Footer -->
+<!-- Link per tornare a tutti gli annunci -->
 <section class="bg-light py-4">
-    <div class="container">
-        <div class="row text-center g-3">
-            <div class="col-md-3">
-                <div class="d-flex align-items-center justify-content-center">
-                    <div class="bg-polygonum-primary rounded-circle d-flex align-items-center justify-content-center me-3"
-                         style="width: 50px; height: 50px;">
-                        <i class="fas fa-list text-white"></i>
-                    </div>
-                    <div>
-                        <h4 class="text-polygonum-primary mb-0">{{ annunci|length }}</h4>
-                        <small class="text-muted">Annunci visualizzati</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="d-flex align-items-center justify-content-center">
-                    <div class="bg-polygonum-secondary rounded-circle d-flex align-items-center justify-content-center me-3"
-                         style="width: 50px; height: 50px;">
-                        <i class="fas fa-tags text-polygonum-primary"></i>
-                    </div>
-                    <div>
-                        <h4 class="text-polygonum-primary mb-0">{{ categorie|length }}</h4>
-                        <small class="text-muted">Categorie disponibili</small>
-                    </div>
-                </div>
-            </div>
-            {% if user.is_authenticated %}
-            <div class="col-md-3">
-                <div class="d-flex align-items-center justify-content-center">
-                    <a href="{% url 'miei_annunci' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-bullhorn me-2"></i>I Miei Annunci
-                        <div><small>Gestisci i tuoi annunci</small></div>
-                    </a>
-                </div>
-            </div>
-            {% endif %}
-            <div class="col-md-3">
-                <div class="d-flex align-items-center justify-content-center">
-                    <a href="{% url 'catene_scambio' %}" class="btn btn-outline-primary">
-                        <i class="fas fa-link me-2"></i>Trova Catene
-                        <div><small>Scambi possibili</small></div>
-                    </a>
-                </div>
-            </div>
-        </div>
+    <div class="container text-center">
+        <a href="{% url 'lista_annunci' %}" class="btn btn-outline-primary btn-lg">
+            <i class="fas fa-list me-2"></i>Visualizza Tutti gli Annunci della Piattaforma
+        </a>
     </div>
 </section>
 
@@ -199,12 +182,16 @@
     border-radius: 16px;
     overflow: hidden;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    cursor: pointer;
+    position: relative;
 }
 
 .modern-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.modern-card-disabled {
+    opacity: 0.7;
 }
 
 .modern-card-img {
@@ -219,6 +206,13 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.card-overlay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
 }
 
 .modern-card-placeholder {
@@ -279,6 +273,14 @@
 .modern-card-user {
     font-size: 0.8rem;
     color: #adb5bd;
+}
+
+.card-actions {
+    padding: 12px 16px;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    gap: 8px;
+    justify-content: space-around;
 }
 
 /* Responsive adjustments */
