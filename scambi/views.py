@@ -2595,11 +2595,14 @@ def proponi_catena(request, ciclo_id):
                 'error': 'Non fai parte di questa catena'
             })
 
-        # Cerca se esiste già una proposta per questo ciclo
-        proposta_esistente = PropostaCatena.objects.filter(ciclo=ciclo).first()
+        # Cerca se esiste già una proposta per questo ciclo (NON scaduta)
+        proposta_esistente = PropostaCatena.objects.filter(
+            ciclo=ciclo,
+            data_scadenza__gt=timezone.now()  # Solo proposte non scadute
+        ).first()
 
         if proposta_esistente:
-            # Esiste già una proposta, gestisci il toggle dell'interesse dell'utente
+            # Esiste già una proposta ATTIVA, gestisci il toggle dell'interesse dell'utente
             try:
                 risposta_obj = RispostaProposta.objects.get(
                     proposta=proposta_esistente,
@@ -2857,12 +2860,13 @@ def stato_proposta_catena(request, ciclo_id):
     try:
         ciclo = get_object_or_404(CicloScambio, id=ciclo_id, valido=True)
 
-        # Cerca proposta per questa catena (include anche annullate/rifiutate per mostrare stato)
+        # Cerca proposta per questa catena (solo NON scadute)
         proposta = PropostaCatena.objects.filter(
             ciclo=ciclo,
-            stato__in=['in_attesa', 'tutti_interessati', 'annullata', 'rifiutata']
+            stato__in=['in_attesa', 'tutti_interessati', 'annullata', 'rifiutata'],
+            data_scadenza__gt=timezone.now()  # Solo proposte non scadute
         ).first()
-        
+
         if not proposta:
             return JsonResponse({
                 'has_proposta': False
