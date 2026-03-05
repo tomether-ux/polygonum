@@ -744,15 +744,18 @@ def catene_scambio(request):
     catene_5 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 5]
     catene_6 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 6]
 
-    # Carica i cicli per cui l'utente ha già espresso interesse
+    # Carica i cicli per cui l'utente ha già espresso interesse (escluse proposte scadute)
     cicli_interessati = set()
     if request.user.is_authenticated:
         from .models import RispostaProposta
+        from django.utils import timezone
         # Converti in stringhe per match con id_ciclo nel template (che è stringa)
+        # Filtra solo proposte NON scadute
         cicli_interessati = set(
             str(cid) for cid in RispostaProposta.objects.filter(
                 utente=request.user,
-                risposta='interessato'
+                risposta='interessato',
+                proposta__data_scadenza__gt=timezone.now()  # Solo proposte non scadute
             ).values_list('proposta__ciclo_id', flat=True)
         )
 
@@ -1207,12 +1210,14 @@ def le_mie_catene(request):
         catene_5 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 5]
         catene_6 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 6]
 
-        # Carica i cicli per cui l'utente ha già espresso interesse
+        # Carica i cicli per cui l'utente ha già espresso interesse (escluse proposte scadute)
         from .models import RispostaProposta
+        from django.utils import timezone
         cicli_interessati = set(
             str(cid) for cid in RispostaProposta.objects.filter(
                 utente=request.user,
-                risposta='interessato'
+                risposta='interessato',
+                proposta__data_scadenza__gt=timezone.now()  # Solo proposte non scadute
             ).values_list('proposta__ciclo_id', flat=True)
         )
 
@@ -1361,12 +1366,14 @@ def le_mie_catene(request):
         catene_5 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 5]
         catene_6 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 6]
 
-        # Carica i cicli per cui l'utente ha già espresso interesse
+        # Carica i cicli per cui l'utente ha già espresso interesse (escluse proposte scadute)
         from .models import RispostaProposta
+        from django.utils import timezone
         cicli_interessati = set(
             str(cid) for cid in RispostaProposta.objects.filter(
                 utente=request.user,
-                risposta='interessato'
+                risposta='interessato',
+                proposta__data_scadenza__gt=timezone.now()  # Solo proposte non scadute
             ).values_list('proposta__ciclo_id', flat=True)
         )
 
