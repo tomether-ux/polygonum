@@ -1320,15 +1320,37 @@ class CycleFinder:
         dettagli = {
             'scambi': [],
             'oggetti': [],
+            'utenti': [],
             'timestamp': datetime.now().isoformat()
         }
 
+        # Costruisci la lista utenti con le informazioni di ogni utente
         for i in range(len(user_ids)):
+            user_id = user_ids[i]
             user_da = user_ids[i]
             user_a = user_ids[(i + 1) % len(user_ids)]
 
-            # Trova cosa scambia user_da con user_a
+            # Trova gli annunci per questo utente
             scambio = self._trova_oggetto_scambiato(user_da, user_a)
+
+            # Determina annuncio offerta e richiesta per questo utente
+            offerta_info = None
+            richiesta_info = None
+
+            if scambio and scambio.get('oggetti'):
+                for obj in scambio['oggetti']:
+                    if 'offerto' in obj:
+                        offerta_info = obj['offerto']
+                    if 'richiesto' in obj:
+                        richiesta_info = obj['richiesto']
+
+            dettagli['utenti'].append({
+                'user': {'id': user_id},
+                'offerta': offerta_info,
+                'richiede': richiesta_info
+            })
+
+            # Aggiungi scambi come prima
             if scambio:
                 dettagli['scambi'].append(scambio)
                 dettagli['oggetti'].extend(scambio['oggetti'])
