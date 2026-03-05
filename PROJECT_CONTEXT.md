@@ -210,6 +210,162 @@ Script di debug in root:
 
 ---
 
+## 🔧 Troubleshooting: Proposte Catene Scadute
+
+### Problema
+Le catene di scambio con proposte scadute continuano a mostrare:
+- Badge "Scade oggi" anche se la scadenza è passata da mesi
+- Badge "Interessato" ✓ su catene con proposte vecchie
+- Quando si riclicca "Mi interessa", la catena non appare in `/mie-proposte-catene/`
+- Le proposte vecchie vengono riutilizzate invece di crearne di nuove
+
+### Causa
+Le proposte catene hanno una **scadenza di 7 giorni** (`data_scadenza`). Dopo questo periodo:
+- La proposta è tecnicamente scaduta ma rimane nel database
+- Le query NON filtravano le proposte scadute
+- Il sistema cercava di riattivare proposte vecchie invece di crearne di nuove
+- I cicli venivano salvati senza il campo `utenti` nei dettagli, impedendo la visualizzazione
+
+### Diagnosi
+```bash
+# 1. Controlla cicli nel database
+cd "/path/to/scambio_sito"
+sqlite3 db.sqlite3 "SELECT id, users, lunghezza, calcolato_at FROM scambi_cicloscambio WHERE users LIKE '%USER_ID%' ORDER BY calcolato_at DESC LIMIT 5;"
+
+# 2. Verifica campo utenti nei dettagli
+sqlite3 db.sqlite3 "SELECT dettagli FROM scambi_cicloscambio WHERE id=CICLO_ID;" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+print('Campo utenti presente:', 'utenti' in data)
+print('Utenti:', data.get('utenti', []))
+"
+
+# 3. Controlla proposte scadute
+sqlite3 db.sqlite3 "SELECT p.id, p.ciclo_id, p.stato, p.data_scadenza FROM scambi_propostacatena p WHERE p.data_scadenza < datetime('now');"
+```
+
+### Soluzione Applicata (2026-03-05)
+
+#### 1. Campo `utenti` mancante nei cicli (`matching.py:1316`)
+**Problema**: `_get_dettagli_ciclo()` non includeva la lista utenti
+```python
+# PRIMA (bug)
+dettagli = {
+    'scambi': [],
+    'oggetti': [],
+    'timestamp': datetime.now().isoformat()
+}
+
+# DOPO (fix)
+dettagli = {
+    'scambi': [],
+    'oggetti': [],
+    'utenti': [],  # ← AGGIUNTO
+    'timestamp': datetime.now().isoformat()
+}
+# + costruzione lista utenti con user, offerta, richiede
+```
+
+#### 2. Filtrare proposte scadute nelle query (`views.py`)
+
+**A) Query `cicli_interessati` (3 occorrenze: riga ~750, ~1212, ~1366)**
+```python
+# PRIMA
+cicli_interessati = set(
+    str(cid) for cid in RispostaProposta.objects.filter(
+        utente=request.user,
+        risposta='interessato'
+    ).values_list('proposta__ciclo_id', flat=True)
+)
+
+# DOPO
+cicli_interessati = set(
+    str(cid) for cid in RispostaProposta.objects.filter(
+        utente=request.user,
+        risposta='interessato',
+        proposta__data_scadenza__gt=timezone.now()  # ← AGGIUNTO
+    ).values_list('proposta__ciclo_id', flat=True)
+)
+```
+
+**B) View `proponi_catena` (riga ~2599)**
+```python
+# PRIMA
+proposta_esistente = PropostaCatena.objects.filter(ciclo=ciclo).first()
+
+# DOPO
+proposta_esistente = PropostaCatena.objects.filter(
+    ciclo=ciclo,
+    data_scadenza__gt=timezone.now()  # ← AGGIUNTO
+).first()
+```
+
+**C) View `stato_proposta_catena` (riga ~2864)**
+```python
+# PRIMA
+proposta = PropostaCatena.objects.filter(
+    ciclo=ciclo,
+    stato__in=['in_attesa', 'tutti_interessati', 'annullata', 'rifiutata']
+).first()
+
+# DOPO
+proposta = PropostaCatena.objects.filter(
+    ciclo=ciclo,
+    stato__in=['in_attesa', 'tutti_interessati', 'annullata', 'rifiutata'],
+    data_scadenza__gt=timezone.now()  # ← AGGIUNTO
+).first()
+```
+
+**D) View `mie_proposte_catene` (riga ~2918)**
+```python
+# PRIMA
+if proposta.stato in ['annullata', 'rifiutata']:
+    continue
+
+# DOPO
+if proposta.stato in ['annullata', 'rifiutata']:
+    continue
+
+if proposta.is_scaduta():  # ← AGGIUNTO
+    continue
+```
+
+#### 3. Ricalcolare i cicli in produzione
+```bash
+# Nella shell di Render
+python manage.py calcola_cicli
+
+# Output atteso:
+# ✅ Trovati X cicli unici
+# 💾 Salvataggio completato: Y cicli aggiornati
+```
+
+### Risultato
+Dopo i fix:
+- ✅ Proposte scadute NON mostrano più badge "Interessato" o "Scade oggi"
+- ✅ Cliccando "Mi interessa" su catene vecchie, si crea una NUOVA proposta con scadenza 7 giorni
+- ✅ Le catene appaiono correttamente in `/mie-proposte-catene/`
+- ✅ I cicli hanno il campo `utenti` e vengono visualizzati correttamente
+
+### File Modificati
+- `scambi/matching.py` - Aggiunto campo `utenti` in `_get_dettagli_ciclo()`
+- `scambi/views.py` - Filtrate proposte scadute in 5 punti diversi
+- Commit: `3ff3d36`, `b30fad3`, `0efbe82`
+
+### Prevenzione
+Per evitare il problema in futuro:
+1. **Sempre filtrare** proposte scadute quando si caricano `cicli_interessati`
+2. **Sempre usare** `data_scadenza__gt=timezone.now()` nelle query PropostaCatena
+3. **Verificare** che i cicli abbiano il campo `utenti` dopo ogni modifica a `matching.py`
+4. **Ricalcolare** i cicli dopo deploy di modifiche all'algoritmo matching
+
+### Pagine Coinvolte
+- `/catene-scambio/` - Tutte le catene disponibili
+- `/le-mie-catene/` - Catene che coinvolgono i tuoi annunci
+- `/mie-proposte-catene/` - Catene a cui hai dato "Mi interessa"
+
+---
+
 ## 📝 TODO / Prossimi Sviluppi
 
 - [ ] Refactoring `views.py` in più file
