@@ -2915,6 +2915,10 @@ def mie_proposte_catene(request):
         if proposta.stato in ['annullata', 'rifiutata']:
             continue
 
+        # Salta proposte scadute
+        if proposta.is_scaduta():
+            continue
+
         # Calcola stato avanzamento
         count_interessati = proposta.get_count_interessati()
         count_totale = proposta.get_count_totale()
