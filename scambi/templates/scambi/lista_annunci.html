@@ -14,17 +14,17 @@
                 <p class="lead text-muted mb-0">Scopri cosa offrono e cercano gli altri utenti</p>
             </div>
             <div class="col-lg-6 text-lg-end">
-                <div class="d-flex flex-column flex-sm-row gap-2 justify-content-lg-end">
+                <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
                     {% if user.is_authenticated %}
-                    <a href="{% url 'miei_annunci' %}" class="btn btn-outline-secondary btn-lg d-flex align-items-center justify-content-center">
-                        <i class="fas fa-bullhorn me-2"></i>I Miei Annunci
+                    <a href="{% url 'miei_annunci' %}" class="btn btn-outline-secondary">
+                        I Miei Annunci
                     </a>
                     {% endif %}
-                    <a href="{% url 'ricerca_annunci' %}" class="btn btn-outline-primary btn-lg d-flex align-items-center justify-content-center">
-                        <i class="fas fa-search me-2"></i>Ricerca Avanzata
+                    <a href="{% url 'ricerca_annunci' %}" class="btn btn-outline-primary">
+                        Ricerca Avanzata
                     </a>
-                    <a href="{% url 'crea_annuncio' %}" class="btn btn-primary btn-lg d-flex align-items-center justify-content-center">
-                        <i class="fas fa-plus me-2"></i>Crea Nuovo Annuncio
+                    <a href="{% url 'crea_annuncio' %}" class="btn btn-primary">
+                        Crea Annuncio
                     </a>
                 </div>
             </div>
