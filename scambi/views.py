@@ -1,7 +1,8 @@
 from django.contrib.auth import login
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.forms import UserCreationForm  # Se usi il form base
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -77,8 +78,6 @@ def test_matching(request):
 
     return HttpResponse(html)
 
-from django.shortcuts import render, redirect
-from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .matching import trova_catene_scambio
@@ -2091,7 +2090,6 @@ def ricerca_veloce(request):
 
     if query:
         # Redirect alla ricerca avanzata con il parametro q
-        from django.urls import reverse
         from urllib.parse import urlencode
         url = reverse('ricerca_annunci')
         params = urlencode({'q': query})
