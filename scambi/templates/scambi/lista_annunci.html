@@ -104,10 +104,15 @@
                                     <div class="detail-item mb-1">
                                         <i class="fas fa-tag me-1" style="font-size: 0.7rem;"></i>{{ annuncio.categoria.nome }}
                                     </div>
-                                    <!-- Luogo se disponibile -->
-                                    {% if annuncio.utente.userprofile.citta %}
+                                    <!-- Luogo (sempre disponibile se c'è provincia) -->
+                                    {% if annuncio.utente.userprofile.provincia_obj %}
                                     <div class="detail-item mb-1">
-                                        <i class="fas fa-map-marker-alt me-1" style="font-size: 0.7rem;"></i>{{ annuncio.utente.userprofile.citta }} ({{ annuncio.utente.userprofile.provincia_obj.sigla }})
+                                        <i class="fas fa-map-marker-alt me-1" style="font-size: 0.7rem;"></i>
+                                        {% if annuncio.utente.userprofile.citta %}
+                                            {{ annuncio.utente.userprofile.citta }} ({{ annuncio.utente.userprofile.provincia_obj.sigla }})
+                                        {% else %}
+                                            {{ annuncio.utente.userprofile.provincia_obj.nome }}
+                                        {% endif %}
                                     </div>
                                     {% endif %}
                                     <!-- Fascia prezzo se disponibile -->
