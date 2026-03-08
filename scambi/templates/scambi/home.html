@@ -342,22 +342,34 @@ main.container {
     font-size: 1rem;
     font-weight: 600;
     color: #212529;
-    margin: 0 0 8px 0;
+    margin: 0 0 6px 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
+.modern-card-description {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin: 0 0 8px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
 .modern-card-details {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 8px;
 }
 
 .detail-item {
     font-size: 0.85rem;
     color: #6c757d;
+    display: flex;
+    align-items: center;
 }
 
 .detail-item.price {
