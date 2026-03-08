@@ -6,13 +6,13 @@ from .models import Annuncio, Categoria, UserProfile, Provincia
 class CustomUserCreationForm(UserCreationForm):
     citta = forms.CharField(
         max_length=100,
-        required=True,
+        required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': 'Es: Milano, Trieste, Brescia...'
         }),
-        label='Città/Comune *',
-        help_text='Inserisci il nome della tua città o comune'
+        label='Città/Comune (consigliato)',
+        help_text='Inserisci il nome della tua città o comune per dare più informazioni agli altri utenti'
     )
     provincia_obj = forms.ModelChoiceField(
         queryset=Provincia.objects.all().order_by('nome'),

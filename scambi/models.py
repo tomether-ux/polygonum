@@ -657,8 +657,9 @@ class UserProfile(models.Model):
     )
     citta = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name="Città/Comune",
-        help_text="Nome della tua città o comune"
+        help_text="Nome della tua città o comune (opzionale ma consigliato)"
     )
     cap = models.CharField(max_length=10, blank=True, verbose_name="CAP")
 
