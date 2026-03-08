@@ -89,45 +89,7 @@
             <div class="row g-4">
                 {% for annuncio in annunci %}
                 <div class="col-6 col-md-6 col-lg-4">
-                    <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none">
-                        <div class="modern-card">
-                            <!-- Immagine annuncio con angoli arrotondati -->
-                            <div class="modern-card-img">
-                                {% include 'scambi/partials/annuncio_thumbnail.html' with annuncio=annuncio css_class="" %}
-                            </div>
-                            <!-- Info essenziali -->
-                            <div class="modern-card-info">
-                                <h6 class="modern-card-title">{{ annuncio.titolo|truncatechars:40 }}</h6>
-                                <p class="modern-card-description">{{ annuncio.descrizione|truncatechars:60 }}</p>
-                                <div class="modern-card-details">
-                                    <!-- Categoria sempre visibile -->
-                                    <div class="detail-item mb-1">
-                                        <i class="fas fa-tag me-1" style="font-size: 0.7rem;"></i>{{ annuncio.categoria.nome }}
-                                    </div>
-                                    <!-- Luogo (sempre disponibile se c'è provincia) -->
-                                    {% if annuncio.utente.userprofile.provincia_obj %}
-                                    <div class="detail-item mb-1">
-                                        <i class="fas fa-map-marker-alt me-1" style="font-size: 0.7rem;"></i>
-                                        {% if annuncio.utente.userprofile.citta %}
-                                            {{ annuncio.utente.userprofile.citta }} ({{ annuncio.utente.userprofile.provincia_obj.sigla }})
-                                        {% else %}
-                                            {{ annuncio.utente.userprofile.provincia_obj.nome }}
-                                        {% endif %}
-                                    </div>
-                                    {% endif %}
-                                    <!-- Fascia prezzo se disponibile -->
-                                    {% if annuncio.fascia_prezzo %}
-                                    <div class="detail-item">
-                                        <span class="fascia-badge-small fascia-{{ annuncio.fascia_prezzo }}"
-                                              title="{{ annuncio.get_fascia_prezzo_display }}"></span>
-                                        <span class="ms-1 text-muted" style="font-size: 0.75rem;">{{ annuncio.get_fascia_prezzo_display }}</span>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                <div class="modern-card-user">{{ annuncio.utente.username }}</div>
-                            </div>
-                        </div>
-                    </a>
+                    {% include 'scambi/partials/annuncio_card.html' with annuncio=annuncio %}
                 </div>
                 {% endfor %}
             </div>
@@ -273,7 +235,7 @@
 .modern-card-details {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
     margin-bottom: 8px;
 }
 
