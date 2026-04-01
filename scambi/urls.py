@@ -2,6 +2,7 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
 from .views import register, CustomLoginView, verify_email, profilo_utente, modifica_profilo, custom_logout
+from . import api_admin_views
 
 urlpatterns = [
     path('', views.home, name='home'),
@@ -132,4 +133,9 @@ urlpatterns = [
 
     # Newsletter
     path('newsletter/unsubscribe/<str:token>/', views.newsletter_unsubscribe, name='newsletter_unsubscribe'),
+
+    # API Gestionale Admin
+    path('api/admin/annunci-pending/', api_admin_views.annunci_pending, name='api_admin_annunci_pending'),
+    path('api/admin/modera/<int:annuncio_id>/', api_admin_views.modera_annuncio, name='api_admin_modera'),
+    path('api/admin/stats/', api_admin_views.stats_dashboard, name='api_admin_stats'),
 ]
