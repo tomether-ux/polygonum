@@ -6,8 +6,11 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.shortcuts import get_object_or_404
-from .models import Annuncio, User
+from .models import Annuncio, User, CatenaScambio
 from django.utils import timezone
+from django.db.models import Count
+from django.db.models.functions import TruncDate
+from datetime import timedelta
 import json
 
 
@@ -135,9 +138,43 @@ def stats_dashboard(request):
     if not verificatoken_admin(request):
         return JsonResponse({'error': 'Non autorizzato'}, status=401)
 
-    # TODO: Implementare le statistiche nella Fase 2
+    # Contatori principali
+    utenti_totali = User.objects.count()
+    annunci_attivi = Annuncio.objects.filter(attivo=True).count()
+    catene_completate = CatenaScambio.objects.filter(stato='completata').count()
+
+    # Nuove iscrizioni oggi
+    oggi = timezone.now().date()
+    nuove_iscrizioni_oggi = User.objects.filter(
+        date_joined__date=oggi
+    ).count()
+
+    # Iscrizioni ultimi 30 giorni (per grafico)
+    data_inizio = oggi - timedelta(days=29)  # Includi oggi = 30 giorni totali
+
+    iscrizioni_per_giorno = User.objects.filter(
+        date_joined__date__gte=data_inizio
+    ).annotate(
+        data=TruncDate('date_joined')
+    ).values('data').annotate(
+        count=Count('id')
+    ).order_by('data')
+
+    # Crea array completo degli ultimi 30 giorni (anche giorni con 0 iscrizioni)
+    iscrizioni_dict = {entry['data']: entry['count'] for entry in iscrizioni_per_giorno}
+
+    iscrizioni_ultimi_30_giorni = []
+    for i in range(30):
+        data = data_inizio + timedelta(days=i)
+        iscrizioni_ultimi_30_giorni.append({
+            'data': data.isoformat(),
+            'count': iscrizioni_dict.get(data, 0)
+        })
+
     return JsonResponse({
-        'utenti_totali': User.objects.count(),
-        'annunci_attivi': Annuncio.objects.filter(attivo=True).count(),
-        'message': 'Statistiche complete da implementare nella Fase 2'
+        'utenti_totali': utenti_totali,
+        'annunci_attivi': annunci_attivi,
+        'catene_completate': catene_completate,
+        'nuove_iscrizioni_oggi': nuove_iscrizioni_oggi,
+        'iscrizioni_ultimi_30_giorni': iscrizioni_ultimi_30_giorni
     })
