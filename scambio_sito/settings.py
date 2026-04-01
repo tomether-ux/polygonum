@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'cloudinary_storage',
     'cloudinary',
     'scambi',
@@ -49,6 +50,7 @@ AUTHENTICATION_BACKENDS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -184,6 +186,9 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@polygonum.io'
 # Admin email per moderazione contenuti
 ADMIN_MODERATION_EMAIL = os.environ.get('ADMIN_MODERATION_EMAIL', 'tom.ether@live.com')
 
+# Token per API gestionale admin (pannello React)
+ADMIN_GESTIONALE_TOKEN = os.environ.get('ADMIN_GESTIONALE_TOKEN', 'change-this-token-in-production')
+
 # Email backend logic
 if os.environ.get('SENDGRID_API_KEY'):
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -267,3 +272,23 @@ if os.environ.get('RENDER'):
 
     # Email configuration is already set above based on SENDGRID_API_KEY
     # No need to override EMAIL_BACKEND here
+
+# CORS Configuration for Gestionale Admin
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # Vite dev server
+    "http://localhost:3000",  # Alternative React dev port
+    "https://polygonum.io",
+    "https://www.polygonum.io",
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
