@@ -281,6 +281,11 @@ CORS_ALLOWED_ORIGINS = [
     "https://www.polygonum.io",
 ]
 
+# Permetti tutti i domini Vercel (per il gestionale)
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.vercel\.app$",
+]
+
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
