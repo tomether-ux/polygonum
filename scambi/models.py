@@ -383,7 +383,7 @@ class Annuncio(models.Model):
         from django.core.mail import EmailMultiAlternatives
         from django.conf import settings
         from django.urls import reverse
-        from django.core.signing import Signer
+        from django.core.signing import TimestampSigner
         import time
         import os
 
@@ -396,10 +396,11 @@ class Annuncio(models.Model):
             # Recupera annuncio
             annuncio = Annuncio.objects.get(id=annuncio_id)
 
-            # Crea token firmato per link sicuri
-            signer = Signer()
-            approve_token = signer.sign(f'approve_{annuncio_id}')
-            reject_token = signer.sign(f'reject_{annuncio_id}')
+            # Crea token firmato per link sicuri con scadenza 24h
+            approve_signer = TimestampSigner(salt='moderation-approve')
+            reject_signer = TimestampSigner(salt='moderation-reject')
+            approve_token = approve_signer.sign(f'approve_{annuncio_id}')
+            reject_token = reject_signer.sign(f'reject_{annuncio_id}')
 
             # URL base (usa RENDER_EXTERNAL_URL in produzione, localhost in dev)
             base_url = os.environ.get('RENDER_EXTERNAL_URL', 'http://localhost:8000')

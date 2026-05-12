@@ -2508,8 +2508,11 @@ def webhook_calcola_cicli(request):
     """
     import time
     try:
-        # Verifica autorizzazione con secret token
-        webhook_secret = os.environ.get("POLYGONUM_WEBHOOK_SECRET", "default-secret-change-me")
+        # Verifica autorizzazione con secret token (SECURITY FIX: nessun fallback)
+        webhook_secret = os.environ.get("POLYGONUM_WEBHOOK_SECRET")
+        if not webhook_secret:
+            print("✗ SECURITY: POLYGONUM_WEBHOOK_SECRET non configurato")
+            return JsonResponse({"error": "Webhook secret not configured"}, status=500)
 
         # Verifica header Authorization
         auth_header = request.META.get("HTTP_AUTHORIZATION", "")
@@ -3106,6 +3109,33 @@ def cloudinary_moderation_webhook(request):
     if request.method != 'POST':
         return HttpResponse(status=405)  # Method not allowed
 
+    # Verifica firma Cloudinary (SECURITY FIX)
+    signature = request.META.get('HTTP_X_CLD_SIGNATURE')
+    if not signature:
+        print("✗ SECURITY: Webhook Cloudinary senza firma X-Cld-Signature")
+        return HttpResponse(status=401)
+
+    # Verifica HMAC con API secret
+    import cloudinary
+    api_secret = cloudinary.config().api_secret
+    if not api_secret:
+        print("✗ SECURITY: Cloudinary API secret non configurato")
+        return HttpResponse(status=500)
+
+    # Calcola HMAC-SHA1 del body
+    expected_signature = hmac.new(
+        api_secret.encode('utf-8'),
+        request.body,
+        hashlib.sha1
+    ).hexdigest()
+
+    # Confronto sicuro (time-constant)
+    if not hmac.compare_digest(signature, expected_signature):
+        print(f"✗ SECURITY: Firma webhook Cloudinary non valida")
+        print(f"  Ricevuta: {signature}")
+        print(f"  Attesa: {expected_signature}")
+        return HttpResponse(status=403)
+
     try:
         # Parse il payload JSON
         payload = json.loads(request.body)
@@ -3169,15 +3199,15 @@ def moderazione_approve(request, token):
     Approva un annuncio tramite link firmato nell'email.
     Accessibile anche da telefono.
     """
-    from django.core.signing import Signer, BadSignature
+    from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
     from django.shortcuts import render, redirect
     from django.contrib import messages
     from .models import Annuncio
 
     try:
-        # Verifica token
-        signer = Signer()
-        unsigned = signer.unsign(token)
+        # Verifica token con scadenza 24h
+        signer = TimestampSigner(salt='moderation-approve')
+        unsigned = signer.unsign(token, max_age=86400)  # 24 ore
 
         # Estrai annuncio_id dal token
         if not unsigned.startswith('approve_'):
@@ -3217,10 +3247,15 @@ def moderazione_approve(request, token):
             'annuncio': annuncio
         })
 
-    except BadSignature:
-        messages.error(request, '❌ Link non valido o scaduto.')
+    except SignatureExpired:
+        messages.error(request, '❌ Link scaduto. I link di moderazione sono validi per 24 ore.')
         return render(request, 'scambi/moderazione_result.html', {
-            'error': 'Link non valido o scaduto'
+            'error': 'Link scaduto (24h)'
+        })
+    except BadSignature:
+        messages.error(request, '❌ Link non valido.')
+        return render(request, 'scambi/moderazione_result.html', {
+            'error': 'Link non valido'
         })
     except Annuncio.DoesNotExist:
         messages.error(request, '❌ Annuncio non trovato.')
@@ -3242,16 +3277,16 @@ def moderazione_reject(request, token):
     Rifiuta un annuncio tramite link firmato nell'email.
     Applica strike all'utente e disattiva l'annuncio.
     """
-    from django.core.signing import Signer, BadSignature
+    from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
     from django.shortcuts import render, redirect
     from django.contrib import messages
     from .models import Annuncio, Notifica
     from django.utils import timezone
 
     try:
-        # Verifica token
-        signer = Signer()
-        unsigned = signer.unsign(token)
+        # Verifica token con scadenza 24h
+        signer = TimestampSigner(salt='moderation-reject')
+        unsigned = signer.unsign(token, max_age=86400)  # 24 ore
 
         # Estrai annuncio_id dal token
         if not unsigned.startswith('reject_'):
@@ -3325,10 +3360,15 @@ def moderazione_reject(request, token):
             'annuncio': annuncio
         })
 
-    except BadSignature:
-        messages.error(request, '❌ Link non valido o scaduto.')
+    except SignatureExpired:
+        messages.error(request, '❌ Link scaduto. I link di moderazione sono validi per 24 ore.')
         return render(request, 'scambi/moderazione_result.html', {
-            'error': 'Link non valido o scaduto'
+            'error': 'Link scaduto (24h)'
+        })
+    except BadSignature:
+        messages.error(request, '❌ Link non valido.')
+        return render(request, 'scambi/moderazione_result.html', {
+            'error': 'Link non valido'
         })
     except Annuncio.DoesNotExist:
         messages.error(request, '❌ Annuncio non trovato.')
