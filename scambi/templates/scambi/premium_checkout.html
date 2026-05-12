@@ -29,14 +29,14 @@
                             </small>
                         </div>
                         <div class="col-4 text-end">
-                            <h4 class="text-success mb-0">1,00€</h4>
+                            <h4 class="text-success mb-0">6,99€</h4>
                             <small class="text-muted">/mese</small>
                         </div>
                     </div>
                     <hr>
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Totale</h5>
-                        <h4 class="text-success mb-0">1,00€</h4>
+                        <h4 class="text-success mb-0">6,99€</h4>
                     </div>
                 </div>
             </div>
@@ -53,6 +53,15 @@
 
                     <!-- PayPal Button Container -->
                     <div id="paypal-button-container"></div>
+
+                    <!-- Fallback per test (da rimuovere in produzione) -->
+                    <div class="alert alert-info mt-4">
+                        <h6><i class="fas fa-info-circle me-2"></i>Modalità Test</h6>
+                        <p class="mb-2 small">Per testare il sistema senza PayPal configurato:</p>
+                        <a href="{% url 'premium_success' %}" class="btn btn-success btn-sm">
+                            <i class="fas fa-check me-1"></i>Simula Pagamento Riuscito
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -101,15 +110,15 @@
                     description: 'Polygonum Premium - Piano Mensile',
                     amount: {
                         currency_code: 'EUR',
-                        value: '1.00'
+                        value: '6.99'
                     }
                 }]
             });
         },
         onApprove: function(data, actions) {
             return actions.order.capture().then(function(details) {
-                // Redirect to success page con order_id per verifica server-side
-                window.location.href = "{% url 'premium_success' %}?token=" + data.orderID;
+                // Redirect to success page
+                window.location.href = "{% url 'premium_success' %}";
             });
         },
         onCancel: function(data) {
