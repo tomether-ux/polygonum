@@ -677,12 +677,6 @@ class UserProfile(models.Model):
     # Premium membership
     is_premium = models.BooleanField(default=False, verbose_name="Utente Premium")
     premium_scadenza = models.DateTimeField(null=True, blank=True, verbose_name="Scadenza Premium")
-    premium_order_ids = models.JSONField(
-        default=list,
-        blank=True,
-        verbose_name="Order IDs Premium processati",
-        help_text="Lista degli order_id PayPal già usati (anti-replay)"
-    )
 
     # Sistema strike e ban per violazioni
     content_strikes = models.IntegerField(
