@@ -86,10 +86,12 @@ class AnnuncioAdmin(admin.ModelAdmin):
         sent = 0
         for annuncio in queryset.filter(immagine__isnull=False).exclude(immagine=''):
             try:
-                # Crea token firmato per link sicuri
-                signer = Signer()
-                approve_token = signer.sign(f'approve_{annuncio.id}')
-                reject_token = signer.sign(f'reject_{annuncio.id}')
+                # Crea token firmato per link sicuri con scadenza 24h
+                from django.core.signing import TimestampSigner
+                approve_signer = TimestampSigner(salt='moderation-approve')
+                reject_signer = TimestampSigner(salt='moderation-reject')
+                approve_token = approve_signer.sign(f'approve_{annuncio.id}')
+                reject_token = reject_signer.sign(f'reject_{annuncio.id}')
 
                 # URL base
                 base_url = os.environ.get('RENDER_EXTERNAL_URL', 'http://localhost:8000')

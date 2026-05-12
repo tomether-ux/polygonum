@@ -15,7 +15,7 @@ urlpatterns = [
     path('attiva-annuncio/<int:annuncio_id>/', views.attiva_annuncio, name='attiva_annuncio'),
     path('disattiva-annuncio/<int:annuncio_id>/', views.disattiva_annuncio, name='disattiva_annuncio'),
     path('catene-scambio/', views.catene_scambio, name='catene_scambio'),
-    path('test-matching/', views.test_matching, name='test_matching'),
+    # path('test-matching/', views.test_matching, name='test_matching'),  # RIMOSSO: XSS vulnerability
     path('register/', register, name='register'),
     path('login/', CustomLoginView.as_view(), name='login'),
     path('logout/', custom_logout, name='logout'),
@@ -101,10 +101,10 @@ urlpatterns = [
     path('moderazione/approve/<str:token>/', views.moderazione_approve, name='moderazione_approve'),
     path('moderazione/reject/<str:token>/', views.moderazione_reject, name='moderazione_reject'),
 
-    # Debug views (TEMPORANEE - RIMUOVERE)
-    path('debug/basso/', views.debug_basso, name='debug_basso'),
-    path('debug/view-catene/', views.debug_view_catene, name='debug_view_catene'),
-    path('debug/cyclefinder-basso/', views.debug_cyclefinder_basso, name='debug_cyclefinder_basso'),
+    # Debug views RIMOSSE per sicurezza (esponevano dati utenti pubblicamente)
+    # path('debug/basso/', views.debug_basso, name='debug_basso'),
+    # path('debug/view-catene/', views.debug_view_catene, name='debug_view_catene'),
+    # path('debug/cyclefinder-basso/', views.debug_cyclefinder_basso, name='debug_cyclefinder_basso'),
 
     # Sistema Premium
     path('pricing/', views.pricing, name='pricing'),
