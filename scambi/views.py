@@ -292,8 +292,9 @@ def elimina_annuncio(request, annuncio_id):
     return render(request, 'scambi/conferma_eliminazione.html', {'annuncio': annuncio})
 
 @login_required
+@require_POST
 def attiva_annuncio(request, annuncio_id):
-    """Attiva un annuncio disattivato"""
+    """Attiva un annuncio disattivato (SECURITY: POST-only per CSRF protection)"""
     annuncio = get_object_or_404(Annuncio, id=annuncio_id, utente=request.user)
 
     # Controlla i limiti prima di attivare
@@ -321,8 +322,9 @@ def attiva_annuncio(request, annuncio_id):
     return redirect('profilo_utente', username=request.user.username)
 
 @login_required
+@require_POST
 def disattiva_annuncio(request, annuncio_id):
-    """Disattiva un annuncio"""
+    """Disattiva un annuncio (SECURITY: POST-only per CSRF protection)"""
     annuncio = get_object_or_404(Annuncio, id=annuncio_id, utente=request.user)
     annuncio.attivo = False
     annuncio.save()
@@ -800,14 +802,16 @@ def register(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
 
-        # Debug: Log form data received
-        logger.info(f"Registration attempt - Form data: {request.POST}")
+        # Debug: Log form data received (SECURITY: filtrato password)
+        safe_post_data = {k: v for k, v in request.POST.items() if 'password' not in k.lower()}
+        logger.info(f"Registration attempt - Form data (sanitized): {safe_post_data}")
         logger.info(f"City from form: {request.POST.get('citta')}")
         logger.info(f"Province from form: {request.POST.get('provincia')}")
 
         if form.is_valid():
-            # Debug: Log cleaned data
-            logger.info(f"Form valid - Cleaned data: {form.cleaned_data}")
+            # Debug: Log cleaned data (SECURITY: filtrato password)
+            safe_cleaned_data = {k: v for k, v in form.cleaned_data.items() if 'password' not in k.lower()}
+            logger.info(f"Form valid - Cleaned data (sanitized): {safe_cleaned_data}")
             logger.info(f"City from cleaned_data: {form.cleaned_data.get('citta')}")
             logger.info(f"Province from cleaned_data: {form.cleaned_data.get('provincia')}")
 
@@ -2433,9 +2437,9 @@ def api_cicli_utente(request, user_id):
             }
         }
 
-        # Aggiungi header per caching (5 minuti)
+        # Aggiungi header per caching (5 minuti) - SECURITY: private per dati utente-specifici
         response = JsonResponse(response_data)
-        response['Cache-Control'] = 'public, max-age=300'
+        response['Cache-Control'] = 'private, max-age=300'
         response['X-Performance-Ms'] = str(round((time.time() - start_time) * 1000, 2))
 
         return response
