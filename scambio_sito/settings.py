@@ -248,7 +248,13 @@ LOGGING = {
 # Production settings
 if os.environ.get('RENDER'):
     DEBUG = False
-    ALLOWED_HOSTS = ['.onrender.com', 'polygonum.io', 'www.polygonum.io']
+    # Legge ALLOWED_HOSTS da env var (compatibile con render.yaml)
+    allowed_hosts_env = os.environ.get('ALLOWED_HOSTS', '')
+    if allowed_hosts_env:
+        ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',')]
+    else:
+        # Fallback se env var non configurata
+        ALLOWED_HOSTS = ['.onrender.com', 'polygonum.io', 'www.polygonum.io']
 
     # Database in production
     import dj_database_url
@@ -270,6 +276,20 @@ if os.environ.get('RENDER'):
 
     # Session security
     SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True  # Previene accesso JS ai cookie di sessione
+
+    # CSRF security
+    CSRF_COOKIE_HTTPONLY = True  # Previene accesso JS ai CSRF token
+
+    # HSTS (HTTP Strict Transport Security)
+    SECURE_HSTS_SECONDS = 31536000  # 1 anno
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+    # Altri header di sicurezza
+    SECURE_CONTENT_TYPE_NOSNIFF = True  # Previene MIME-sniffing
+    SECURE_REFERRER_POLICY = 'same-origin'  # Limita referrer leak
+    X_FRAME_OPTIONS = 'DENY'  # Previene clickjacking
 
     # Email configuration is already set above based on SENDGRID_API_KEY
     # No need to override EMAIL_BACKEND here

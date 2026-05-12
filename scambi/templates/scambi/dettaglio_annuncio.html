@@ -244,13 +244,19 @@
                                 <i class="fas fa-edit me-2"></i>Modifica Annuncio
                             </a>
                             {% if annuncio.attivo %}
-                            <a href="{% url 'disattiva_annuncio' annuncio.id %}" class="btn btn-outline-warning btn-lg">
-                                <i class="fas fa-pause me-2"></i>Disattiva Annuncio
-                            </a>
+                            <form method="post" action="{% url 'disattiva_annuncio' annuncio.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-warning btn-lg w-100">
+                                    <i class="fas fa-pause me-2"></i>Disattiva Annuncio
+                                </button>
+                            </form>
                             {% else %}
-                            <a href="{% url 'attiva_annuncio' annuncio.id %}" class="btn btn-outline-success btn-lg">
-                                <i class="fas fa-play me-2"></i>Attiva Annuncio
-                            </a>
+                            <form method="post" action="{% url 'attiva_annuncio' annuncio.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-success btn-lg w-100">
+                                    <i class="fas fa-play me-2"></i>Attiva Annuncio
+                                </button>
+                            </form>
                             {% endif %}
                             <a href="{% url 'elimina_annuncio' annuncio.id %}" class="btn btn-outline-danger btn-lg"
                                onclick="return confirm('Sei sicuro di voler eliminare questo annuncio?')">

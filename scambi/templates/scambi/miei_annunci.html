@@ -128,13 +128,19 @@
                                 <i class="fas fa-edit"></i>
                             </a>
                             {% if annuncio.attivo %}
-                            <a href="{% url 'disattiva_annuncio' annuncio.id %}" class="btn btn-sm btn-outline-warning" title="Disattiva" onclick="return confirm('Sei sicuro di voler disattivare questo annuncio?')">
-                                <i class="fas fa-eye-slash"></i>
-                            </a>
+                            <form method="post" action="{% url 'disattiva_annuncio' annuncio.id %}" style="display:inline;" onsubmit="return confirm('Sei sicuro di voler disattivare questo annuncio?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-warning" title="Disattiva">
+                                    <i class="fas fa-eye-slash"></i>
+                                </button>
+                            </form>
                             {% else %}
-                            <a href="{% url 'attiva_annuncio' annuncio.id %}" class="btn btn-sm btn-outline-success" title="Attiva">
-                                <i class="fas fa-eye"></i>
-                            </a>
+                            <form method="post" action="{% url 'attiva_annuncio' annuncio.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-success" title="Attiva">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </form>
                             {% endif %}
                             <a href="{% url 'elimina_annuncio' annuncio.id %}" class="btn btn-sm btn-outline-danger" title="Elimina" onclick="return confirm('Sei sicuro di voler eliminare questo annuncio? Questa azione è irreversibile.')">
                                 <i class="fas fa-trash"></i>
