@@ -3064,23 +3064,99 @@ def premium_checkout(request):
 
 @login_required
 def premium_success(request):
-    """Callback di successo da PayPal"""
-    # In produzione, qui verificheresti il pagamento con PayPal API
-    # Per ora, attiviamo direttamente il premium
-    
+    """Callback di successo da PayPal - VERIFICA SERVER-SIDE"""
+    order_id = request.GET.get('token')
+
+    if not order_id:
+        messages.error(request, '❌ Ordine non valido')
+        return redirect('pricing')
+
     profilo = request.user.userprofile
-    profilo.is_premium = True
-    
-    # Imposta scadenza a 1 mese da ora (per abbonamento mensile)
-    from datetime import timedelta
-    profilo.premium_scadenza = timezone.now() + timedelta(days=30)
-    profilo.save()
-    
-    messages.success(request, '🎉 Benvenuto in Premium! Il tuo account è stato aggiornato con successo!')
-    
-    return render(request, 'scambi/premium_success.html', {
-        'profilo': profilo
-    })
+
+    # Inizializza lista se None (per record esistenti)
+    if profilo.premium_order_ids is None:
+        profilo.premium_order_ids = []
+
+    # Anti-replay: verifica che questo order_id non sia già stato usato
+    if order_id in profilo.premium_order_ids:
+        messages.warning(request, 'Questo pagamento è già stato processato.')
+        return redirect('profilo_utente', username=request.user.username)
+
+    # Verifica il pagamento con PayPal API
+    import requests
+    from django.conf import settings
+
+    paypal_client_id = settings.PAYPAL_CLIENT_ID
+    paypal_secret = settings.PAYPAL_SECRET
+    paypal_mode = settings.PAYPAL_MODE
+
+    if not paypal_client_id or not paypal_secret:
+        messages.error(request, '❌ Configurazione PayPal mancante. Contatta l\'amministratore.')
+        return redirect('pricing')
+
+    base_url = 'https://api-m.sandbox.paypal.com' if paypal_mode == 'sandbox' else 'https://api-m.paypal.com'
+
+    try:
+        # 1. Ottieni access token
+        auth_response = requests.post(
+            f'{base_url}/v1/oauth2/token',
+            auth=(paypal_client_id, paypal_secret),
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            data={'grant_type': 'client_credentials'},
+            timeout=10
+        )
+        auth_response.raise_for_status()
+        access_token = auth_response.json()['access_token']
+
+        # 2. Verifica l'ordine
+        order_response = requests.get(
+            f'{base_url}/v2/checkout/orders/{order_id}',
+            headers={
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+            },
+            timeout=10
+        )
+        order_response.raise_for_status()
+        order_data = order_response.json()
+
+        # 3. Verifica che l'ordine sia COMPLETED
+        if order_data.get('status') != 'COMPLETED':
+            messages.error(request, f'❌ Pagamento non completato (status: {order_data.get("status")})')
+            return redirect('pricing')
+
+        # 4. Verifica l'importo (1.00 EUR per test)
+        purchase_units = order_data.get('purchase_units', [])
+        if not purchase_units:
+            messages.error(request, '❌ Dati ordine non validi')
+            return redirect('pricing')
+
+        amount = purchase_units[0].get('amount', {}).get('value')
+        currency = purchase_units[0].get('amount', {}).get('currency_code')
+
+        if amount != '1.00' or currency != 'EUR':
+            messages.error(request, f'❌ Importo non valido ({amount} {currency})')
+            return redirect('pricing')
+
+        # 5. Tutto OK - attiva premium e salva order_id (anti-replay)
+        profilo.is_premium = True
+        from datetime import timedelta
+        profilo.premium_scadenza = timezone.now() + timedelta(days=30)
+
+        # Aggiungi order_id alla lista degli ordini processati
+        profilo.premium_order_ids.append(order_id)
+        profilo.save()
+
+        messages.success(request, '🎉 Benvenuto in Premium! Il tuo account è stato aggiornato con successo!')
+        return render(request, 'scambi/premium_success.html', {'profilo': profilo})
+
+    except requests.exceptions.Timeout:
+        messages.error(request, '❌ Timeout nella verifica PayPal. Riprova tra qualche minuto.')
+        return redirect('pricing')
+    except requests.exceptions.RequestException as e:
+        messages.error(request, f'❌ Errore nella verifica del pagamento. Contatta il supporto.')
+        print(f"PayPal API Error: {str(e)}")
+        return redirect('pricing')
 
 
 @login_required
