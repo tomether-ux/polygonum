@@ -4,10 +4,15 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.urls import reverse
 from django.contrib.sites.shortcuts import get_current_site
+from django.core.signing import TimestampSigner
 
-def generate_verification_token():
-    """Genera un token unico per la verifica email"""
-    return str(uuid.uuid4())
+def generate_verification_token(user_id):
+    """
+    Genera un token firmato con timestamp per la verifica email
+    SECURITY: Token include timestamp, scadenza verificata in verify_email (48h)
+    """
+    signer = TimestampSigner(salt='email-verification')
+    return signer.sign(str(user_id))
 
 class EmailTimeoutError(Exception):
     """Custom exception per timeout email"""
@@ -19,8 +24,8 @@ def timeout_handler(signum, frame):
 
 def send_verification_email_with_timeout(request, user, user_profile, timeout_seconds=5):
     """Invia email di verifica con timeout gestito"""
-    # Genera token di verifica
-    token = generate_verification_token()
+    # Genera token di verifica con timestamp (SECURITY: scade dopo 48h)
+    token = generate_verification_token(user.id)
     user_profile.email_verification_token = token
     user_profile.save()
 

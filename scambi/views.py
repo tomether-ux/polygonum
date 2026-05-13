@@ -872,26 +872,41 @@ def register(request):
     return render(request, 'registration/register.html', {'form': form})
 
 def verify_email(request, token):
-    """Vista per verificare l'email tramite token"""
+    """Vista per verificare l'email tramite token con scadenza (SECURITY: 48h)"""
+    from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
+    from django.contrib.auth.models import User
+
     try:
-        user_profile = UserProfile.objects.get(email_verification_token=token)
+        # Verifica token con scadenza 48 ore
+        signer = TimestampSigner(salt='email-verification')
+        user_id = signer.unsign(token, max_age=172800)  # 48 ore = 172800 secondi
+
+        # Trova user e profilo tramite user_id estratto dal token
+        user = User.objects.get(id=int(user_id))
+        user_profile = user.userprofile
 
         if not user_profile.email_verified:
             # Attiva utente e profilo
             user_profile.email_verified = True
-            user_profile.email_verification_token = None
+            user_profile.email_verification_token = None  # Pulisci il vecchio token
             user_profile.save()
 
-            user = user_profile.user
             user.is_active = True
             user.save()
 
-            messages.success(request, 'Email verificata con successo! Ora puoi accedere al tuo account.')
+            messages.success(request, '✅ Email verificata con successo! Ora puoi accedere al tuo account.')
         else:
             messages.info(request, 'Email già verificata precedentemente.')
 
-    except UserProfile.DoesNotExist:
-        messages.error(request, 'Token di verifica non valido o scaduto.')
+    except SignatureExpired:
+        messages.error(request, '❌ Link di verifica scaduto. I link sono validi per 48 ore. Contatta il supporto per richiedere un nuovo link.')
+    except BadSignature:
+        messages.error(request, '❌ Link di verifica non valido.')
+    except (User.DoesNotExist, UserProfile.DoesNotExist):
+        messages.error(request, '❌ Utente non trovato.')
+    except Exception as e:
+        messages.error(request, '❌ Errore durante la verifica. Contatta il supporto.')
+        print(f"Error in verify_email: {e}")
 
     return redirect('login')
 
@@ -1745,7 +1760,10 @@ def aggiungi_catena_preferita(request):
     except json.JSONDecodeError as e:
         return JsonResponse({'success': False, 'error': 'Dati catena non validi'})
     except Exception as e:
-        return JsonResponse({'success': False, 'error': f'Errore: {str(e)}'})
+        print(f"Error in aggiungi_catena_preferita: {e}")  # Log per debug
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'error': 'Errore del server. Riprova più tardi.'})
 
 
 @login_required
@@ -2262,9 +2280,12 @@ def attiva_catena(request, catena_id):
         })
 
     except Exception as e:
+        print(f"Error in attiva_catena: {e}")  # Log per debug
+        import traceback
+        traceback.print_exc()
         return JsonResponse({
             'success': False,
-            'error': f'Errore durante l\'attivazione: {str(e)}'
+            'error': 'Errore durante l\'attivazione. Riprova più tardi.'
         })
 
 
@@ -2445,9 +2466,11 @@ def api_cicli_utente(request, user_id):
         return response
 
     except Exception as e:
+        print(f"API Error: {e}")  # Log per debug
+        import traceback
+        traceback.print_exc()
         return JsonResponse({
-            'error': 'Errore del server',
-            'message': str(e)
+            'error': 'Errore del server. Riprova più tardi.'
         }, status=500)
 
 
@@ -2494,9 +2517,11 @@ def api_cicli_stats(request):
         return response
 
     except Exception as e:
+        print(f"API Error: {e}")  # Log per debug
+        import traceback
+        traceback.print_exc()
         return JsonResponse({
-            'error': 'Errore del server',
-            'message': str(e)
+            'error': 'Errore del server. Riprova più tardi.'
         }, status=500)
 
 
@@ -2578,10 +2603,12 @@ def webhook_calcola_cicli(request):
         })
 
     except Exception as e:
+        print(f"Error in webhook_calcola_cicli: {e}")  # Log per debug
+        import traceback
+        traceback.print_exc()
         return JsonResponse({
             "success": False,
-            "error": "Errore durante il calcolo cicli",
-            "message": str(e),
+            "error": "Errore durante il calcolo cicli. Contatta il supporto.",
             "timestamp": time.time()
         }, status=500)
 
@@ -2789,9 +2816,12 @@ def proponi_catena(request, ciclo_id):
             })
 
     except Exception as e:
+        print(f"API Error: {e}")  # Log per debug
+        import traceback
+        traceback.print_exc()
         return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': 'Errore del server. Riprova più tardi.'
         })
 
 
@@ -2855,9 +2885,12 @@ def rispondi_proposta_catena(request, proposta_id):
         })
         
     except Exception as e:
+        print(f"API Error: {e}")  # Log per debug
+        import traceback
+        traceback.print_exc()
         return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': 'Errore del server. Riprova più tardi.'
         })
 
 
@@ -2903,9 +2936,12 @@ def stato_proposta_catena(request, ciclo_id):
         })
 
     except Exception as e:
+        print(f"API Error: {e}")  # Log per debug
+        import traceback
+        traceback.print_exc()
         return JsonResponse({
             'success': False,
-            'error': str(e)
+            'error': 'Errore del server. Riprova più tardi.'
         })
 
 
@@ -3191,7 +3227,7 @@ def cloudinary_moderation_webhook(request):
         print(f"✗ Errore nel webhook: {e}")
         import traceback
         traceback.print_exc()
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'error': 'Errore del server. Riprova più tardi.'}, status=500)
 
 
 # ============================================================
@@ -3270,9 +3306,9 @@ def moderazione_approve(request, token):
         print(f"✗ Errore approvazione annuncio: {e}")
         import traceback
         traceback.print_exc()
-        messages.error(request, f'❌ Errore durante l\'approvazione: {e}')
+        messages.error(request, '❌ Errore durante l\'approvazione. Riprova più tardi.')
         return render(request, 'scambi/moderazione_result.html', {
-            'error': str(e)
+            'error': 'Errore del server. Riprova più tardi.'
         })
 
 
@@ -3383,9 +3419,9 @@ def moderazione_reject(request, token):
         print(f"✗ Errore rifiuto annuncio: {e}")
         import traceback
         traceback.print_exc()
-        messages.error(request, f'❌ Errore durante il rifiuto: {e}')
+        messages.error(request, '❌ Errore durante il rifiuto. Riprova più tardi.')
         return render(request, 'scambi/moderazione_result.html', {
-            'error': str(e)
+            'error': 'Errore del server. Riprova più tardi.'
         })
 
 
