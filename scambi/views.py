@@ -1,11 +1,14 @@
 from django.contrib.auth import login
 from django.contrib.auth.views import LoginView
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.forms import UserCreationForm  # Se usi il form base
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django_ratelimit.decorators import ratelimit
+from django_ratelimit.exceptions import Ratelimited
 from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente, trova_catene_per_annuncio, trova_scambi_diretti_ottimizzato, trova_catene_scambio_ottimizzato, filtra_catene_per_utente_ottimizzato, trova_catene_per_annuncio_ottimizzato
 from .models import Annuncio, PropostaCatena, RispostaProposta, CicloScambio
 import importlib
@@ -795,9 +798,15 @@ from django.contrib.auth.models import User
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 
+@ratelimit(key='ip', rate='3/1h', method='POST')
 def register(request):
     import logging
     logger = logging.getLogger(__name__)
+
+    # Check if rate limited
+    if getattr(request, 'limited', False):
+        messages.error(request, '⏰ Troppi tentativi di registrazione. Riprova tra un\'ora.')
+        return render(request, 'registration/register.html', {'form': CustomUserCreationForm()})
 
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
@@ -914,6 +923,14 @@ class CustomLoginView(LoginView):
     template_name = 'registration/login.html'
     redirect_authenticated_user = True
 
+    @ratelimit(key='ip', rate='5/5m', method='POST')
+    def dispatch(self, request, *args, **kwargs):
+        # Check if rate limited
+        if getattr(request, 'limited', False):
+            messages.error(request, '⏰ Troppi tentativi di login. Riprova tra 5 minuti.')
+            return render(request, self.template_name, {'form': self.get_form()})
+        return super().dispatch(request, *args, **kwargs)
+
     def form_invalid(self, form):
         # Aggiungi messaggi di errore per il debug
         for field, errors in form.errors.items():
@@ -921,6 +938,17 @@ class CustomLoginView(LoginView):
                 messages.error(self.request, f'Login error - {field}: {error}')
 
         return super().form_invalid(form)
+
+class RateLimitedPasswordResetView(auth_views.PasswordResetView):
+    """Password reset view con rate limiting per prevenire abusi"""
+
+    @ratelimit(key='ip', rate='3/1h', method='POST')
+    def dispatch(self, request, *args, **kwargs):
+        # Check if rate limited
+        if getattr(request, 'limited', False):
+            messages.error(request, '⏰ Troppi tentativi di reset password. Riprova tra un\'ora.')
+            return render(request, self.template_name, {'form': self.get_form()})
+        return super().dispatch(request, *args, **kwargs)
 
 def profilo_utente(request, username):
     """Vista pubblica del profilo utente con i suoi annunci"""

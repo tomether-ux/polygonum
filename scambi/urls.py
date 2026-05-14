@@ -1,7 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
-from .views import register, CustomLoginView, verify_email, profilo_utente, modifica_profilo, custom_logout
+from .views import register, CustomLoginView, RateLimitedPasswordResetView, verify_email, profilo_utente, modifica_profilo, custom_logout
 from . import api_admin_views
 
 urlpatterns = [
@@ -21,9 +21,9 @@ urlpatterns = [
     path('logout/', custom_logout, name='logout'),
     path('verify-email/<str:token>/', verify_email, name='verify_email'),
 
-    # Password reset URLs
+    # Password reset URLs (con rate limiting)
     path('password-reset/',
-         auth_views.PasswordResetView.as_view(
+         RateLimitedPasswordResetView.as_view(
              template_name='registration/password_reset_form.html',
              email_template_name='registration/password_reset_email.html',
              subject_template_name='registration/password_reset_subject.txt'
