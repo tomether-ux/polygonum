@@ -145,32 +145,25 @@ CLOUDINARY_MODERATION_KIND = 'aws_rek'  # AWS Rekognition per content moderation
 # Site URL per webhook (necessario per notification_url di Cloudinary)
 SITE_URL = os.environ.get('SITE_URL', 'https://polygonum.io')
 
-# DEBUG: Verifica variabili ambiente Cloudinary
-print("=" * 60)
-print("DEBUG - Cloudinary Environment Variables:")
-print(f"  CLOUDINARY_CLOUD_NAME: {os.environ.get('CLOUDINARY_CLOUD_NAME', 'NOT SET')}")
-print(f"  CLOUDINARY_API_KEY: {'***' + os.environ.get('CLOUDINARY_API_KEY', 'NOT SET')[-4:] if os.environ.get('CLOUDINARY_API_KEY') else 'NOT SET'}")
-print(f"  CLOUDINARY_API_SECRET: {'SET' if os.environ.get('CLOUDINARY_API_SECRET') else 'NOT SET'}")
-print(f"  RENDER env var: {os.environ.get('RENDER', 'NOT SET')}")
-print(f"  CLOUDINARY_STORAGE dict: {CLOUDINARY_STORAGE}")
-print(f"  cloudinary.config() chiamato: ✓")
-print("=" * 60)
+# SECURITY: Non loggare info sensibili di configurazione Cloudinary
+# Rimuove print() statements con fragment di API key per sicurezza
 
 # Media files (uploaded by users)
 # In produzione usa Cloudinary, in locale usa filesystem
+import logging
+logger = logging.getLogger(__name__)
+
 if os.environ.get('RENDER') or os.environ.get('CLOUDINARY_CLOUD_NAME'):
     # Produzione: usa Cloudinary
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
     # IMPORTANTE: NON impostare MEDIA_URL quando usi Cloudinary!
     # Cloudinary genera automaticamente i suoi URL completi
-    print("☁️  Using Cloudinary for media storage")
-    print(f"☁️  DEFAULT_FILE_STORAGE = {DEFAULT_FILE_STORAGE}")
+    logger.info("Using Cloudinary for media storage")
 else:
     # Sviluppo locale: usa filesystem
     MEDIA_URL = '/media/'
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-    print("💾 Using local filesystem for media storage")
-    print(f"💾 MEDIA_ROOT = {MEDIA_ROOT}")
+    logger.info(f"Using local filesystem for media storage: {MEDIA_ROOT}")
 
 # Dimensioni massime per upload
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
@@ -184,8 +177,10 @@ EMAIL_HOST_USER = 'apikey'
 EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@polygonum.io')
 
-# Admin email per moderazione contenuti
-ADMIN_MODERATION_EMAIL = os.environ.get('ADMIN_MODERATION_EMAIL', 'tom.ether@live.com')
+# Admin email per moderazione contenuti (SECURITY: obbligatorio, no default)
+ADMIN_MODERATION_EMAIL = os.environ.get('ADMIN_MODERATION_EMAIL')
+if not ADMIN_MODERATION_EMAIL:
+    raise ValueError("ADMIN_MODERATION_EMAIL environment variable must be set")
 
 # Token per API gestionale admin (pannello React)
 ADMIN_GESTIONALE_TOKEN = os.environ.get('ADMIN_GESTIONALE_TOKEN', 'change-this-token-in-production')
@@ -193,10 +188,10 @@ ADMIN_GESTIONALE_TOKEN = os.environ.get('ADMIN_GESTIONALE_TOKEN', 'change-this-t
 # Email backend logic
 if os.environ.get('SENDGRID_API_KEY'):
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    print(f"📧 Using SMTP backend with SendGrid API key")
+    logger.info("Using SMTP backend with SendGrid")
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-    print(f"📧 Using console backend (no SendGrid API key)")
+    logger.info("Using console backend (no SendGrid API key configured)")
 
 # Email verification settings
 EMAIL_VERIFICATION_REQUIRED = True
