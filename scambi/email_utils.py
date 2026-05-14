@@ -1,10 +1,12 @@
 import uuid
-import signal
+import logging
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from django.core.mail import send_mail
 from django.conf import settings
 from django.urls import reverse
-from django.contrib.sites.shortcuts import get_current_site
 from django.core.signing import TimestampSigner
+
+logger = logging.getLogger(__name__)
 
 def generate_verification_token(user_id):
     """
@@ -14,25 +16,26 @@ def generate_verification_token(user_id):
     signer = TimestampSigner(salt='email-verification')
     return signer.sign(str(user_id))
 
-class EmailTimeoutError(Exception):
-    """Custom exception per timeout email"""
-    pass
+def _send_mail_task(subject, message, from_email, recipient_list):
+    """Task interno per invio email (eseguito in thread separato)"""
+    return send_mail(subject, message, from_email, recipient_list, fail_silently=False)
 
-def timeout_handler(signum, frame):
-    """Handler per il timeout"""
-    raise EmailTimeoutError("Email sending timeout")
-
-def send_verification_email_with_timeout(request, user, user_profile, timeout_seconds=5):
-    """Invia email di verifica con timeout gestito"""
+def send_verification_email_with_timeout(request, user, user_profile, timeout_seconds=30):
+    """
+    Invia email di verifica con timeout gestito via ThreadPoolExecutor
+    SECURITY: Usa concurrent.futures invece di signal.alarm() per compatibilità Gunicorn
+    """
     # Genera token di verifica con timestamp (SECURITY: scade dopo 48h)
     token = generate_verification_token(user.id)
     user_profile.email_verification_token = token
     user_profile.save()
 
-    # Crea URL di verifica
-    current_site = get_current_site(request)
+    # SECURITY: Usa SITE_URL da settings invece di current_site.domain (previene Host header injection)
     protocol = 'https' if request.is_secure() else 'http'
-    verification_url = f"{protocol}://{current_site.domain}{reverse('verify_email', args=[token])}"
+    site_url = getattr(settings, 'SITE_URL', f"{protocol}://{request.get_host()}")
+    # Rimuovi protocollo da SITE_URL se presente
+    site_url = site_url.replace('https://', '').replace('http://', '')
+    verification_url = f"{protocol}://{site_url}{reverse('verify_email', args=[token])}"
 
     # Contenuto email
     subject = 'Verifica il tuo account - Polygonum'
@@ -51,39 +54,27 @@ Se non hai richiesto questa registrazione, ignora questa email.
 Benvenuto nella community degli scambi!
     """
 
-    # Imposta il timeout handler
-    old_handler = signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(timeout_seconds)
+    from_email = settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@polygonum.com'
 
     try:
-        print(f"🔧 Debug Email - Tentativo invio a: {user.email} (timeout: {timeout_seconds}s)")
-        print(f"🔧 Email Backend: {settings.EMAIL_BACKEND}")
-        print(f"🔧 Email Host: {getattr(settings, 'EMAIL_HOST', 'Non configurato')}")
-        print(f"🔧 API Key presente: {'Sì' if settings.EMAIL_HOST_PASSWORD else 'No'}")
+        logger.info(f"Sending verification email to: {user.email} (timeout: {timeout_seconds}s)")
 
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@polygonum.com',
-            [user.email],
-            fail_silently=False,
-        )
-        print(f"✅ Email inviata con successo a {user.email}")
+        # SECURITY: Usa ThreadPoolExecutor con timeout invece di signal.alarm()
+        # Funziona correttamente con Gunicorn multi-worker
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_send_mail_task, subject, message, from_email, [user.email])
+            future.result(timeout=timeout_seconds)
+
+        logger.info(f"Email sent successfully to {user.email}")
         return {"success": True, "message": "Email inviata"}
 
-    except EmailTimeoutError:
-        print(f"⏰ Timeout invio email dopo {timeout_seconds} secondi")
+    except FuturesTimeoutError:
+        logger.warning(f"Email sending timeout after {timeout_seconds} seconds for {user.email}")
         return {"success": False, "message": "timeout", "error": "Email sending timeout"}
 
     except Exception as e:
-        print(f"❌ Errore invio email: {e}")
-        print(f"❌ Tipo errore: {type(e).__name__}")
+        logger.error(f"Error sending email to {user.email}: {e}", exc_info=True)
         return {"success": False, "message": "error", "error": str(e)}
-
-    finally:
-        # Ripristina il handler originale e cancella l'allarme
-        signal.alarm(0)
-        signal.signal(signal.SIGALRM, old_handler)
 
 def send_verification_email(request, user, user_profile):
     """Wrapper per backward compatibility"""

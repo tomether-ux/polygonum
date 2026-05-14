@@ -87,8 +87,9 @@ from .matching import trova_catene_scambio
 from .models import Annuncio, Categoria
 from .forms import AnnuncioForm
 
+@ratelimit(key='ip', rate='60/m', method='GET')
 def home(request):
-    """Vista principale del sito"""
+    """Vista principale del sito (SECURITY: rate limited per anti-scraping)"""
     from django.db.models import Count, Q
 
     annunci_recenti = Annuncio.objects.filter(attivo=True).order_by('-data_creazione')[:6]
@@ -129,8 +130,9 @@ def home(request):
         'annunci_suggeriti': annunci_suggeriti,
     })
 
+@ratelimit(key='ip', rate='30/m', method='GET')
 def lista_annunci(request):
-    """Mostra tutti gli annunci"""
+    """Mostra tutti gli annunci (SECURITY: rate limited per anti-scraping)"""
     tipo_filtro = request.GET.get('tipo')
     categoria_filtro = request.GET.get('categoria')
 
@@ -184,8 +186,9 @@ def miei_annunci(request):
         'stato_filtro': stato_filtro
     })
 
+@ratelimit(key='ip', rate='60/m', method='GET')
 def dettaglio_annuncio(request, annuncio_id):
-    """Mostra i dettagli di un singolo annuncio"""
+    """Mostra i dettagli di un singolo annuncio (SECURITY: rate limited per anti-scraping)"""
     annuncio = get_object_or_404(Annuncio, id=annuncio_id, attivo=True)
 
     return render(request, 'scambi/dettaglio_annuncio.html', {
@@ -950,8 +953,9 @@ class RateLimitedPasswordResetView(auth_views.PasswordResetView):
             return render(request, self.template_name, {'form': self.get_form()})
         return super().dispatch(request, *args, **kwargs)
 
+@ratelimit(key='ip', rate='30/m', method='GET')
 def profilo_utente(request, username):
-    """Vista pubblica del profilo utente con i suoi annunci"""
+    """Vista pubblica del profilo utente con i suoi annunci (SECURITY: rate limited per anti-scraping)"""
     utente = get_object_or_404(User, username=username)
 
     try:
@@ -2212,7 +2216,14 @@ def chat_conversazione(request, conversazione_id):
     # Invia nuovo messaggio
     if request.method == 'POST':
         contenuto = request.POST.get('contenuto', '').strip()
+
+        # SECURITY: Validazione max_length per prevenire abusi
+        MAX_MESSAGE_LENGTH = 5000
         if contenuto:
+            if len(contenuto) > MAX_MESSAGE_LENGTH:
+                messages.error(request, f'Messaggio troppo lungo. Massimo {MAX_MESSAGE_LENGTH} caratteri.')
+                return redirect('chat_conversazione', conversazione_id=conversazione.id)
+
             messaggio = Messaggio.objects.create(
                 conversazione=conversazione,
                 mittente=request.user,
