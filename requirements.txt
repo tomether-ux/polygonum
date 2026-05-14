@@ -2,6 +2,7 @@ asgiref==3.9.1
 dj-database-url==3.0.1
 Django==5.2.6
 django-cors-headers==4.6.0
+django-ratelimit==4.1.0
 gunicorn==23.0.0
 nltk==3.9.1
 packaging==25.0
