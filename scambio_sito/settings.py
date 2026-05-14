@@ -90,6 +90,19 @@ DATABASES = {
     }
 }
 
+# Cache configuration for django-ratelimit
+# SECURITY: Required for rate limiting to work
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+# Django-ratelimit settings
+RATELIMIT_ENABLE = True
+RATELIMIT_USE_CACHE = 'default'
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
