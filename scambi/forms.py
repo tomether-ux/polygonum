@@ -47,6 +47,15 @@ class CustomUserCreationForm(UserCreationForm):
         self.fields['password1'].widget.attrs.update({'class': 'form-control'})
         self.fields['password2'].widget.attrs.update({'class': 'form-control'})
 
+    def clean_email(self):
+        """Valida unicità email (SECURITY: previene account duplicati)"""
+        email = self.cleaned_data.get('email')
+        if email and User.objects.filter(email=email).exists():
+            raise forms.ValidationError(
+                'Questa email è già registrata. Usa un\'altra email o effettua il login.'
+            )
+        return email
+
     def save(self, commit=True):
         import logging
         logger = logging.getLogger(__name__)
