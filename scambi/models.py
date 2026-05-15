@@ -388,6 +388,16 @@ class Annuncio(models.Model):
         import os
 
         try:
+            # SECURITY: Skip email se ADMIN_MODERATION_EMAIL non configurato (dev/CI)
+            if not settings.ADMIN_MODERATION_EMAIL:
+                print(f"⚠️ Email moderazione saltata per annuncio #{annuncio_id}: ADMIN_MODERATION_EMAIL non configurato (dev/CI mode)")
+                # Approva automaticamente in dev/CI
+                annuncio = Annuncio.objects.get(id=annuncio_id)
+                annuncio.moderation_status = 'approved'
+                annuncio.save(update_fields=['moderation_status'])
+                print(f"✓ Annuncio #{annuncio_id} approvato automaticamente (dev/CI mode)")
+                return
+
             print(f"📧 Invio email moderazione per annuncio #{annuncio_id}")
 
             # Attendi 2 secondi per evitare race conditions

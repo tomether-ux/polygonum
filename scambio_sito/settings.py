@@ -190,10 +190,11 @@ EMAIL_HOST_USER = 'apikey'
 EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@polygonum.io')
 
-# Admin email per moderazione contenuti (SECURITY: obbligatorio, no default)
+# Admin email per moderazione contenuti (SECURITY: obbligatorio in produzione)
 ADMIN_MODERATION_EMAIL = os.environ.get('ADMIN_MODERATION_EMAIL')
-if not ADMIN_MODERATION_EMAIL:
-    raise ValueError("ADMIN_MODERATION_EMAIL environment variable must be set")
+# Fail only in production (Render), allow missing in dev/CI (GitHub Actions)
+if not ADMIN_MODERATION_EMAIL and os.environ.get('RENDER'):
+    raise ValueError("ADMIN_MODERATION_EMAIL environment variable must be set in production")
 
 # Token per API gestionale admin (pannello React)
 ADMIN_GESTIONALE_TOKEN = os.environ.get('ADMIN_GESTIONALE_TOKEN', 'change-this-token-in-production')
