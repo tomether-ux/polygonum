@@ -193,7 +193,10 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@polygonum.io'
 # Admin email per moderazione contenuti (SECURITY: obbligatorio in produzione)
 ADMIN_MODERATION_EMAIL = os.environ.get('ADMIN_MODERATION_EMAIL')
 # Fail only in production (Render), allow missing in dev/CI (GitHub Actions)
-if not ADMIN_MODERATION_EMAIL and os.environ.get('RENDER'):
+# GitHub Actions sets GITHUB_ACTIONS=true, skip check for CI
+is_github_actions = os.environ.get('GITHUB_ACTIONS') == 'true'
+is_production = os.environ.get('RENDER') and not is_github_actions
+if not ADMIN_MODERATION_EMAIL and is_production:
     raise ValueError("ADMIN_MODERATION_EMAIL environment variable must be set in production")
 
 # Token per API gestionale admin (pannello React)
