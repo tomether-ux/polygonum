@@ -83,6 +83,15 @@ class AnnuncioAdmin(admin.ModelAdmin):
         from django.core.signing import Signer
         import os
 
+        # SECURITY: Skip email se ADMIN_MODERATION_EMAIL non configurato (dev/CI)
+        if not settings.ADMIN_MODERATION_EMAIL:
+            self.message_user(
+                request,
+                '⚠️ Email moderazione saltata: ADMIN_MODERATION_EMAIL non configurato (dev/CI mode)',
+                level='warning'
+            )
+            return
+
         sent = 0
         for annuncio in queryset.filter(immagine__isnull=False).exclude(immagine=''):
             try:
