@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
 from django_ratelimit.exceptions import Ratelimited
 from django.conf import settings
@@ -971,8 +972,11 @@ class CustomLoginView(LoginView):
     template_name = 'registration/login.html'
     redirect_authenticated_user = True
 
-    # NOTA: Rate limiting rimosso temporaneamente - causava 500 error
-    # TODO: Implementare con django-ratelimit mixin per class-based views
+    # SECURITY: Rate limiting per prevenire brute-force attacks
+    # 5 tentativi al minuto per IP (solo POST)
+    @method_decorator(ratelimit(key=get_real_ip_for_ratelimit, rate='5/m', method='POST'))
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
 
     def form_invalid(self, form):
         # Aggiungi messaggi di errore per il debug
@@ -983,11 +987,13 @@ class CustomLoginView(LoginView):
         return super().form_invalid(form)
 
 class RateLimitedPasswordResetView(auth_views.PasswordResetView):
-    """Password reset view - rate limiting rimosso temporaneamente (causava 500)"""
+    """Password reset view con rate limiting per prevenire abusi"""
 
-    # NOTA: Rate limiting rimosso temporaneamente - causava 500 error
-    # TODO: Implementare con django-ratelimit mixin per class-based views
-    pass
+    # SECURITY: Rate limiting per prevenire spam e abusi
+    # 3 tentativi al minuto per IP (più stringente del login)
+    @method_decorator(ratelimit(key=get_real_ip_for_ratelimit, rate='3/m', method='POST'))
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
 
 @ratelimit(key=get_real_ip_for_ratelimit, rate='30/m', method='GET')
 def profilo_utente(request, username):
