@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 from django_ratelimit.exceptions import Ratelimited
 from django.conf import settings
+from .ratelimit_utils import get_real_ip_for_ratelimit
 from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente, trova_catene_per_annuncio, trova_scambi_diretti_ottimizzato, trova_catene_scambio_ottimizzato, filtra_catene_per_utente_ottimizzato, trova_catene_per_annuncio_ottimizzato
 from .models import Annuncio, PropostaCatena, RispostaProposta, CicloScambio
 import importlib
@@ -119,7 +120,7 @@ from .matching import trova_catene_scambio
 from .models import Annuncio, Categoria
 from .forms import AnnuncioForm
 
-@ratelimit(key=settings.get_real_ip_for_ratelimit, rate='60/m', method='GET')
+@ratelimit(key=get_real_ip_for_ratelimit, rate='60/m', method='GET')
 def home(request):
     """Vista principale del sito (SECURITY: rate limited per anti-scraping)"""
     from django.db.models import Count, Q
@@ -166,7 +167,7 @@ def home(request):
         'annunci_suggeriti': annunci_suggeriti,
     })
 
-@ratelimit(key=settings.get_real_ip_for_ratelimit, rate='30/m', method='GET')
+@ratelimit(key=get_real_ip_for_ratelimit, rate='30/m', method='GET')
 def lista_annunci(request):
     """Mostra tutti gli annunci (SECURITY: rate limited per anti-scraping)"""
     # SECURITY: Skip rate limit per bot motori di ricerca legittimi
@@ -226,7 +227,7 @@ def miei_annunci(request):
         'stato_filtro': stato_filtro
     })
 
-@ratelimit(key=settings.get_real_ip_for_ratelimit, rate='60/m', method='GET')
+@ratelimit(key=get_real_ip_for_ratelimit, rate='60/m', method='GET')
 def dettaglio_annuncio(request, annuncio_id):
     """Mostra i dettagli di un singolo annuncio (SECURITY: rate limited per anti-scraping)"""
     # SECURITY: Skip rate limit per bot motori di ricerca legittimi
@@ -845,7 +846,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 
-@ratelimit(key=settings.get_real_ip_for_ratelimit, rate='3/1h', method='POST')
+@ratelimit(key=get_real_ip_for_ratelimit, rate='3/1h', method='POST')
 def register(request):
     import logging
     logger = logging.getLogger(__name__)
@@ -988,7 +989,7 @@ class RateLimitedPasswordResetView(auth_views.PasswordResetView):
     # TODO: Implementare con django-ratelimit mixin per class-based views
     pass
 
-@ratelimit(key=settings.get_real_ip_for_ratelimit, rate='30/m', method='GET')
+@ratelimit(key=get_real_ip_for_ratelimit, rate='30/m', method='GET')
 def profilo_utente(request, username):
     """Vista pubblica del profilo utente con i suoi annunci (SECURITY: rate limited per anti-scraping)"""
     # SECURITY: Skip rate limit per bot motori di ricerca legittimi
