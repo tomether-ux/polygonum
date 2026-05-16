@@ -9,6 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 from django_ratelimit.exceptions import Ratelimited
+from django.conf import settings
 from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente, trova_catene_per_annuncio, trova_scambi_diretti_ottimizzato, trova_catene_scambio_ottimizzato, filtra_catene_per_utente_ottimizzato, trova_catene_per_annuncio_ottimizzato
 from .models import Annuncio, PropostaCatena, RispostaProposta, CicloScambio
 import importlib
@@ -17,6 +18,37 @@ import hmac
 import os
 from . import matching
 from .debug_views import debug_basso, debug_view_catene, debug_cyclefinder_basso  # Debug temporaneo
+
+# ============================================================
+# UTILITY FUNCTIONS
+# ============================================================
+
+def is_search_engine_bot(request):
+    """
+    Rileva se la richiesta proviene da un bot di motori di ricerca legittimo.
+    SECURITY: Whitelist per evitare di bloccare crawling Google/Bing/etc
+    """
+    user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
+
+    # Lista bot legittimi (motori di ricerca e social media verificati)
+    legitimate_bots = [
+        'googlebot',           # Google
+        'bingbot',             # Microsoft Bing
+        'slurp',               # Yahoo
+        'duckduckbot',         # DuckDuckGo
+        'baiduspider',         # Baidu (Cina)
+        'yandexbot',           # Yandex (Russia)
+        'facebookexternalhit', # Facebook preview
+        'twitterbot',          # Twitter preview
+        'linkedinbot',         # LinkedIn preview
+        'discordbot',          # Discord preview
+    ]
+
+    return any(bot in user_agent for bot in legitimate_bots)
+
+# ============================================================
+# VIEWS
+# ============================================================
 
 def test_matching(request):
     """Vista per testare l'algoritmo di matching con debug dettagliato"""
@@ -87,10 +119,14 @@ from .matching import trova_catene_scambio
 from .models import Annuncio, Categoria
 from .forms import AnnuncioForm
 
-@ratelimit(key='ip', rate='60/m', method='GET')
+@ratelimit(key=settings.get_real_ip_for_ratelimit, rate='60/m', method='GET')
 def home(request):
     """Vista principale del sito (SECURITY: rate limited per anti-scraping)"""
     from django.db.models import Count, Q
+
+    # SECURITY: Skip rate limit per bot motori di ricerca legittimi
+    if is_search_engine_bot(request):
+        request.limited = False
 
     annunci_recenti = Annuncio.objects.filter(attivo=True).order_by('-data_creazione')[:6]
 
@@ -130,9 +166,13 @@ def home(request):
         'annunci_suggeriti': annunci_suggeriti,
     })
 
-@ratelimit(key='ip', rate='30/m', method='GET')
+@ratelimit(key=settings.get_real_ip_for_ratelimit, rate='30/m', method='GET')
 def lista_annunci(request):
     """Mostra tutti gli annunci (SECURITY: rate limited per anti-scraping)"""
+    # SECURITY: Skip rate limit per bot motori di ricerca legittimi
+    if is_search_engine_bot(request):
+        request.limited = False
+
     tipo_filtro = request.GET.get('tipo')
     categoria_filtro = request.GET.get('categoria')
 
@@ -186,9 +226,13 @@ def miei_annunci(request):
         'stato_filtro': stato_filtro
     })
 
-@ratelimit(key='ip', rate='60/m', method='GET')
+@ratelimit(key=settings.get_real_ip_for_ratelimit, rate='60/m', method='GET')
 def dettaglio_annuncio(request, annuncio_id):
     """Mostra i dettagli di un singolo annuncio (SECURITY: rate limited per anti-scraping)"""
+    # SECURITY: Skip rate limit per bot motori di ricerca legittimi
+    if is_search_engine_bot(request):
+        request.limited = False
+
     annuncio = get_object_or_404(Annuncio, id=annuncio_id, attivo=True)
 
     return render(request, 'scambi/dettaglio_annuncio.html', {
@@ -801,7 +845,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 
-@ratelimit(key='ip', rate='3/1h', method='POST')
+@ratelimit(key=settings.get_real_ip_for_ratelimit, rate='3/1h', method='POST')
 def register(request):
     import logging
     logger = logging.getLogger(__name__)
@@ -884,14 +928,14 @@ def register(request):
     return render(request, 'registration/register.html', {'form': form})
 
 def verify_email(request, token):
-    """Vista per verificare l'email tramite token con scadenza (SECURITY: 48h)"""
+    """Vista per verificare l'email tramite token con scadenza (SECURITY: 72h)"""
     from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
     from django.contrib.auth.models import User
 
     try:
-        # Verifica token con scadenza 48 ore
+        # Verifica token con scadenza 72 ore
         signer = TimestampSigner(salt='email-verification')
-        user_id = signer.unsign(token, max_age=172800)  # 48 ore = 172800 secondi
+        user_id = signer.unsign(token, max_age=259200)  # 72 ore = 259200 secondi
 
         # Trova user e profilo tramite user_id estratto dal token
         user = User.objects.get(id=int(user_id))
@@ -944,9 +988,13 @@ class RateLimitedPasswordResetView(auth_views.PasswordResetView):
     # TODO: Implementare con django-ratelimit mixin per class-based views
     pass
 
-@ratelimit(key='ip', rate='30/m', method='GET')
+@ratelimit(key=settings.get_real_ip_for_ratelimit, rate='30/m', method='GET')
 def profilo_utente(request, username):
     """Vista pubblica del profilo utente con i suoi annunci (SECURITY: rate limited per anti-scraping)"""
+    # SECURITY: Skip rate limit per bot motori di ricerca legittimi
+    if is_search_engine_bot(request):
+        request.limited = False
+
     utente = get_object_or_404(User, username=username)
 
     try:
@@ -2208,8 +2256,8 @@ def chat_conversazione(request, conversazione_id):
     if request.method == 'POST':
         contenuto = request.POST.get('contenuto', '').strip()
 
-        # SECURITY: Validazione max_length per prevenire abusi
-        MAX_MESSAGE_LENGTH = 5000
+        # SECURITY: Validazione max_length per prevenire abusi e spam
+        MAX_MESSAGE_LENGTH = 2000
         if contenuto:
             if len(contenuto) > MAX_MESSAGE_LENGTH:
                 messages.error(request, f'Messaggio troppo lungo. Massimo {MAX_MESSAGE_LENGTH} caratteri.')
