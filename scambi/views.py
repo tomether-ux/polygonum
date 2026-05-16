@@ -926,13 +926,8 @@ class CustomLoginView(LoginView):
     template_name = 'registration/login.html'
     redirect_authenticated_user = True
 
-    @ratelimit(key='ip', rate='5/5m', method='POST')
-    def dispatch(self, request, *args, **kwargs):
-        # Check if rate limited
-        if getattr(request, 'limited', False):
-            messages.error(request, '⏰ Troppi tentativi di login. Riprova tra 5 minuti.')
-            return render(request, self.template_name, {'form': self.get_form()})
-        return super().dispatch(request, *args, **kwargs)
+    # NOTA: Rate limiting rimosso temporaneamente - causava 500 error
+    # TODO: Implementare con django-ratelimit mixin per class-based views
 
     def form_invalid(self, form):
         # Aggiungi messaggi di errore per il debug
@@ -943,15 +938,11 @@ class CustomLoginView(LoginView):
         return super().form_invalid(form)
 
 class RateLimitedPasswordResetView(auth_views.PasswordResetView):
-    """Password reset view con rate limiting per prevenire abusi"""
+    """Password reset view - rate limiting rimosso temporaneamente (causava 500)"""
 
-    @ratelimit(key='ip', rate='3/1h', method='POST')
-    def dispatch(self, request, *args, **kwargs):
-        # Check if rate limited
-        if getattr(request, 'limited', False):
-            messages.error(request, '⏰ Troppi tentativi di reset password. Riprova tra un\'ora.')
-            return render(request, self.template_name, {'form': self.get_form()})
-        return super().dispatch(request, *args, **kwargs)
+    # NOTA: Rate limiting rimosso temporaneamente - causava 500 error
+    # TODO: Implementare con django-ratelimit mixin per class-based views
+    pass
 
 @ratelimit(key='ip', rate='30/m', method='GET')
 def profilo_utente(request, username):
