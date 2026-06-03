@@ -22,7 +22,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # Legge DJANGO_SECRET_KEY da render.yaml (non SECRET_KEY!)
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', os.environ.get('SECRET_KEY', 'django-insecure-z#j7++ie89nsi-8+ca#xxtqglv#=(90^&lilla*!=j^(8ycg89'))
+# SECURITY: nessun fallback hardcoded — fail-fast in produzione, random in dev/CI
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    # In produzione (Render) NON deve mai mancare: blocchiamo l'avvio
+    if os.environ.get('RENDER'):
+        raise RuntimeError(
+            "DJANGO_SECRET_KEY (o SECRET_KEY) deve essere settata in produzione. "
+            "Verifica la configurazione di render.yaml."
+        )
+    # In dev/CI generiamo una chiave random in memoria (non persistente,
+    # invalida le sessioni a ogni restart — comportamento voluto per evitare
+    # di committare valori insecure nel repo).
+    from django.core.management.utils import get_random_secret_key
+    SECRET_KEY = get_random_secret_key()
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -201,7 +214,13 @@ if not ADMIN_MODERATION_EMAIL and is_production:
     raise ValueError("ADMIN_MODERATION_EMAIL environment variable must be set in production")
 
 # Token per API gestionale admin (pannello React)
-ADMIN_GESTIONALE_TOKEN = os.environ.get('ADMIN_GESTIONALE_TOKEN', 'change-this-token-in-production')
+# SECURITY: nessun fallback hardcoded — fail-fast in produzione
+ADMIN_GESTIONALE_TOKEN = os.environ.get('ADMIN_GESTIONALE_TOKEN')
+if not ADMIN_GESTIONALE_TOKEN and is_production:
+    raise ValueError(
+        "ADMIN_GESTIONALE_TOKEN environment variable must be set in production "
+        "(API gestionale admin esposta senza un token sicuro)"
+    )
 
 # Email backend logic
 if os.environ.get('SENDGRID_API_KEY'):
@@ -308,16 +327,15 @@ if os.environ.get('RENDER'):
     # No need to override EMAIL_BACKEND here
 
 # CORS Configuration for Gestionale Admin
+# SECURITY: solo domini esatti — niente regex wildcard *.vercel.app
+# (consentirebbe a qualsiasi fork malevolo deployato su Vercel di
+# parlare con le nostre API).
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite dev server
     "http://localhost:3000",  # Alternative React dev port
     "https://polygonum.io",
     "https://www.polygonum.io",
-]
-
-# Permetti tutti i domini Vercel (per il gestionale)
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://.*\.vercel\.app$",
+    "https://gestionale-sigma.vercel.app",  # Pannello admin in produzione
 ]
 
 CORS_ALLOW_HEADERS = [

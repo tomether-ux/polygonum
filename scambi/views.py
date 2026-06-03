@@ -14,11 +14,9 @@ from django.conf import settings
 from .ratelimit_utils import get_real_ip_for_ratelimit
 from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente, trova_catene_per_annuncio, trova_scambi_diretti_ottimizzato, trova_catene_scambio_ottimizzato, filtra_catene_per_utente_ottimizzato, trova_catene_per_annuncio_ottimizzato
 from .models import Annuncio, PropostaCatena, RispostaProposta, CicloScambio
-import importlib
 import hashlib
 import hmac
 import os
-from . import matching
 from .debug_views import debug_basso, debug_view_catene, debug_cyclefinder_basso  # Debug temporaneo
 
 # ============================================================
@@ -52,68 +50,10 @@ def is_search_engine_bot(request):
 # VIEWS
 # ============================================================
 
-def test_matching(request):
-    """Vista per testare l'algoritmo di matching con debug dettagliato"""
-    import importlib
-    from . import matching
-
-    # Forza il reload del modulo
-    importlib.reload(matching)
-    from .matching import oggetti_compatibili_con_tipo, trova_catene_scambio
-
-    html = "<h1>🧪 Test Matching Algorithm</h1>"
-    html += "<style>body { font-family: monospace; } .match { color: green; } .no-match { color: red; }</style>"
-
-    # Test 1: Verifica match specifici
-    html += "<h2>🔍 Test 1: Match Specifici</h2>"
-
-    # Trova annunci synth
-    synth_offerto = Annuncio.objects.filter(tipo='offro', titolo__icontains='synth', attivo=True).first()
-    synth_cercato = Annuncio.objects.filter(tipo='cerco', titolo__icontains='synth', attivo=True).first()
-
-    # Trova annunci bici
-    bici_offerto = Annuncio.objects.filter(tipo='offro', titolo__icontains='bici', attivo=True).first()
-    bici_cercato = Annuncio.objects.filter(tipo='cerco', titolo__icontains='bici', attivo=True).first()
-
-    test_pairs = []
-    if synth_offerto and synth_cercato:
-        test_pairs.append((synth_offerto, synth_cercato, "SYNTH → SYNTH"))
-    if bici_offerto and bici_cercato:
-        test_pairs.append((bici_offerto, bici_cercato, "BICI → BICI"))
-
-    for offerto, cercato, nome in test_pairs:
-        html += f"<h3>{nome}</h3>"
-        html += f"<p><strong>Offerto:</strong> '{offerto.titolo}' by {offerto.utente.username}</p>"
-        html += f"<p><strong>Cercato:</strong> '{cercato.titolo}' by {cercato.utente.username}</p>"
-
-        compatible, tipo_match = oggetti_compatibili_con_tipo(offerto, cercato)
-        if compatible:
-            html += f"<p class='match'>✅ MATCH TROVATO! Tipo: {tipo_match}</p>"
-        else:
-            html += f"<p class='no-match'>❌ NESSUN MATCH</p>"
-        html += "<hr>"
-
-    # Test 2: Catene complete
-    html += "<h2>🔗 Test 2: Catene Complete</h2>"
-    catene = trova_catene_scambio_ottimizzato()
-
-    if catene:
-        html += f"<p class='match'>🎉 Trovate {len(catene)} catene!</p>"
-        for i, catena in enumerate(catene[:3], 1):  # Mostra solo le prime 3
-            html += f"<h4>Catena {i}</h4>"
-            html += f"<p>Utenti: {', '.join(catena['utenti'])}</p>"
-            html += f"<p>Qualità: {catena.get('categoria_qualita', 'N/A')}</p>"
-    else:
-        html += "<p class='no-match'>❌ Nessuna catena trovata</p>"
-
-    # Test 3: Conteggio annunci
-    html += "<h2>📊 Test 3: Database Status</h2>"
-    offro_count = Annuncio.objects.filter(tipo='offro', attivo=True).count()
-    cerco_count = Annuncio.objects.filter(tipo='cerco', attivo=True).count()
-    html += f"<p>Annunci 'offro' attivi: {offro_count}</p>"
-    html += f"<p>Annunci 'cerco' attivi: {cerco_count}</p>"
-
-    return HttpResponse(html)
+# SECURITY: funzione test_matching rimossa — era una view di debug pubblica
+# che costruiva HTML con f-string concatenando titoli annunci e username
+# senza escape (XSS stored). La URL era già stata commentata in urls.py.
+# Vedi commit history per recuperarla in locale se serve.
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -836,7 +776,6 @@ def catene_scambio(request):
         'from_session': has_session and not request.GET.get('load'),  # Flag per indicare caricamento da sessione
     })
 
-# La funzione test_matching rimane uguale...
 from django.contrib.auth import login
 from django.contrib.auth.views import LoginView
 from .forms import CustomUserCreationForm, UserProfileForm
@@ -1886,14 +1825,23 @@ def segna_tutte_notifiche_lette(request):
 @login_required
 def notifica_click_redirect(request, notifica_id):
     """Vista per segnare una notifica come letta e reindirizzare alla destinazione"""
+    from django.utils.http import url_has_allowed_host_and_scheme
+
     notifica = get_object_or_404(Notifica, id=notifica_id, utente=request.user)
 
     # Segna come letta
     if not notifica.letta:
         notifica.mark_as_read()
 
-    # Determina dove reindirizzare
-    if notifica.url_azione:
+    # SECURITY: valida url_azione per impedire open redirect.
+    # Le notifiche sono create solo internamente con reverse(), quindi
+    # url_azione dovrebbe essere sempre un path interno — questo è un
+    # safety net contro futuri bug o injection.
+    if notifica.url_azione and url_has_allowed_host_and_scheme(
+        notifica.url_azione,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
         redirect_url = notifica.url_azione
     else:
         # Fallback alla lista notifiche

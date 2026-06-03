@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.db.models import Count
 from django.db.models.functions import TruncDate
 from datetime import timedelta
+import hmac
 import json
 
 
@@ -29,7 +30,8 @@ def verificatoken_admin(request):
     if not admin_token:
         return False
 
-    return token == admin_token
+    # SECURITY: confronto time-constant per prevenire timing attack
+    return hmac.compare_digest(token, admin_token)
 
 
 @csrf_exempt
