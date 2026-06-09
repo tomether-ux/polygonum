@@ -3,6 +3,7 @@ from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
+from django.core import validators as django_validators
 from django.core.exceptions import ValidationError
 from cloudinary.models import CloudinaryField
 
@@ -943,7 +944,12 @@ class Messaggio(models.Model):
     """Singolo messaggio in una conversazione"""
     conversazione = models.ForeignKey(Conversazione, on_delete=models.CASCADE, related_name='messaggi')
     mittente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='messaggi_inviati')
-    contenuto = models.TextField()
+    # SECURITY: validator a livello modello per fail-safe se nuove view dimenticano
+    # il check (le view in chat_conversazione e invia_messaggio_da_annuncio limitano
+    # già a 2000 char; questo è cintura+bretelle, no migration richiesta).
+    contenuto = models.TextField(
+        validators=[django_validators.MaxLengthValidator(2000)]
+    )
 
     # Per messaggi di sistema (es. "Mario ha attivato la catena")
     is_sistema = models.BooleanField(default=False)

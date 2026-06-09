@@ -66,9 +66,10 @@ def home(request):
     """Vista principale del sito (SECURITY: rate limited per anti-scraping)"""
     from django.db.models import Count, Q
 
-    # SECURITY: Skip rate limit per bot motori di ricerca legittimi
-    if is_search_engine_bot(request):
-        request.limited = False
+    # SECURITY: rimosso bypass via User-Agent (era triv. aggirabile settando
+    # User-Agent: Googlebot). Il rate-limit di 30/min è ampio anche per
+    # crawler legittimi. Per gestire ufficialmente i bot, andrebbe verificato
+    # via reverse-DNS, non via header client-controlled.
 
     annunci_recenti = Annuncio.objects.filter(attivo=True).order_by('-data_creazione')[:6]
 
@@ -111,9 +112,10 @@ def home(request):
 @ratelimit(key=get_real_ip_for_ratelimit, rate='30/m', method='GET')
 def lista_annunci(request):
     """Mostra tutti gli annunci (SECURITY: rate limited per anti-scraping)"""
-    # SECURITY: Skip rate limit per bot motori di ricerca legittimi
-    if is_search_engine_bot(request):
-        request.limited = False
+    # SECURITY: rimosso bypass via User-Agent (era triv. aggirabile settando
+    # User-Agent: Googlebot). Il rate-limit di 30/min è ampio anche per
+    # crawler legittimi. Per gestire ufficialmente i bot, andrebbe verificato
+    # via reverse-DNS, non via header client-controlled.
 
     tipo_filtro = request.GET.get('tipo')
     categoria_filtro = request.GET.get('categoria')
@@ -171,9 +173,10 @@ def miei_annunci(request):
 @ratelimit(key=get_real_ip_for_ratelimit, rate='60/m', method='GET')
 def dettaglio_annuncio(request, annuncio_id):
     """Mostra i dettagli di un singolo annuncio (SECURITY: rate limited per anti-scraping)"""
-    # SECURITY: Skip rate limit per bot motori di ricerca legittimi
-    if is_search_engine_bot(request):
-        request.limited = False
+    # SECURITY: rimosso bypass via User-Agent (era triv. aggirabile settando
+    # User-Agent: Googlebot). Il rate-limit di 30/min è ampio anche per
+    # crawler legittimi. Per gestire ufficialmente i bot, andrebbe verificato
+    # via reverse-DNS, non via header client-controlled.
 
     annuncio = get_object_or_404(Annuncio, id=annuncio_id, attivo=True)
 
@@ -937,9 +940,10 @@ class RateLimitedPasswordResetView(auth_views.PasswordResetView):
 @ratelimit(key=get_real_ip_for_ratelimit, rate='30/m', method='GET')
 def profilo_utente(request, username):
     """Vista pubblica del profilo utente con i suoi annunci (SECURITY: rate limited per anti-scraping)"""
-    # SECURITY: Skip rate limit per bot motori di ricerca legittimi
-    if is_search_engine_bot(request):
-        request.limited = False
+    # SECURITY: rimosso bypass via User-Agent (era triv. aggirabile settando
+    # User-Agent: Googlebot). Il rate-limit di 30/min è ampio anche per
+    # crawler legittimi. Per gestire ufficialmente i bot, andrebbe verificato
+    # via reverse-DNS, non via header client-controlled.
 
     utente = get_object_or_404(User, username=username)
 
@@ -2391,6 +2395,13 @@ def invia_messaggio_da_annuncio(request):
         if not messaggio_testo:
             return JsonResponse({'error': 'Il messaggio non può essere vuoto'}, status=400)
 
+        # SECURITY: limite lunghezza per prevenire abusi/DoS (allineato a chat_conversazione)
+        MAX_MESSAGE_LENGTH = 2000
+        if len(messaggio_testo) > MAX_MESSAGE_LENGTH:
+            return JsonResponse({
+                'error': f'Messaggio troppo lungo. Massimo {MAX_MESSAGE_LENGTH} caratteri.'
+            }, status=400)
+
         destinatario = get_object_or_404(User, id=destinatario_id)
         annuncio = get_object_or_404(Annuncio, id=annuncio_id)
 
@@ -3182,31 +3193,45 @@ def cloudinary_moderation_webhook(request):
     if request.method != 'POST':
         return HttpResponse(status=405)  # Method not allowed
 
-    # Verifica firma Cloudinary (SECURITY FIX)
+    # SECURITY: verifica firma Cloudinary + anti-replay attack.
+    # Usiamo verify_notification_signature dell'SDK Cloudinary che implementa
+    # la spec ufficiale (sha1 di body+timestamp+api_secret, NON HMAC) e
+    # rifiuta richieste più vecchie di valid_for secondi.
     signature = request.META.get('HTTP_X_CLD_SIGNATURE')
-    if not signature:
-        print("✗ SECURITY: Webhook Cloudinary senza firma X-Cld-Signature")
+    timestamp_raw = request.META.get('HTTP_X_CLD_TIMESTAMP')
+    if not signature or not timestamp_raw:
+        print("✗ SECURITY: Webhook Cloudinary senza X-Cld-Signature o X-Cld-Timestamp")
         return HttpResponse(status=401)
 
-    # Verifica HMAC con API secret
+    try:
+        timestamp = int(timestamp_raw)
+    except (ValueError, TypeError):
+        print(f"✗ SECURITY: X-Cld-Timestamp non valido: {timestamp_raw!r}")
+        return HttpResponse(status=400)
+
     import cloudinary
-    api_secret = cloudinary.config().api_secret
-    if not api_secret:
+    from cloudinary.utils import verify_notification_signature
+    if not cloudinary.config().api_secret:
         print("✗ SECURITY: Cloudinary API secret non configurato")
         return HttpResponse(status=500)
 
-    # Calcola HMAC-SHA1 del body
-    expected_signature = hmac.new(
-        api_secret.encode('utf-8'),
-        request.body,
-        hashlib.sha1
-    ).hexdigest()
+    try:
+        # valid_for=300s (5 min): rifiuta richieste vecchie/replay attack.
+        # Cloudinary di default consente 2 ore, ma per webhook real-time
+        # 5 minuti sono ampi e bloccano replay più aggressivamente.
+        body_str = request.body.decode('utf-8')
+        is_valid = verify_notification_signature(
+            body=body_str,
+            timestamp=timestamp,
+            signature=signature,
+            valid_for=300,
+        )
+    except Exception as e:
+        print(f"✗ SECURITY: errore validazione firma Cloudinary: {e}")
+        return HttpResponse(status=400)
 
-    # Confronto sicuro (time-constant)
-    if not hmac.compare_digest(signature, expected_signature):
-        print(f"✗ SECURITY: Firma webhook Cloudinary non valida")
-        print(f"  Ricevuta: {signature}")
-        print(f"  Attesa: {expected_signature}")
+    if not is_valid:
+        print(f"✗ SECURITY: Firma o timestamp webhook Cloudinary non validi")
         return HttpResponse(status=403)
 
     try:
