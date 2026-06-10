@@ -17,10 +17,13 @@ PAROLE_VIETATE = [
     'masturbazione', 'orgasmo', 'scopare', 'troia', 'puttana', 'zoccola',
     'cazzo', 'fica', 'pompino', 'bocchino', 'rapporto sessuale', 'amplesso',
     'erotico', 'erotica', 'erotici', 'erotiche', 'sexy',
-    'tette', 'tetta', 'seno', 'seni', 'capezzoli', 'capezzolo',
-    'culo', 'culo nudo', 'sedere', 'natiche', 'chiappa', 'chiappe',
+    # NB: 'seno', 'seni' rimossi - falsi positivi ("in seno a", seno matematico, seno della montagna)
+    'tette', 'tetta', 'capezzoli', 'capezzolo',
+    # NB: 'sedere' rimosso - verbo comunissimo ("sedersi", "vendo sedie")
+    'culo', 'culo nudo', 'natiche', 'chiappa', 'chiappe',
     'fighe', 'patata', 'passera', 'vagina', 'vagine',
-    'coglioni', 'testicoli', 'palle', 'scroto', 'pene', 'pisello',
+    # NB: 'palle', 'pisello' rimossi - falsi positivi (palle da tennis/bowling, piselli orto)
+    'coglioni', 'testicoli', 'scroto', 'pene',
     'sega', 'seghe', 'masturbare', 'chiavare', 'chiavata',
     'scopata', 'scopate', 'inculare', 'inculata', 'anale',
     'leccata', 'leccare', 'cunnilingus', 'fellatio', 'blowjob',
@@ -42,9 +45,12 @@ PAROLE_VIETATE = [
     'compagnia in cambio', 'sesso in cambio',
 
     # Droghe
+    # NB: 'canna', 'erba', 'fumo' rimossi - falsi positivi (canna da pesca/fumaria,
+    # erba sintetica/aromatica, lampade fumè, camino). I termini specifici di
+    # droga (cocaina, marijuana, hashish, ecc.) restano.
     'droga', 'cocaina', 'eroina', 'marijuana', 'hashish', 'cannabis',
     'ecstasy', 'mdma', 'lsd', 'crack', 'metanfetamina', 'anfetamine',
-    'spinello', 'canna', 'erba', 'fumo', 'pusher', 'spacciare',
+    'spinello', 'pusher', 'spacciare',
 
     # Armi
     'pistola', 'fucile', 'arma da fuoco', 'munizioni', 'esplosivo',
