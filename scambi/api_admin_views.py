@@ -6,7 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.shortcuts import get_object_or_404
-from .models import Annuncio, User, CatenaScambio
+from .models import Annuncio, User, CatenaScambio, Notifica
 from django.utils import timezone
 from django.db.models import Count
 from django.db.models.functions import TruncDate
@@ -85,7 +85,12 @@ def modera_annuncio(request, annuncio_id):
     POST /api/admin/modera/<id>/
     Body: {"azione": "approva"} o {"azione": "elimina"}
 
-    Approva o elimina un annuncio
+    "approva": marca l'annuncio come approvato e visibile.
+    "elimina": rifiuta l'annuncio (allineato al flusso email reject):
+               status='rejected', attivo=False, +1 strike all'utente
+               con sistema progressivo 1/3 → 2/3 (sospensione 7gg) →
+               3/3 (ban permanente). L'annuncio NON viene cancellato:
+               resta nel DB per audit ed eventuale recovery dal Django admin.
     """
     # Verifica token
     if not verificatoken_admin(request):
@@ -117,15 +122,80 @@ def modera_annuncio(request, annuncio_id):
         })
 
     elif azione == 'elimina':
-        # Elimina l'annuncio
-        annuncio_id_deleted = annuncio.id
-        annuncio.delete()
+        # SECURITY: prima era annuncio.delete() (hard delete, irrecuperabile,
+        # nessun log, nessuno strike). Ora flusso "soft-reject + strike"
+        # allineato a moderazione_reject (link email). L'annuncio resta nel DB
+        # ma è nascosto (attivo=False, moderation_status='rejected').
+        # TODO: refactorare estraendo questo blocco in Annuncio.reject_with_strike()
+        #       per evitare duplicazione con moderazione_reject in views.py.
+
+        # Se già rifiutato, idempotente
+        if annuncio.moderation_status == 'rejected':
+            return JsonResponse({
+                'success': True,
+                'message': f'Annuncio #{annuncio.id} già rifiutato in precedenza',
+                'annuncio_id': annuncio.id,
+                'nuovo_stato': 'rejected',
+                'gia_rifiutato': True,
+            })
+
+        annuncio.moderation_status = 'rejected'
+        annuncio.attivo = False
+        annuncio.moderated_at = timezone.now()
+        annuncio.save(update_fields=['moderation_status', 'attivo', 'moderated_at'])
+
+        # Applica strike progressivo all'utente
+        profile = annuncio.utente.userprofile
+        profile.content_strikes += 1
+
+        if profile.content_strikes == 1:
+            ban_reason = "Prima violazione: contenuto inappropriato rilevato"
+            notifica_messaggio = (
+                f"⚠️ Il tuo annuncio '{annuncio.titolo}' è stato rimosso perché contiene contenuto inappropriato.\n\n"
+                f"Hai ricevuto il tuo PRIMO strike. "
+                f"Ti preghiamo di rispettare le linee guida della community.\n\n"
+                f"⚠️ Attenzione: Al terzo strike riceverai un ban permanente."
+            )
+        elif profile.content_strikes == 2:
+            profile.suspension_until = timezone.now() + timedelta(days=7)
+            ban_reason = "Seconda violazione: sospensione 7 giorni"
+            notifica_messaggio = (
+                f"🚫 Il tuo annuncio '{annuncio.titolo}' è stato rimosso per contenuto inappropriato.\n\n"
+                f"Hai ricevuto il SECONDO strike. Il tuo account è stato SOSPESO per 7 giorni.\n\n"
+                f"⚠️ ULTIMO AVVISO: Al prossimo strike riceverai un ban permanente!"
+            )
+        else:
+            profile.is_banned = True
+            profile.banned_at = timezone.now()
+            ban_reason = "Terza violazione: ban permanente"
+            notifica_messaggio = (
+                f"❌ Il tuo annuncio '{annuncio.titolo}' è stato rimosso per contenuto inappropriato.\n\n"
+                f"Hai ricevuto il TERZO strike. Il tuo account è stato BANNATO PERMANENTEMENTE.\n\n"
+                f"Non potrai più pubblicare annunci o partecipare alla piattaforma."
+            )
+
+        profile.ban_reason = ban_reason
+        profile.save()
+
+        # Notifica all'utente
+        try:
+            Notifica.objects.create(
+                utente=annuncio.utente,
+                tipo='sistema',
+                titolo=f'⚠️ Annuncio rimosso - Strike {profile.content_strikes}/3',
+                messaggio=notifica_messaggio,
+                letta=False,
+            )
+        except Exception as e:
+            print(f"✗ Errore creazione notifica strike (annuncio #{annuncio.id}): {e}")
 
         return JsonResponse({
             'success': True,
-            'message': f'Annuncio #{annuncio_id_deleted} eliminato',
-            'annuncio_id': annuncio_id_deleted,
-            'eliminato': True
+            'message': f'Annuncio #{annuncio.id} rifiutato. Strike {profile.content_strikes}/3 a {annuncio.utente.username}',
+            'annuncio_id': annuncio.id,
+            'nuovo_stato': 'rejected',
+            'strike': profile.content_strikes,
+            'banned': profile.is_banned,
         })
 
 
