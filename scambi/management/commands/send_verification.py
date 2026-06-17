@@ -24,7 +24,7 @@ class Command(BaseCommand):
             # Create fake request
             factory = RequestFactory()
             request = factory.get('/')
-            request.META['HTTP_HOST'] = 'polygonum.onrender.com'
+            request.META['HTTP_HOST'] = 'polygonum.io'
 
             self.stdout.write('\n=== SENDING VERIFICATION EMAIL ===')
 

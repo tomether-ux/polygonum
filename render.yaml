@@ -28,14 +28,14 @@ services:
       - key: DJANGO_DEBUG
         value: "False"
       - key: ALLOWED_HOSTS
-        value: ".render.com,polygonum.onrender.com,localhost,127.0.0.1"
+        value: ".render.com,polygonum.io,localhost,127.0.0.1"
       - key: RENDER_ENVIRONMENT
         value: "production"
       - key: POLYGONUM_WEBHOOK_SECRET
         generateValue: true
     healthCheckPath: /
     domains:
-      - polygonum.onrender.com
+      - polygonum.io
 
 
 # Configurazioni globali

@@ -25,7 +25,7 @@ jobs:
               -X POST \
               -H "Authorization: Bearer ${{ secrets.POLYGONUM_WEBHOOK_SECRET }}" \
               -H "Content-Type: application/json" \
-              https://polygonum.onrender.com/webhook/calcola-cicli/)
+              https://polygonum.io/webhook/calcola-cicli/)
 
             http_code="${response: -3}"
             response_body="${response%???}"
