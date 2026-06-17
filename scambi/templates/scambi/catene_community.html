@@ -24,16 +24,10 @@
                 </a>
             </div>
         </div>
-        <p class="text-muted mb-1">
-            Catene di scambio in cui <strong>tutti gli oggetti appartengono alla stessa categoria</strong>:
-            ideali per community come libri, vinili, vestiti per bambini e altro.
+        <p class="fs-4 mt-4 mb-5" style="max-width: 820px; color: #4a5568; font-weight: 500;">
+            Scambia all'interno della tua <strong style="color: #4169E1;">community</strong>:
+            qui trovi solo le catene tra oggetti della <strong>stessa categoria</strong> dei tuoi annunci.
         </p>
-        {% if updated_at %}
-        <p class="text-muted small mb-4">
-            <i class="fas fa-clock me-1"></i>Ultimo aggiornamento: {{ updated_at|date:"d/m/Y H:i" }}
-            <span class="ms-1">— premi <strong>Aggiorna</strong> per ricalcolare.</span>
-        </p>
-        {% endif %}
 
         {{ sections_html|safe }}
     </div>
