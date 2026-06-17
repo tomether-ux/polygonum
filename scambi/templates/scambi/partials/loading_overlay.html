@@ -1,0 +1,131 @@
+{# Overlay di caricamento full-screen con animazione logo Polygonum.
+   Usa showPolygonumLoading() (es. onclick su un link) per mostrarlo prima di una navigazione. #}
+<div id="polygonumLoadingOverlay" aria-hidden="true">
+    <div class="pl-overlay-inner">
+        <div class="pl-loader">
+            <svg viewBox="0 0 220 220" width="220" height="220" style="margin: 0 auto; display: block;">
+                <defs>
+                    <linearGradient id="plLineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:#4facfe;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                <g transform="translate(220, 0) scale(-1, 1)">
+                    <!-- Triangolo -->
+                    <path d="M 70 170 L 150 170 L 110 100.72 L 70 170"
+                          stroke="url(#plLineGradient)" stroke-width="4" fill="none"
+                          stroke-linecap="round" stroke-linejoin="round"
+                          stroke-dasharray="250" stroke-dashoffset="0">
+                        <animate attributeName="stroke-dashoffset"
+                                 values="250; 0; 0; 0; 0; 250"
+                                 keyTimes="0; 0.25; 0.5; 0.75; 0.99; 1"
+                                 dur="2s" repeatCount="indefinite"/>
+                    </path>
+                    <!-- Quadrato -->
+                    <path d="M 70 170 L 150 170 L 150 90 L 70 90 L 70 170"
+                          stroke="url(#plLineGradient)" stroke-width="4" fill="none"
+                          stroke-linecap="round" stroke-linejoin="round"
+                          stroke-dasharray="320" stroke-dashoffset="320">
+                        <animate attributeName="stroke-dashoffset"
+                                 values="320; 320; 0; 0; 0; 320"
+                                 keyTimes="0; 0.25; 0.5; 0.75; 0.99; 1"
+                                 dur="2s" repeatCount="indefinite"/>
+                    </path>
+                    <!-- Pentagono -->
+                    <path d="M 70 170 L 150 170 L 174.72 93.92 L 110 46.88 L 45.28 93.92 L 70 170"
+                          stroke="url(#plLineGradient)" stroke-width="4" fill="none"
+                          stroke-linecap="round" stroke-linejoin="round"
+                          stroke-dasharray="400" stroke-dashoffset="400">
+                        <animate attributeName="stroke-dashoffset"
+                                 values="400; 400; 400; 0; 0; 400"
+                                 keyTimes="0; 0.25; 0.5; 0.75; 0.99; 1"
+                                 dur="2s" repeatCount="indefinite"/>
+                    </path>
+                    <!-- Esagono -->
+                    <path d="M 70 170 L 150 170 L 190 100.72 L 150 31.44 L 70 31.44 L 30 100.72 L 70 170"
+                          stroke="url(#plLineGradient)" stroke-width="4" fill="none"
+                          stroke-linecap="round" stroke-linejoin="round"
+                          stroke-dasharray="480" stroke-dashoffset="480">
+                        <animate attributeName="stroke-dashoffset"
+                                 values="480; 480; 480; 480; 0; 480"
+                                 keyTimes="0; 0.25; 0.5; 0.75; 0.99; 1"
+                                 dur="2s" repeatCount="indefinite"/>
+                    </path>
+                </g>
+            </svg>
+        </div>
+        <h4 class="pl-title">Costruzione catene in corso<span class="pl-dots"></span></h4>
+        <p class="pl-subtitle">Stiamo cercando le migliori catene per categoria. Attendi qualche istante…</p>
+    </div>
+</div>
+
+<style>
+#polygonumLoadingOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+    background: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: wait;
+}
+
+#polygonumLoadingOverlay.active {
+    display: flex;
+}
+
+.pl-overlay-inner {
+    max-width: 420px;
+    padding: 20px;
+}
+
+.pl-title {
+    font-weight: 700;
+    color: #2c3e50;
+    margin-top: 10px;
+}
+
+.pl-subtitle {
+    color: #7f8c8d;
+    margin-bottom: 0;
+}
+
+.pl-dots::after {
+    content: '';
+    animation: plDots 1.2s steps(4, end) infinite;
+}
+
+@keyframes plDots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+    100% { content: ''; }
+}
+</style>
+
+<script>
+function showPolygonumLoading() {
+    const overlay = document.getElementById('polygonumLoadingOverlay');
+    if (!overlay) return;
+    overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden', 'false');
+    // Blocca lo scroll dello sfondo durante il caricamento
+    document.body.style.overflow = 'hidden';
+}
+
+// Se l'utente torna indietro (bfcache), nascondi l'overlay
+window.addEventListener('pageshow', function() {
+    const overlay = document.getElementById('polygonumLoadingOverlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+    }
+});
+</script>

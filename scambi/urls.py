@@ -15,6 +15,7 @@ urlpatterns = [
     path('attiva-annuncio/<int:annuncio_id>/', views.attiva_annuncio, name='attiva_annuncio'),
     path('disattiva-annuncio/<int:annuncio_id>/', views.disattiva_annuncio, name='disattiva_annuncio'),
     path('catene-scambio/', views.catene_scambio, name='catene_scambio'),
+    path('catene-scambio/community/', views.catene_community, name='catene_community'),
     # path('test-matching/', views.test_matching, name='test_matching'),  # RIMOSSO: XSS vulnerability
     path('register/', register, name='register'),
     path('login/', CustomLoginView.as_view(), name='login'),

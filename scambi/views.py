@@ -789,6 +789,145 @@ def catene_scambio(request):
         'from_session': has_session and not request.GET.get('load'),  # Flag per indicare caricamento da sessione
     })
 
+
+@login_required
+def catene_community(request):
+    """
+    Modalità "Community": mostra SOLO le catene mono-categoria (tutti gli annunci
+    coinvolti appartengono alla stessa categoria), raggruppate in sezioni per
+    categoria (Libri, Vinili, Vestiti bambini, ...).
+
+    Livello A: filtra le catene già pre-calcolate (e filtrate per l'utente
+    corrente, come la pagina tradizionale), senza toccare l'algoritmo di matching.
+    """
+    import json as _json
+    from django.utils import timezone
+    from django.core.cache import cache
+    from django.template.loader import render_to_string
+    from .matching import (
+        get_cicli_precalcolati,
+        filtra_catene_per_utente_ottimizzato,
+        calcola_qualita_ciclo,
+    )
+    from .models import RispostaProposta
+
+    cache_key = f'community_sections_{request.user.id}'
+    ts_key = f'community_updated_{request.user.id}'
+    aggiorna = request.GET.get('aggiorna') == 'true'
+
+    # Riusa i risultati cachati, a meno che non sia richiesto un aggiornamento esplicito.
+    cached_html = None if aggiorna else cache.get(cache_key)
+    if cached_html is not None:
+        return render(request, 'scambi/catene_community.html', {
+            'sections_html': cached_html,
+            'updated_at': cache.get(ts_key),
+        })
+
+    # ===== CALCOLO (primo caricamento o pulsante "Aggiorna") =====
+    annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
+    sezioni = []
+    totale_catene = 0
+
+    if annunci_utente.exists():
+        risultato = get_cicli_precalcolati()
+        scambi_diretti = risultato['scambi_diretti']
+        catene_lunghe = risultato['catene']
+
+        for c in scambi_diretti:
+            c['punteggio_qualita'] = calcola_qualita_ciclo(c)
+        for c in catene_lunghe:
+            c['punteggio_qualita'] = calcola_qualita_ciclo(c)
+
+        # Solo le catene che coinvolgono l'utente corrente
+        scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente_ottimizzato(
+            scambi_diretti, catene_lunghe, request.user
+        )
+        tutte_catene = scambi_diretti_utente + catene_lunghe_utente
+
+        # Rimuovi duplicati (stessa combinazione di utenti)
+        catene_uniche = []
+        viste = set()
+        for catena in tutte_catene:
+            uid = tuple(sorted([u['user'].id for u in catena['utenti']]))
+            if uid not in viste:
+                viste.add(uid)
+                catene_uniche.append(catena)
+
+        # Tieni solo le catene mono-categoria e raggruppale per categoria
+        gruppi = {}  # categoria_id -> {'categoria': obj, 'catene': [...]}
+        for catena in catene_uniche:
+            categorie_ids = set()
+            categoria_obj = None
+            valida = True
+            for u in catena.get('utenti', []):
+                for chiave in ('richiede', 'offerta'):
+                    ann = u.get(chiave)
+                    if ann is not None:
+                        cat = getattr(ann, 'categoria', None)
+                        if cat is None:
+                            valida = False
+                            break
+                        categorie_ids.add(cat.id)
+                        categoria_obj = cat
+                if not valida:
+                    break
+
+            if not valida or len(categorie_ids) != 1:
+                continue  # catena non mono-categoria → scartata
+
+            # Arricchimento identico alla pagina tradizionale (per chain_card.html)
+            fasce = set()
+            for u in catena.get('utenti', []):
+                if u.get('richiede') and getattr(u['richiede'], 'fascia_prezzo', None):
+                    fasce.add(u['richiede'].fascia_prezzo)
+                if u.get('offerta') and getattr(u['offerta'], 'fascia_prezzo', None):
+                    fasce.add(u['offerta'].fascia_prezzo)
+            catena['fasce_pari'] = len(fasce) <= 1
+
+            riordina_catena_per_utente(catena, request.user)
+            catena['is_favorita'] = is_catena_preferita(request.user, catena)
+            catena['hash_catena'] = genera_hash_catena(catena)
+            catena['json_data'] = _json.dumps(catena, default=str)
+
+            gruppo = gruppi.setdefault(categoria_obj.id, {'categoria': categoria_obj, 'catene': []})
+            gruppo['catene'].append(catena)
+
+        # Ordina le catene dentro ogni sezione e le sezioni per numero di catene
+        for gruppo in gruppi.values():
+            gruppo['catene'].sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
+            totale_catene += len(gruppo['catene'])
+        sezioni = sorted(gruppi.values(), key=lambda g: (-len(g['catene']), g['categoria'].nome))
+
+    # Cicli per cui l'utente ha già mostrato interesse (proposte non scadute)
+    cicli_interessati = set(
+        str(cid) for cid in RispostaProposta.objects.filter(
+            utente=request.user,
+            risposta='interessato',
+            proposta__data_scadenza__gt=timezone.now()
+        ).values_list('proposta__ciclo_id', flat=True)
+    )
+
+    # Renderizza la regione risultati e mettila in cache (riusata fino al prossimo "Aggiorna")
+    sections_html = render_to_string('scambi/partials/community_sections.html', {
+        'sezioni': sezioni,
+        'totale_catene': totale_catene,
+        'ha_annunci': annunci_utente.exists(),
+        'cicli_interessati': cicli_interessati,
+    }, request=request)
+    updated_at = timezone.now()
+    cache.set(cache_key, sections_html, 60 * 60 * 24)  # TTL 24h
+    cache.set(ts_key, updated_at, 60 * 60 * 24)
+
+    # PRG: dopo un "Aggiorna" esplicito torna all'URL pulito (evita ricalcolo su F5)
+    if aggiorna:
+        return redirect('catene_community')
+
+    return render(request, 'scambi/catene_community.html', {
+        'sections_html': sections_html,
+        'updated_at': updated_at,
+    })
+
+
 from django.contrib.auth import login
 from django.contrib.auth.views import LoginView
 from .forms import CustomUserCreationForm, UserProfileForm

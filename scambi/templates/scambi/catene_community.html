@@ -1,0 +1,199 @@
+{% extends 'scambi/base.html' %}
+{% load static %}
+
+{% block title %}Community - Catene per categoria - Polygonum{% endblock %}
+
+{% block content %}
+<!-- CSS condiviso delle card catena -->
+<link rel="stylesheet" href="{% static 'css/chains.css' %}">
+
+{% include "scambi/partials/loading_overlay.html" %}
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-2">
+            <h1 class="display-4 fw-bold mb-0" style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; color: #2c3e50;">
+                Community
+            </h1>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <a href="{% url 'catene_community' %}?aggiorna=true" class="btn btn-primary" onclick="showPolygonumLoading()">
+                    <i class="fas fa-rotate me-1"></i>Aggiorna
+                </a>
+                <a href="{% url 'catene_scambio' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Catene tradizionali
+                </a>
+            </div>
+        </div>
+        <p class="text-muted mb-1">
+            Catene di scambio in cui <strong>tutti gli oggetti appartengono alla stessa categoria</strong>:
+            ideali per community come libri, vinili, vestiti per bambini e altro.
+        </p>
+        {% if updated_at %}
+        <p class="text-muted small mb-4">
+            <i class="fas fa-clock me-1"></i>Ultimo aggiornamento: {{ updated_at|date:"d/m/Y H:i" }}
+            <span class="ms-1">— premi <strong>Aggiorna</strong> per ricalcolare.</span>
+        </p>
+        {% endif %}
+
+        {{ sections_html|safe }}
+    </div>
+</div>
+
+<style>
+.community-section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #2c3e50;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    border-bottom: 3px solid #4169E1;
+}
+
+.community-section-name {
+    text-transform: capitalize;
+}
+
+.community-section-badge {
+    display: inline-flex;
+    align-items: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    padding: 4px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+@media (max-width: 768px) {
+    .community-section-title {
+        font-size: 1.25rem;
+    }
+}
+</style>
+
+<script>
+// CSRF helper
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Comprimi/espandi singola card catena
+function toggleCard(headerEl, evt) {
+    if (evt && evt.target.closest('a, button, .btn-mi-interessa, .badge-interessati, .badge-scadenza')) {
+        return;
+    }
+    const card = headerEl.closest('.modern-chain-card');
+    if (!card) return;
+    card.classList.toggle('collapsed');
+}
+
+// Toggle interesse a una catena
+function proponiCatena(cicloId) {
+    const button = event.target.closest('.btn-mi-interessa');
+    const card = document.querySelector(`[data-ciclo-id="${cicloId}"]`);
+    if (!button || !card) return;
+
+    const wasInterested = button.classList.contains('interested');
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Invio...';
+
+    fetch(`/catene/proponi/${cicloId}/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const badges = card.querySelectorAll('.badge-interessati');
+            badges.forEach(badge => {
+                const countText = badge.querySelector('.count-text');
+                if (countText) countText.textContent = `${data.count_interessati}/${data.count_totale}`;
+                badge.style.display = 'inline-flex';
+            });
+            const buttons = card.querySelectorAll('.btn-mi-interessa');
+            if (data.action === 'added') {
+                buttons.forEach(btn => {
+                    btn.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
+                    btn.classList.add('interested');
+                    btn.disabled = false;
+                });
+                if (data.tutti_interessati) {
+                    if (data.chat_creata && confirm('🎉 Tutti sono interessati! È stata creata una chat di gruppo. Vuoi andare alla chat?')) {
+                        window.location.href = data.redirect_url;
+                    } else if (!data.chat_creata) {
+                        alert('🎉 Tutti sono interessati! Verrà creata una chat di gruppo.');
+                    }
+                } else {
+                    alert(`✅ Interesse registrato! ${data.count_interessati}/${data.count_totale} utenti interessati.`);
+                }
+            } else if (data.action === 'removed') {
+                buttons.forEach(btn => {
+                    btn.innerHTML = '<i class="fas fa-heart me-1"></i>Mi interessa';
+                    btn.classList.remove('interested');
+                    btn.disabled = false;
+                });
+                alert(`❌ Interesse rimosso. ${data.count_interessati}/${data.count_totale} utenti interessati.`);
+            }
+        } else {
+            alert('Errore: ' + data.error);
+            const buttons = card.querySelectorAll('.btn-mi-interessa');
+            buttons.forEach(btn => {
+                btn.disabled = false;
+                btn.innerHTML = wasInterested
+                    ? '<i class="fas fa-check me-1"></i>Interessato'
+                    : '<i class="fas fa-heart me-1"></i>Mi interessa';
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+        alert('Errore nel registrare l\'interesse');
+        button.disabled = false;
+        button.innerHTML = wasInterested
+            ? '<i class="fas fa-check me-1"></i>Interessato'
+            : '<i class="fas fa-heart me-1"></i>Mi interessa';
+    });
+}
+
+// Carica lo stato delle proposte esistenti per ogni card
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-ciclo-id]').forEach(card => {
+        const cicloId = card.dataset.cicloId;
+        fetch(`/catene/stato/${cicloId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.has_proposta) return;
+            const badges = card.querySelectorAll('.badge-interessati');
+            const buttons = card.querySelectorAll('.btn-mi-interessa');
+            badges.forEach(badge => {
+                const countText = badge.querySelector('.count-text');
+                if (countText) countText.textContent = `${data.count_interessati}/${data.count_totale}`;
+                badge.style.display = 'inline-flex';
+            });
+            if (data.mia_risposta === 'interessato') {
+                buttons.forEach(btn => {
+                    btn.innerHTML = '<i class="fas fa-check me-1"></i>Interessato';
+                    btn.classList.add('interested');
+                });
+            }
+        })
+        .catch(error => console.error('Errore nel caricare stato proposta:', error));
+    });
+});
+</script>
+{% endblock %}
