@@ -132,6 +132,96 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Completamento scambio & valutazioni -->
+            {% if fb_proposta %}
+            <div class="col-12 mt-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">
+                            <i class="fas fa-handshake me-2"></i>Completamento scambio e valutazioni
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% if not fb_is_completata %}
+                            <p class="mb-2">
+                                <i class="fas fa-clipboard-check me-1 text-primary"></i>
+                                <strong>{{ fb_count_conferme }}/{{ fb_count_totale }}</strong> partecipanti hanno confermato il completamento dello scambio.
+                            </p>
+                            {% if fb_ho_confermato %}
+                                <div class="alert alert-success py-2 mb-0">
+                                    <i class="fas fa-check-circle me-1"></i>Hai confermato il completamento. In attesa degli altri partecipanti.
+                                </div>
+                            {% else %}
+                                <p class="text-muted small">
+                                    Conferma solo quando lo scambio è andato a buon fine. Quando tutti confermano, potrete lasciarvi una valutazione.
+                                </p>
+                                <form method="post" action="{% url 'conferma_completamento_catena' fb_ciclo.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-check me-1"></i>Conferma scambio completato
+                                    </button>
+                                </form>
+                            {% endif %}
+                        {% else %}
+                            <div class="alert alert-success py-2">
+                                <i class="fas fa-check-circle me-1"></i><strong>Scambio completato da tutti!</strong> Lascia una valutazione agli altri partecipanti.
+                            </div>
+
+                            {% for p in fb_partecipanti %}
+                            <div class="border rounded-3 p-3 mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong><i class="fas fa-user me-1"></i>{{ p.utente.username }}</strong>
+                                    {% if p.valutazione %}
+                                        <span class="badge bg-success"><i class="fas fa-star me-1"></i>Hai votato: {{ p.valutazione.media }}/5</span>
+                                    {% endif %}
+                                </div>
+                                <form method="post" action="{% url 'valuta_scambio' fb_proposta.id p.utente.id %}">
+                                    {% csrf_token %}
+                                    <div class="row g-2">
+                                        <div class="col-md-4">
+                                            <label class="form-label small mb-1">Descrizione oggetto</label>
+                                            <select name="descrizione_oggetto" class="form-select form-select-sm" required>
+                                                <option value="" disabled {% if not p.valutazione %}selected{% endif %}>—</option>
+                                                {% for n in fb_range %}
+                                                <option value="{{ n }}" {% if p.valutazione and p.valutazione.descrizione_oggetto == n %}selected{% endif %}>{{ n }} ⭐</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small mb-1">Comunicazione</label>
+                                            <select name="comunicazione" class="form-select form-select-sm" required>
+                                                <option value="" disabled {% if not p.valutazione %}selected{% endif %}>—</option>
+                                                {% for n in fb_range %}
+                                                <option value="{{ n }}" {% if p.valutazione and p.valutazione.comunicazione == n %}selected{% endif %}>{{ n }} ⭐</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small mb-1">Velocità risposta</label>
+                                            <select name="velocita_risposta" class="form-select form-select-sm" required>
+                                                <option value="" disabled {% if not p.valutazione %}selected{% endif %}>—</option>
+                                                {% for n in fb_range %}
+                                                <option value="{{ n }}" {% if p.valutazione and p.valutazione.velocita_risposta == n %}selected{% endif %}>{{ n }} ⭐</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <textarea name="commento" rows="2" maxlength="1000" class="form-control form-control-sm"
+                                                  placeholder="Commento (facoltativo)">{% if p.valutazione %}{{ p.valutazione.commento }}{% endif %}</textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-sm mt-2">
+                                        <i class="fas fa-paper-plane me-1"></i>{% if p.valutazione %}Aggiorna valutazione{% else %}Invia valutazione{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         {% endif %}
     </div>
 </div>

@@ -1307,6 +1307,7 @@ class PropostaCatena(models.Model):
     STATO_CHOICES = [
         ('in_attesa', 'In attesa'),
         ('tutti_interessati', 'Tutti interessati'),
+        ('completata', 'Scambio completato'),
         ('rifiutata', 'Rifiutata'),
         ('annullata', 'Annullata'),
     ]
@@ -1372,6 +1373,31 @@ class PropostaCatena(models.Model):
         """Annulla la proposta"""
         self.stato = 'annullata'
         self.save()
+
+    def get_count_conferme(self):
+        """Conta quanti utenti hanno confermato il completamento dello scambio"""
+        return self.conferme_completamento.count()
+
+    def ha_confermato(self, utente):
+        """Verifica se un utente ha confermato il completamento"""
+        return self.conferme_completamento.filter(utente=utente).exists()
+
+    def check_tutti_confermato(self):
+        """
+        Se tutti i partecipanti hanno confermato il completamento, marca la
+        proposta come 'completata' (sblocca le valutazioni). Ritorna True se
+        la catena è ora completata.
+        """
+        if self.get_count_conferme() >= self.get_count_totale():
+            if self.stato != 'completata':
+                self.stato = 'completata'
+                self.save(update_fields=['stato', 'data_ultimo_aggiornamento'])
+            return True
+        return False
+
+    @property
+    def is_completata(self):
+        return self.stato == 'completata'
 
     def save(self, *args, **kwargs):
         """Override save per calcolare la data_scadenza automaticamente"""
@@ -1442,6 +1468,80 @@ class RispostaProposta(models.Model):
         # Annulla la proposta se qualcuno non è interessato
         self.proposta.stato = 'rifiutata'
         self.proposta.save()
+
+
+# === SISTEMA FEEDBACK POST-SCAMBIO ===
+
+class ConfermaCompletamento(models.Model):
+    """
+    Conferma di un partecipante che lo scambio della catena è andato a buon fine.
+    Quando TUTTI i partecipanti confermano, la proposta diventa 'completata' e
+    si sbloccano le valutazioni reciproche.
+    """
+    proposta = models.ForeignKey(
+        PropostaCatena,
+        on_delete=models.CASCADE,
+        related_name='conferme_completamento'
+    )
+    utente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conferme_completamento')
+    data_conferma = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Conferma Completamento"
+        verbose_name_plural = "Conferme Completamento"
+        unique_together = ('proposta', 'utente')
+
+    def __str__(self):
+        return f"{self.utente.username} ha confermato proposta {self.proposta_id}"
+
+
+class ValutazioneScambio(models.Model):
+    """
+    Valutazione che un partecipante lascia a un altro partecipante dopo che la
+    catena di scambio è stata completata da tutti. Tre criteri da 1 a 5.
+    """
+    SCORE_VALIDATORS = [
+        django_validators.MinValueValidator(1),
+        django_validators.MaxValueValidator(5),
+    ]
+
+    proposta = models.ForeignKey(
+        PropostaCatena,
+        on_delete=models.CASCADE,
+        related_name='valutazioni'
+    )
+    valutatore = models.ForeignKey(User, on_delete=models.CASCADE, related_name='valutazioni_date')
+    valutato = models.ForeignKey(User, on_delete=models.CASCADE, related_name='valutazioni_ricevute')
+
+    descrizione_oggetto = models.PositiveSmallIntegerField(
+        validators=SCORE_VALIDATORS,
+        help_text="Corrispondenza tra oggetto ricevuto e descrizione (1-5)"
+    )
+    comunicazione = models.PositiveSmallIntegerField(
+        validators=SCORE_VALIDATORS,
+        help_text="Facilità di comunicazione (1-5)"
+    )
+    velocita_risposta = models.PositiveSmallIntegerField(
+        validators=SCORE_VALIDATORS,
+        help_text="Velocità nella risposta (1-5)"
+    )
+    commento = models.TextField(blank=True, max_length=1000)
+
+    data_creazione = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Valutazione Scambio"
+        verbose_name_plural = "Valutazioni Scambi"
+        # Un utente può valutare un altro utente una sola volta per catena
+        unique_together = ('proposta', 'valutatore', 'valutato')
+
+    def __str__(self):
+        return f"{self.valutatore.username} → {self.valutato.username} (proposta {self.proposta_id})"
+
+    @property
+    def media(self):
+        """Media dei 3 criteri di questa singola valutazione"""
+        return round((self.descrizione_oggetto + self.comunicazione + self.velocita_risposta) / 3, 1)
 
 
 # === SISTEMA CALCOLO INCREMENTALE ===

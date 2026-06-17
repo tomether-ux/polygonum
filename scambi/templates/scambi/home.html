@@ -4,34 +4,6 @@
 {% block title %}Home - Polygonum{% endblock %}
 
 {% block content %}
-<!-- Navbar Secondaria Scrollabile -->
-<nav class="secondary-navbar">
-    <div class="secondary-navbar-scroll">
-        <a href="{% url 'lista_annunci' %}?ordinamento=-data_creazione" class="nav-item">
-            Novità
-        </a>
-        {% if user.is_authenticated %}
-        <a href="{% url 'lista_preferiti' %}" class="nav-item">
-            Preferiti
-        </a>
-        <a href="{% url 'profilo_utente' username=user.username %}" class="nav-item">
-            I miei annunci
-        </a>
-        {% endif %}
-        {% for categoria in categorie_popolari %}
-        <a href="{% url 'lista_annunci' %}?categoria={{ categoria.id }}" class="nav-item">
-            {{ categoria.nome }}
-        </a>
-        {% endfor %}
-        <a href="{% url 'come_funziona' %}" class="nav-item">
-            Come funziona
-        </a>
-        <a href="{% url 'regolamento' %}" class="nav-item">
-            Regole del sito
-        </a>
-    </div>
-</nav>
-
 <!-- Hero Section con Box a Sinistra -->
 <section class="hero-box-section">
     <!-- Sfondo -->
@@ -65,50 +37,6 @@
 /* Riduce margin-top del main container in homepage */
 main.container {
     margin-top: 0.1rem !important;
-}
-
-/* Navbar Secondaria Scrollabile */
-.secondary-navbar {
-    background: white;
-    border-bottom: 1px solid #e5e7eb;
-    position: relative;
-    z-index: 100;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.secondary-navbar-scroll {
-    display: flex;
-    overflow-x: auto;
-    overflow-y: hidden;
-    white-space: nowrap;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
-    padding: 0;
-    justify-content: space-evenly; /* Distribuisce uniformemente */
-}
-
-.secondary-navbar-scroll::-webkit-scrollbar {
-    display: none; /* Chrome/Safari/Opera */
-}
-
-.secondary-navbar .nav-item {
-    display: inline-flex;
-    align-items: center;
-    padding: 12px 24px; /* Aumentato padding orizzontale */
-    color: #4A5568;
-    text-decoration: none;
-    font-size: 0.95rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    border-bottom: 2px solid transparent;
-    flex-shrink: 0;
-}
-
-.secondary-navbar .nav-item:hover {
-    color: #4169E1;
-    background: #f8f9fa;
-    border-bottom-color: #4169E1;
 }
 
 /* Hero Section con Box a Sinistra */

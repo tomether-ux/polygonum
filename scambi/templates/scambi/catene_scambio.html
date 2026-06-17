@@ -311,8 +311,10 @@
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="includiSinonimi">
                         <label class="form-check-label" for="includiSinonimi">
-                            <i class="fas fa-eye me-1"></i>
                             <strong>Mostra sinonimi</strong>
+                            <i class="fas fa-info-circle filter-info-icon"
+                               data-bs-toggle="tooltip" data-bs-placement="top"
+                               title="Include anche le catene trovate tramite parole simili (sinonimi), non solo le corrispondenze identiche."></i>
                         </label>
                     </div>
                 </div>
@@ -322,8 +324,10 @@
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="soloMatchEsatti">
                         <label class="form-check-label" for="soloMatchEsatti">
-                            <i class="fas fa-bullseye me-1"></i>
                             <strong>Solo match esatti</strong>
+                            <i class="fas fa-info-circle filter-info-icon"
+                               data-bs-toggle="tooltip" data-bs-placement="top"
+                               title="Mostra solo le catene in cui ciò che cerchi corrisponde esattamente a ciò che viene offerto, senza sinonimi o corrispondenze parziali."></i>
                         </label>
                     </div>
                 </div>
@@ -333,11 +337,12 @@
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="scambiAllaPari">
                         <label class="form-check-label" for="scambiAllaPari">
-                            <i class="fas fa-balance-scale me-1"></i>
                             <strong>Scambi alla pari</strong>
+                            <i class="fas fa-info-circle filter-info-icon"
+                               data-bs-toggle="tooltip" data-bs-placement="top"
+                               title="Mostra solo le catene con oggetti della stessa fascia di prezzo, per scambi di valore equivalente."></i>
                         </label>
                     </div>
-                    <small class="text-muted ms-4">Mostra solo catene con oggetti della stessa fascia di prezzo</small>
                 </div>
 
                 <button id="searchButton" onclick="ricalcolaCatene()" class="btn btn-primary btn-lg">
@@ -589,6 +594,26 @@ function toggleGroup(groupId) {
     }
 }
 
+// Toggle collapsible singola card catena
+function toggleCard(headerEl, evt) {
+    // Non comprimere se si clicca su un link, bottone o badge interattivo
+    if (evt && evt.target.closest('a, button, .btn-mi-interessa, .badge-interessati, .badge-scadenza')) {
+        return;
+    }
+
+    const card = headerEl.closest('.modern-chain-card');
+    if (!card) return;
+
+    card.classList.toggle('collapsed');
+
+    // Se la card è dentro un gruppo aperto, ricalcola l'altezza del gruppo
+    // per evitare che il contenuto venga tagliato/lasci spazi vuoti
+    const groupContent = card.closest('.chain-group-content');
+    if (groupContent && groupContent.style.maxHeight && groupContent.style.maxHeight !== '0px') {
+        groupContent.style.maxHeight = groupContent.scrollHeight + 'px';
+    }
+}
+
 // NUOVA FUNZIONE: Carica catene dal DB per l'utente corrente
 function ricalcolaCatene() {
     // Nascondi il contenuto principale e mostra la schermata di loading
@@ -766,6 +791,12 @@ function filtraCatenePerAnnuncio() {
 // Inizializzazione al caricamento pagina
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
+
+    // Inizializza i tooltip Bootstrap (icone info dei filtri)
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.forEach(function (el) {
+        new bootstrap.Tooltip(el);
+    });
 
     // Mostra risultati se c'è stato un ricalcolo
     if (urlParams.get('ricalcola') === 'true' || urlParams.get('cerca') === 'true') {
@@ -1111,6 +1142,19 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
+/* Icona info accanto ai filtri */
+.filter-info-icon {
+    color: #adb5bd;
+    margin-left: 6px;
+    cursor: help;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+}
+
+.filter-info-icon:hover {
+    color: #667eea;
+}
+
 .progress-bar {
     transition: width 0.5s ease;
 }
@@ -1291,6 +1335,27 @@ document.addEventListener('DOMContentLoaded', function() {
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
     padding: 20px 25px;
     border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+/* Card catena collassabile */
+.card-chevron {
+    color: #667eea;
+    font-size: 1rem;
+    transition: transform 0.3s ease;
+    transform: rotate(180deg); /* default: card espansa → chevron in su */
+    flex-shrink: 0;
+}
+
+.modern-chain-card.collapsed .card-chevron {
+    transform: rotate(0deg); /* card compressa → chevron in giù */
+}
+
+.modern-chain-card.collapsed .chain-card-header {
+    border-bottom: none;
+}
+
+.modern-chain-card.collapsed .chain-card-body {
+    display: none;
 }
 
 .modern-chain-card.generic .chain-card-header {

@@ -1,0 +1,30 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Annuncio non disponibile - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 text-center">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-5">
+                    <i class="fas fa-eye-slash fa-3x text-muted mb-4"></i>
+                    <h1 class="h3 text-polygonum-primary mb-3">Annuncio non disponibile</h1>
+                    <p class="text-muted lead mb-4">
+                        Questo annuncio non è più disponibile: potrebbe essere stato disattivato
+                        dal proprietario o non essere più online.
+                    </p>
+                    <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                        <a href="{% url 'lista_annunci' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-list me-2"></i>Esplora gli annunci
+                        </a>
+                        <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-home me-2"></i>Torna alla home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

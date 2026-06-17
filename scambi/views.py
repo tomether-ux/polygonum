@@ -178,10 +178,20 @@ def dettaglio_annuncio(request, annuncio_id):
     # crawler legittimi. Per gestire ufficialmente i bot, andrebbe verificato
     # via reverse-DNS, non via header client-controlled.
 
-    annuncio = get_object_or_404(Annuncio, id=annuncio_id, attivo=True)
+    annuncio = get_object_or_404(Annuncio, id=annuncio_id)
+
+    is_owner = request.user.is_authenticated and annuncio.utente_id == request.user.id
+
+    # Annuncio disattivato (disattivato a mano dal proprietario oppure rifiutato
+    # dalla moderazione): visibile SOLO al proprietario, con le relative etichette
+    # di stato. Gli altri utenti vedono una pagina "non disponibile" pulita,
+    # invece di un errore 404 grezzo.
+    if not annuncio.attivo and not is_owner:
+        return render(request, 'scambi/annuncio_non_disponibile.html', status=404)
 
     return render(request, 'scambi/dettaglio_annuncio.html', {
-        'annuncio': annuncio
+        'annuncio': annuncio,
+        'is_owner': is_owner,
     })
 
 @login_required
@@ -967,13 +977,37 @@ def profilo_utente(request, username):
     # Conta solo gli annunci attivi per le statistiche pubbliche
     annunci_attivi = Annuncio.objects.filter(utente=utente, attivo=True)
 
+    # Valutazioni ricevute (feedback post-scambio): medie per criterio + complessiva
+    from django.db.models import Avg, Count
+    from .models import ValutazioneScambio
+
+    val_agg = ValutazioneScambio.objects.filter(valutato=utente).aggregate(
+        media_descrizione=Avg('descrizione_oggetto'),
+        media_comunicazione=Avg('comunicazione'),
+        media_velocita=Avg('velocita_risposta'),
+        n=Count('id'),
+    )
+    n_val = val_agg['n'] or 0
+    if n_val:
+        md, mc, mv = val_agg['media_descrizione'], val_agg['media_comunicazione'], val_agg['media_velocita']
+        valutazioni = {
+            'count': n_val,
+            'media_complessiva': round((md + mc + mv) / 3, 1),
+            'media_descrizione': round(md, 1),
+            'media_comunicazione': round(mc, 1),
+            'media_velocita': round(mv, 1),
+        }
+    else:
+        valutazioni = {'count': 0}
+
     context = {
         'utente': utente,
         'profilo': profilo,
         'annunci_offro': annunci_offro,
         'annunci_cerco': annunci_cerco,
         'totale_annunci': annunci_attivi.count(),
-        'is_own_profile': request.user == utente
+        'is_own_profile': request.user == utente,
+        'valutazioni': valutazioni,
     }
 
     # Se è il proprio profilo e l'utente è loggato, aggiungi la sezione "I Miei Scambi"
@@ -2246,6 +2280,44 @@ def chat_conversazione(request, conversazione_id):
         'altri_utenti': conversazione.get_altri_utenti(request.user),
     }
 
+    # === Feedback post-scambio (solo chat di gruppo legate a una catena) ===
+    if conversazione.tipo == 'gruppo' and conversazione.catena_scambio_id:
+        from .models import ValutazioneScambio
+
+        try:
+            ciclo = CicloScambio.objects.filter(id=int(conversazione.catena_scambio_id)).first()
+        except (TypeError, ValueError):
+            ciclo = None
+
+        proposta = None
+        if ciclo:
+            proposta = PropostaCatena.objects.filter(
+                ciclo=ciclo,
+                stato__in=['tutti_interessati', 'completata']
+            ).order_by('-data_creazione').first()
+
+        if proposta:
+            # Valutazioni già date dall'utente corrente in questa catena
+            mie_valutazioni = {
+                v.valutato_id: v
+                for v in ValutazioneScambio.objects.filter(proposta=proposta, valutatore=request.user)
+            }
+            partecipanti_feedback = [
+                {'utente': u, 'valutazione': mie_valutazioni.get(u.id)}
+                for u in conversazione.get_altri_utenti(request.user)
+            ]
+
+            context.update({
+                'fb_proposta': proposta,
+                'fb_ciclo': ciclo,
+                'fb_count_totale': proposta.get_count_totale(),
+                'fb_count_conferme': proposta.get_count_conferme(),
+                'fb_ho_confermato': proposta.ha_confermato(request.user),
+                'fb_is_completata': proposta.is_completata,
+                'fb_partecipanti': partecipanti_feedback,
+                'fb_range': [1, 2, 3, 4, 5],
+            })
+
     return render(request, 'scambi/chat_conversazione.html', context)
 
 
@@ -2936,6 +3008,131 @@ def rispondi_proposta_catena(request, proposta_id):
             'success': False,
             'error': 'Errore del server. Riprova più tardi.'
         })
+
+
+@login_required
+@require_POST
+def conferma_completamento_catena(request, ciclo_id):
+    """
+    Un partecipante conferma che lo scambio della catena è andato a buon fine.
+    Disponibile solo dopo che tutti hanno messo 'mi interessa' (proposta in stato
+    'tutti_interessati'). Quando TUTTI confermano, la proposta diventa
+    'completata' e si sbloccano le valutazioni reciproche.
+    """
+    from .models import ConfermaCompletamento, Conversazione, Messaggio
+
+    ciclo = get_object_or_404(CicloScambio, id=ciclo_id)
+
+    # Conversazione di gruppo collegata (per il redirect di ritorno)
+    conversazione = Conversazione.objects.filter(
+        tipo='gruppo', catena_scambio_id=str(ciclo.id)
+    ).first()
+
+    def _back():
+        if conversazione:
+            return redirect('chat_conversazione', conversazione_id=conversazione.id)
+        return redirect('lista_messaggi')
+
+    # L'utente deve far parte della catena
+    if request.user.id not in ciclo.users:
+        messages.error(request, 'Non fai parte di questa catena.')
+        return _back()
+
+    # La proposta deve essere arrivata a 'tutti_interessati' (o già completata)
+    proposta = PropostaCatena.objects.filter(
+        ciclo=ciclo,
+        stato__in=['tutti_interessati', 'completata']
+    ).order_by('-data_creazione').first()
+
+    if not proposta:
+        messages.error(request, 'Puoi confermare il completamento solo quando tutti i partecipanti sono interessati alla catena.')
+        return _back()
+
+    conferma, created = ConfermaCompletamento.objects.get_or_create(
+        proposta=proposta, utente=request.user
+    )
+
+    if not created:
+        messages.info(request, 'Avevi già confermato il completamento.')
+        return _back()
+
+    # Se tutti hanno confermato, completa la catena e sblocca le valutazioni
+    completata_ora = proposta.check_tutti_confermato()
+    if completata_ora:
+        if conversazione:
+            Messaggio.objects.create(
+                conversazione=conversazione,
+                mittente=request.user,
+                contenuto="✅ Tutti i partecipanti hanno confermato il completamento dello scambio! Ora potete lasciarvi una valutazione.",
+                is_sistema=True
+            )
+        messages.success(request, '✅ Scambio completato da tutti! Ora puoi valutare gli altri partecipanti.')
+    else:
+        messages.success(request, 'Hai confermato il completamento dello scambio. In attesa degli altri partecipanti.')
+
+    return _back()
+
+
+@login_required
+@require_POST
+def valuta_scambio(request, proposta_id, valutato_id):
+    """
+    Lascia (o aggiorna) una valutazione a un altro partecipante della catena,
+    su 3 criteri da 1 a 5. Disponibile solo dopo che la catena è 'completata'.
+    """
+    from .models import ValutazioneScambio, Conversazione
+
+    proposta = get_object_or_404(PropostaCatena, id=proposta_id)
+    ciclo = proposta.ciclo
+
+    conversazione = Conversazione.objects.filter(
+        tipo='gruppo', catena_scambio_id=str(ciclo.id)
+    ).first()
+
+    def _back():
+        if conversazione:
+            return redirect('chat_conversazione', conversazione_id=conversazione.id)
+        return redirect('lista_messaggi')
+
+    # Solo a catena completata e solo per i partecipanti
+    if not proposta.is_completata:
+        messages.error(request, 'Puoi lasciare una valutazione solo dopo che tutti hanno confermato il completamento.')
+        return _back()
+    if request.user.id not in ciclo.users:
+        messages.error(request, 'Non fai parte di questa catena.')
+        return _back()
+    if valutato_id == request.user.id or valutato_id not in ciclo.users:
+        messages.error(request, 'Destinatario della valutazione non valido.')
+        return _back()
+
+    valutato = get_object_or_404(User, id=valutato_id)
+
+    # Parsing e validazione punteggi (1-5)
+    try:
+        descrizione = int(request.POST.get('descrizione_oggetto'))
+        comunicazione = int(request.POST.get('comunicazione'))
+        velocita = int(request.POST.get('velocita_risposta'))
+    except (TypeError, ValueError):
+        messages.error(request, 'Punteggi non validi.')
+        return _back()
+
+    if any(v < 1 or v > 5 for v in (descrizione, comunicazione, velocita)):
+        messages.error(request, 'I punteggi devono essere compresi tra 1 e 5.')
+        return _back()
+
+    commento = (request.POST.get('commento') or '').strip()[:1000]
+
+    ValutazioneScambio.objects.update_or_create(
+        proposta=proposta, valutatore=request.user, valutato=valutato,
+        defaults={
+            'descrizione_oggetto': descrizione,
+            'comunicazione': comunicazione,
+            'velocita_risposta': velocita,
+            'commento': commento,
+        }
+    )
+    messages.success(request, f'Valutazione per {valutato.username} salvata. Grazie!')
+    return _back()
 
 
 @login_required

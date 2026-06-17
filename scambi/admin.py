@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (
     Categoria, Annuncio, UserProfile, Notifica, Preferiti,
-    PropostaScambio, CicloScambio, Provincia
+    PropostaScambio, CicloScambio, Provincia,
+    ConfermaCompletamento, ValutazioneScambio
 )
 
 
@@ -263,3 +264,20 @@ class CicloScambioAdmin(admin.ModelAdmin):
         """Mostra gli ID degli utenti nel ciclo"""
         return f"Utenti: {obj.users}"
     get_users_display.short_description = 'Utenti nel ciclo'
+
+
+@admin.register(ConfermaCompletamento)
+class ConfermaCompletamentoAdmin(admin.ModelAdmin):
+    list_display = ['id', 'proposta', 'utente', 'data_conferma']
+    list_filter = ['data_conferma']
+    search_fields = ['utente__username']
+    raw_id_fields = ['proposta', 'utente']
+
+
+@admin.register(ValutazioneScambio)
+class ValutazioneScambioAdmin(admin.ModelAdmin):
+    list_display = ['id', 'valutatore', 'valutato', 'descrizione_oggetto',
+                    'comunicazione', 'velocita_risposta', 'data_creazione']
+    list_filter = ['data_creazione', 'descrizione_oggetto', 'comunicazione', 'velocita_risposta']
+    search_fields = ['valutatore__username', 'valutato__username']
+    raw_id_fields = ['proposta', 'valutatore', 'valutato']

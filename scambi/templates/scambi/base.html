@@ -105,6 +105,7 @@
     </style>
 </head>
 <body>
+    <div class="app-sticky-header">
     <nav class="navbar navbar-expand-lg navbar-polygonum">
         <div class="container">
             <a class="navbar-brand" href="{% url 'home' %}">
@@ -494,7 +495,34 @@
         </div>
     </nav>
 
-    {% block secondary_navbar %}{% endblock %}
+    <!-- Sotto-navbar categorie: presente in ogni pagina, sticky insieme alla navbar -->
+    <nav class="secondary-navbar">
+        <div class="secondary-navbar-scroll">
+            <a href="{% url 'lista_annunci' %}?ordinamento=-data_creazione" class="nav-item">
+                Novità
+            </a>
+            {% if user.is_authenticated %}
+            <a href="{% url 'lista_preferiti' %}" class="nav-item">
+                Preferiti
+            </a>
+            <a href="{% url 'profilo_utente' username=user.username %}" class="nav-item">
+                I miei annunci
+            </a>
+            {% endif %}
+            {% for categoria in categorie_navbar %}
+            <a href="{% url 'lista_annunci' %}?categoria={{ categoria.id }}" class="nav-item">
+                {{ categoria.nome }}
+            </a>
+            {% endfor %}
+            <a href="{% url 'come_funziona' %}" class="nav-item">
+                Come funziona
+            </a>
+            <a href="{% url 'regolamento' %}" class="nav-item">
+                Regole del sito
+            </a>
+        </div>
+    </nav>
+    </div><!-- /.app-sticky-header -->
 
     <main class="container my-4">
         {% if messages %}

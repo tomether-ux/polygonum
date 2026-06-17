@@ -87,6 +87,10 @@ urlpatterns = [
     path('catene/stato/<int:ciclo_id>/', views.stato_proposta_catena, name='stato_proposta_catena'),
     path('mie-proposte-catene/', views.mie_proposte_catene, name='mie_proposte_catene'),
 
+    # Feedback post-scambio: conferma completamento + valutazioni
+    path('catene/conferma-completamento/<int:ciclo_id>/', views.conferma_completamento_catena, name='conferma_completamento_catena'),
+    path('catene/valuta/<int:proposta_id>/<int:valutato_id>/', views.valuta_scambio, name='valuta_scambio'),
+
     # API Sistema calcolo cicli separato
     path('api/cicli/<int:user_id>/', views.api_cicli_utente, name='api_cicli_utente'),
     path('api/cicli/stats/', views.api_cicli_stats, name='api_cicli_stats'),

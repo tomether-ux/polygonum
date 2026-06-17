@@ -121,6 +121,28 @@
 
                     <!-- Alert Moderazione (solo per proprietario) -->
                     {% if user.is_authenticated and user == annuncio.utente %}
+                        {% if not annuncio.attivo and annuncio.moderation_status != 'rejected' %}
+                        <div class="alert alert-secondary border d-flex align-items-start" role="alert">
+                            <i class="fas fa-pause-circle fa-lg me-3 mt-1"></i>
+                            <div>
+                                <strong>Annuncio disattivato</strong>
+                                <p class="mb-0">
+                                    Questo annuncio non è visibile agli altri utenti. Puoi riattivarlo dai pulsanti qui sotto.
+                                </p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if annuncio.moderation_status == 'pending' %}
+                        <div class="alert alert-warning border d-flex align-items-start" role="alert">
+                            <i class="fas fa-clock fa-lg me-3 mt-1"></i>
+                            <div>
+                                <strong>In moderazione</strong>
+                                <p class="mb-0">
+                                    L'immagine è in attesa di approvazione. L'annuncio è visibile ma l'immagine sarà mostrata dopo la moderazione.
+                                </p>
+                            </div>
+                        </div>
+                        {% endif %}
                         {% if annuncio.moderation_status == 'rejected' %}
                         <div class="alert alert-danger border-danger" role="alert">
                             <div class="d-flex align-items-start">

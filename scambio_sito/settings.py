@@ -87,6 +87,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'scambi.views.context_processor_notifiche',
+                'scambi.context_processors.categorie_navbar',
             ],
         },
     },
