@@ -108,7 +108,7 @@ function proponiCatena(cicloId) {
 
     fetch(`/catene/proponi/${cicloId}/`, {
         method: 'POST',
-        headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' }
+        headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
     })
     .then(response => response.json())
     .then(data => {

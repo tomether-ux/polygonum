@@ -881,7 +881,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
+                    'X-CSRFToken': '{{ csrf_token }}'
                 },
                 body: JSON.stringify(useHashMethod ? {
                     'catena_hash': catenaHash,
@@ -971,7 +971,7 @@ function proponiCatena(cicloId) {
     fetch(`/catene/proponi/${cicloId}/`, {
         method: 'POST',
         headers: {
-            'X-CSRFToken': getCookie('csrftoken'),
+            'X-CSRFToken': '{{ csrf_token }}',
             'Content-Type': 'application/json'
         }
     })
