@@ -1026,7 +1026,7 @@ function proponiCatena(cicloId) {
                         alert('🎉 Tutti sono interessati! Verrà creata una chat di gruppo.');
                     }
                 } else {
-                    alert(`✅ Interesse registrato! ${data.count_interessati}/${data.count_totale} utenti interessati.`);
+                    // Nessun popup: il bottone diventa subito verde e il contatore si aggiorna
                 }
             } else if (data.action === 'removed') {
                 buttons.forEach(btn => {
@@ -1035,7 +1035,7 @@ function proponiCatena(cicloId) {
                     btn.disabled = false;
                 });
 
-                alert(`❌ Interesse rimosso. ${data.count_interessati}/${data.count_totale} utenti interessati.`);
+                // Nessun popup: il bottone torna subito allo stato iniziale
             }
         } else {
             alert('Errore: ' + data.error);
