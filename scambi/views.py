@@ -2835,27 +2835,30 @@ def webhook_calcola_cicli(request):
         # Importa il comando di calcolo cicli
         from django.core.management import call_command
         from io import StringIO
-        import sys
+        from .locks import cycle_calculation_lock
 
-        # Cattura l'output del comando
-        output_buffer = StringIO()
-        old_stdout = sys.stdout
-        sys.stdout = output_buffer
+        with cycle_calculation_lock() as lock_acquired:
+            if not lock_acquired:
+                return JsonResponse({
+                    "success": False,
+                    "error": "Calcolo cicli già in esecuzione"
+                }, status=409)
 
-        start_time = time.time()
+            output_buffer = StringIO()
+            start_time = time.time()
 
-        # Esegui il comando di calcolo cicli con verbosità ridotta per webhook
-        call_command(
-            "calcola_cicli",
-            max_length=6,
-            commit_batch_size=50,
-            cleanup_old=True,
-            verbosity=0  # Ridotto a 0 per evitare output troppo verboso nel webhook
-        )
-
-        # Ripristina stdout
-        sys.stdout = old_stdout
-        command_output = output_buffer.getvalue()
+            # Passa gli stream direttamente al management command. Modificare
+            # sys.stdout globalmente interferiva con le altre richieste.
+            call_command(
+                "calcola_cicli",
+                max_length=6,
+                commit_batch_size=50,
+                cleanup_old=True,
+                verbosity=0,
+                stdout=output_buffer,
+                stderr=output_buffer,
+            )
+            command_output = output_buffer.getvalue()
 
         # Statistiche finali
         from .models import CicloScambio

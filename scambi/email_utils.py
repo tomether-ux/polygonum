@@ -1,7 +1,7 @@
-import uuid
 import logging
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
-from django.core.mail import send_mail
+import socket
+
+from django.core.mail import get_connection, send_mail
 from django.conf import settings
 from django.urls import reverse
 from django.core.signing import TimestampSigner
@@ -16,14 +16,25 @@ def generate_verification_token(user_id):
     signer = TimestampSigner(salt='email-verification')
     return signer.sign(str(user_id))
 
-def _send_mail_task(subject, message, from_email, recipient_list):
-    """Task interno per invio email (eseguito in thread separato)"""
-    return send_mail(subject, message, from_email, recipient_list, fail_silently=False)
+def _send_mail_task(subject, message, from_email, recipient_list, timeout_seconds):
+    """Invia l'email usando un timeout reale sulla connessione SMTP."""
+    connection = get_connection(timeout=timeout_seconds)
+    return send_mail(
+        subject,
+        message,
+        from_email,
+        recipient_list,
+        fail_silently=False,
+        connection=connection,
+    )
 
 def send_verification_email_with_timeout(request, user, user_profile, timeout_seconds=30):
     """
-    Invia email di verifica con timeout gestito via ThreadPoolExecutor
-    SECURITY: Usa concurrent.futures invece di signal.alarm() per compatibilità Gunicorn
+    Invia email di verifica con timeout applicato alla connessione SMTP.
+
+    La precedente implementazione usava un ThreadPoolExecutor come context
+    manager: allo scadere del timeout il context manager attendeva comunque la
+    fine del thread, lasciando bloccato il worker HTTP.
     """
     # Genera token di verifica con timestamp (SECURITY: scade dopo 48h)
     token = generate_verification_token(user.id)
@@ -55,6 +66,7 @@ Benvenuto nella community degli scambi!
     """
 
     from_email = settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@polygonum.com'
+    timeout_seconds = max(1, min(int(timeout_seconds), 60))
 
     try:
         logger.info(
@@ -63,16 +75,18 @@ Benvenuto nella community degli scambi!
             timeout_seconds,
         )
 
-        # SECURITY: Usa ThreadPoolExecutor con timeout invece di signal.alarm()
-        # Funziona correttamente con Gunicorn multi-worker
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(_send_mail_task, subject, message, from_email, [user.email])
-            future.result(timeout=timeout_seconds)
+        _send_mail_task(
+            subject,
+            message,
+            from_email,
+            [user.email],
+            timeout_seconds,
+        )
 
         logger.info("Verification email sent user_id=%s", user.id)
         return {"success": True, "message": "Email inviata"}
 
-    except FuturesTimeoutError:
+    except (TimeoutError, socket.timeout):
         logger.warning(
             "Verification email timeout user_id=%s timeout_seconds=%s",
             user.id,

@@ -203,6 +203,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'apikey'
 EMAIL_HOST_PASSWORD = os.environ.get('SENDGRID_API_KEY', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@polygonum.io')
+EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT_SECONDS', '30'))
 
 # Admin email per moderazione contenuti (SECURITY: obbligatorio in produzione)
 ADMIN_MODERATION_EMAIL = os.environ.get('ADMIN_MODERATION_EMAIL')

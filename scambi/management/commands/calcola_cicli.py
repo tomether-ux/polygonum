@@ -1,8 +1,9 @@
 import os
 import sys
 import django
+import logging
 from datetime import datetime
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.db import transaction
 
@@ -14,6 +15,9 @@ if __name__ == "__main__":
 
 from scambi.models import CicloScambio, CalcoloMetadata
 from scambi.matching import CycleFinder
+
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -141,13 +145,17 @@ class Command(BaseCommand):
                 )
             )
 
-        except Exception as e:
+        except Exception as exc:
             self.stdout.write(
-                self.style.ERROR(f"[{datetime.now()}] ❌ Errore durante il calcolo: {e}")
+                self.style.ERROR(
+                    f"[{datetime.now()}] ❌ Errore durante il calcolo "
+                    f"({type(exc).__name__})"
+                )
             )
-            import traceback
-            traceback.print_exc()
-            sys.exit(1)
+            logger.exception("Cycle calculation command failed")
+            # Un management command non deve terminare il processo che lo ha
+            # invocato: dal webhook, sys.exit() uccideva il worker Gunicorn.
+            raise CommandError('Calcolo cicli non completato') from exc
 
     def _calcolo_completo(self, max_length):
         """
