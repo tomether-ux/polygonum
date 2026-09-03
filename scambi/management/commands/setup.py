@@ -6,12 +6,21 @@ from django.contrib.auth.models import User
 
 
 class Command(BaseCommand):
-    help = 'Setup initial superuser for production'
+    help = 'Optionally create an initial superuser from explicit environment variables'
 
     def handle(self, *args, **options):
         username = os.environ.get('DJANGO_SUPERUSER_USERNAME')
         email = os.environ.get('DJANGO_SUPERUSER_EMAIL')
         password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+
+        configured = [username, email, password]
+        if not any(configured):
+            self.stdout.write(
+                self.style.WARNING(
+                    'Superuser setup skipped: explicit credentials are not configured'
+                )
+            )
+            return
 
         missing = [
             name for name, value in (
@@ -23,7 +32,7 @@ class Command(BaseCommand):
         ]
         if missing:
             raise CommandError(
-                'Missing required environment variables: ' + ', '.join(missing)
+                'Incomplete superuser configuration; missing: ' + ', '.join(missing)
             )
 
         if not User.objects.filter(username=username).exists():

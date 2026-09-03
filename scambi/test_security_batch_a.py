@@ -21,9 +21,25 @@ class SuperuserCommandSafetyTests(SimpleTestCase):
             with self.assertRaises(CommandError):
                 command.handle()
 
-    def test_setup_requires_explicit_environment(self):
+    def test_setup_skips_when_superuser_environment_is_absent(self):
         command = setup.Command()
-        with patch.object(setup.os.environ, 'get', return_value=None):
+        with (
+            patch.object(setup.os.environ, 'get', return_value=None),
+            patch.object(setup.User.objects, 'filter') as filter_users,
+        ):
+            command.handle()
+
+        filter_users.assert_not_called()
+
+    def test_setup_rejects_partial_superuser_environment(self):
+        command = setup.Command()
+
+        def get_environment(name):
+            if name == 'DJANGO_SUPERUSER_USERNAME':
+                return 'configured-admin'
+            return None
+
+        with patch.object(setup.os.environ, 'get', side_effect=get_environment):
             with self.assertRaises(CommandError):
                 command.handle()
 
