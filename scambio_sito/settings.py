@@ -213,15 +213,6 @@ is_production = os.environ.get('RENDER') and not is_github_actions
 if not ADMIN_MODERATION_EMAIL and is_production:
     raise ValueError("ADMIN_MODERATION_EMAIL environment variable must be set in production")
 
-# Token per API gestionale admin (pannello React)
-# SECURITY: nessun fallback hardcoded — fail-fast in produzione
-ADMIN_GESTIONALE_TOKEN = os.environ.get('ADMIN_GESTIONALE_TOKEN')
-if not ADMIN_GESTIONALE_TOKEN and is_production:
-    raise ValueError(
-        "ADMIN_GESTIONALE_TOKEN environment variable must be set in production "
-        "(API gestionale admin esposta senza un token sicuro)"
-    )
-
 # Email backend logic
 if os.environ.get('SENDGRID_API_KEY'):
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -326,16 +317,12 @@ if os.environ.get('RENDER'):
     # Email configuration is already set above based on SENDGRID_API_KEY
     # No need to override EMAIL_BACKEND here
 
-# CORS Configuration for Gestionale Admin
-# SECURITY: solo domini esatti — niente regex wildcard *.vercel.app
-# (consentirebbe a qualsiasi fork malevolo deployato su Vercel di
-# parlare con le nostre API).
+# CORS Configuration
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite dev server
     "http://localhost:3000",  # Alternative React dev port
     "https://polygonum.io",
     "https://www.polygonum.io",
-    "https://gestionale-sigma.vercel.app",  # Pannello admin in produzione
 ]
 
 CORS_ALLOW_HEADERS = [
