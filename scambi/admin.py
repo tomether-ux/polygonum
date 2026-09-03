@@ -7,6 +7,7 @@ from .models import (
     PropostaScambio, CicloScambio, Provincia,
     ConfermaCompletamento, ValutazioneScambio
 )
+from .moderation import approve_announcement, reject_announcement
 
 logger = logging.getLogger(__name__)
 
@@ -52,11 +53,12 @@ class AnnuncioAdmin(admin.ModelAdmin):
         """Approva manualmente gli annunci selezionati (anche se già approvati, per ri-validare immagini)"""
         updated = 0
         for annuncio in queryset:
-            # Approva sempre, anche se già approvato (utile per ri-approvare dopo cambio immagine)
-            annuncio.moderation_status = 'approved'
-            annuncio.attivo = True
-            annuncio.save(update_fields=['moderation_status', 'attivo'])
-            updated += 1
+            decision = approve_announcement(
+                annuncio.id,
+                allow_rejected_override=True,
+            )
+            if decision.changed:
+                updated += 1
 
         self.message_user(
             request,
@@ -66,13 +68,11 @@ class AnnuncioAdmin(admin.ModelAdmin):
 
     @admin.action(description='❌ Rifiuta annunci selezionati')
     def reject_annunci(self, request, queryset):
-        """Rifiuta manualmente gli annunci selezionati"""
+        """Rifiuta gli annunci applicando una sola volta strike e notifica."""
         updated = 0
         for annuncio in queryset:
-            if annuncio.moderation_status != 'rejected':
-                annuncio.moderation_status = 'rejected'
-                annuncio.attivo = False
-                annuncio.save(update_fields=['moderation_status', 'attivo'])
+            decision = reject_announcement(annuncio.id)
+            if decision.changed:
                 updated += 1
 
         self.message_user(

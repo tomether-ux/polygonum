@@ -3627,6 +3627,7 @@ def moderazione_approve(request, token):
     from django.shortcuts import render, redirect
     from django.contrib import messages
     from .models import Annuncio
+    from .moderation import approve_announcement
 
     try:
         # Verifica token con scadenza 24h
@@ -3639,32 +3640,20 @@ def moderazione_approve(request, token):
 
         annuncio_id = int(unsigned.replace('approve_', ''))
 
-        # Recupera e approva annuncio
-        annuncio = Annuncio.objects.get(id=annuncio_id)
+        decision = approve_announcement(annuncio_id, notify_user=True)
+        annuncio = decision.annuncio
 
-        if annuncio.moderation_status == 'approved':
+        if decision.blocked:
+            messages.warning(
+                request,
+                f'L\'annuncio "{annuncio.titolo}" è già stato rifiutato. '
+                'Può essere riapprovato soltanto dal pannello di amministrazione.',
+            )
+        elif not decision.changed:
             messages.info(request, f'L\'annuncio "{annuncio.titolo}" era già stato approvato.')
         else:
-            annuncio.moderation_status = 'approved'
-            annuncio.attivo = True
-            annuncio.save(update_fields=['moderation_status', 'attivo'])
-
-            # Notifica l'utente dell'approvazione
-            try:
-                Notifica.objects.create(
-                    utente=annuncio.utente,
-                    tipo='sistema',
-                    titolo=f'✅ Annuncio "{annuncio.titolo}" approvato!',
-                    messaggio=f'Il tuo annuncio "{annuncio.titolo}" è stato approvato ed è ora visibile a tutti gli utenti!',
-                    letta=False,
-                    url_azione=f'/annuncio/{annuncio.id}/'
-                )
-                print(f"📬 Notifica approvazione inviata a user_id={annuncio.utente_id}")
-            except Exception as exc:
-                print(f"✗ Errore creazione notifica approvazione: {type(exc).__name__}")
-
             messages.success(request, f'✅ Annuncio "{annuncio.titolo}" approvato con successo!')
-            print(f"✓ Annuncio #{annuncio_id} approvato via email")
+            logger.info("Announcement approved via email annuncio_id=%s", annuncio_id)
 
         return render(request, 'scambi/moderazione_result.html', {
             'action': 'approvato',
@@ -3686,10 +3675,12 @@ def moderazione_approve(request, token):
         return render(request, 'scambi/moderazione_result.html', {
             'error': 'Annuncio non trovato'
         })
-    except Exception as e:
-        print(f"✗ Errore approvazione annuncio: {e}")
-        import traceback
-        traceback.print_exc()
+    except Exception as exc:
+        logger.error(
+            "Email moderation approval failed annuncio_id=%s error_type=%s",
+            locals().get('annuncio_id'),
+            type(exc).__name__,
+        )
         messages.error(request, '❌ Errore durante l\'approvazione. Riprova più tardi.')
         return render(request, 'scambi/moderazione_result.html', {
             'error': 'Errore del server. Riprova più tardi.'
@@ -3704,8 +3695,8 @@ def moderazione_reject(request, token):
     from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
     from django.shortcuts import render, redirect
     from django.contrib import messages
-    from .models import Annuncio, Notifica
-    from django.utils import timezone
+    from .models import Annuncio
+    from .moderation import reject_announcement
 
     try:
         # Verifica token con scadenza 24h
@@ -3718,66 +3709,23 @@ def moderazione_reject(request, token):
 
         annuncio_id = int(unsigned.replace('reject_', ''))
 
-        # Recupera annuncio
-        annuncio = Annuncio.objects.get(id=annuncio_id)
+        decision = reject_announcement(annuncio_id)
+        annuncio = decision.annuncio
 
-        if annuncio.moderation_status == 'rejected':
+        if not decision.changed:
             messages.info(request, f'L\'annuncio "{annuncio.titolo}" era già stato rifiutato.')
         else:
-            # Rifiuta annuncio
-            annuncio.moderation_status = 'rejected'
-            annuncio.attivo = False
-            annuncio.save(update_fields=['moderation_status', 'attivo'])
-
-            # Applica strike all'utente (come in handle_moderation_result)
-            profile = annuncio.utente.userprofile
-            profile.content_strikes += 1
-
-            # Sistema strike progressivo
-            if profile.content_strikes == 1:
-                ban_reason = "Prima violazione: contenuto inappropriato rilevato"
-                notifica_messaggio = (
-                    f"⚠️ Il tuo annuncio '{annuncio.titolo}' è stato rimosso perché contiene contenuto inappropriato.\n\n"
-                    f"Hai ricevuto il tuo PRIMO strike. "
-                    f"Ti preghiamo di rispettare le linee guida della community.\n\n"
-                    f"⚠️ Attenzione: Al terzo strike riceverai un ban permanente."
-                )
-            elif profile.content_strikes == 2:
-                from datetime import timedelta
-                profile.suspension_until = timezone.now() + timedelta(days=7)
-                ban_reason = "Seconda violazione: sospensione 7 giorni"
-                notifica_messaggio = (
-                    f"🚫 Il tuo annuncio '{annuncio.titolo}' è stato rimosso per contenuto inappropriato.\n\n"
-                    f"Hai ricevuto il SECONDO strike. Il tuo account è stato SOSPESO per 7 giorni.\n\n"
-                    f"⚠️ ULTIMO AVVISO: Al prossimo strike riceverai un ban permanente!"
-                )
-            else:
-                profile.is_banned = True
-                profile.banned_at = timezone.now()
-                ban_reason = "Terza violazione: ban permanente"
-                notifica_messaggio = (
-                    f"❌ Il tuo annuncio '{annuncio.titolo}' è stato rimosso per contenuto inappropriato.\n\n"
-                    f"Hai ricevuto il TERZO strike. Il tuo account è stato BANNATO PERMANENTEMENTE.\n\n"
-                    f"Non potrai più pubblicare annunci o partecipare alla piattaforma."
-                )
-
-            profile.ban_reason = ban_reason
-            profile.save()
-
-            # Notifica utente
-            try:
-                Notifica.objects.create(
-                    utente=annuncio.utente,
-                    tipo='sistema',
-                    titolo=f'⚠️ Annuncio rimosso - Strike {profile.content_strikes}/3',
-                    messaggio=notifica_messaggio,
-                    letta=False
-                )
-            except Exception as e:
-                print(f"✗ Errore creazione notifica: {e}")
-
-            messages.success(request, f'❌ Annuncio "{annuncio.titolo}" rifiutato. Strike {profile.content_strikes}/3 applicato a {annuncio.utente.username}.')
-            print(f"✗ Annuncio #{annuncio_id} rifiutato via email - Strike {profile.content_strikes}")
+            messages.success(
+                request,
+                f'❌ Annuncio "{annuncio.titolo}" rifiutato. '
+                f'Strike {decision.strike_count}/3 applicato a '
+                f'{annuncio.utente.username}.',
+            )
+            logger.info(
+                "Announcement rejected via email annuncio_id=%s strike_count=%s",
+                annuncio_id,
+                decision.strike_count,
+            )
 
         return render(request, 'scambi/moderazione_result.html', {
             'action': 'rifiutato',
@@ -3799,10 +3747,12 @@ def moderazione_reject(request, token):
         return render(request, 'scambi/moderazione_result.html', {
             'error': 'Annuncio non trovato'
         })
-    except Exception as e:
-        print(f"✗ Errore rifiuto annuncio: {e}")
-        import traceback
-        traceback.print_exc()
+    except Exception as exc:
+        logger.error(
+            "Email moderation rejection failed annuncio_id=%s error_type=%s",
+            locals().get('annuncio_id'),
+            type(exc).__name__,
+        )
         messages.error(request, '❌ Errore durante il rifiuto. Riprova più tardi.')
         return render(request, 'scambi/moderazione_result.html', {
             'error': 'Errore del server. Riprova più tardi.'

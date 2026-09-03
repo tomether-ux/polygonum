@@ -530,18 +530,9 @@ Per rifiutare: {reject_url}
                 annuncio_id,
                 type(exc).__name__,
             )
-
-            # In caso di errore, approva automaticamente per non bloccare l'utente
-            try:
-                annuncio = Annuncio.objects.get(id=annuncio_id)
-                annuncio.moderation_status = 'approved'
-                annuncio.save(update_fields=['moderation_status'])
-                logger.warning(
-                    "Moderation email fallback auto-approved annuncio_id=%s",
-                    annuncio_id,
-                )
-            except Exception:
-                pass
+            # Fail closed: se l'email non parte, l'immagine resta in attesa.
+            # Un errore SMTP non deve rendere automaticamente pubblico un
+            # contenuto che non è ancora stato revisionato.
 
         finally:
             # CRITICO: Chiudi connessioni DB aperte dal thread per evitare esaurimento pool
@@ -549,110 +540,72 @@ Per rifiutare: {reject_url}
 
     def handle_moderation_result(self, moderation_data):
         """
-        Gestisce il risultato della moderazione (da API o webhook)
+        Gestisce il risultato della moderazione ricevuto dal webhook.
 
         Args:
             moderation_data: Dati JSON dalla risposta Cloudinary
                              Formato: {'moderation': [...], 'status': 'approved/rejected'}
         """
-        from django.utils import timezone
+        from .moderation import approve_announcement, reject_announcement
 
-        self.moderation_response = moderation_data
-        self.moderated_at = timezone.now()
+        if not isinstance(moderation_data, dict):
+            raise ValueError("moderation_data must be a dictionary")
 
-        # Analizza i risultati
-        # AWS Rekognition restituisce: Explicit Nudity, Suggestive, Violence, Visually Disturbing, etc.
-        try:
-            status = moderation_data.get('status', '')
-            moderation_labels = moderation_data.get('moderation', [])
+        status = str(
+            moderation_data.get('moderation_status')
+            or moderation_data.get('status')
+            or ''
+        ).lower()
+        moderation_labels = moderation_data.get('moderation', [])
+        problematic_labels = []
 
-            # Estrai labels problematiche
-            problematic_labels = []
+        if isinstance(moderation_labels, list):
             for item in moderation_labels:
-                if isinstance(item, dict):
-                    label = item.get('label', item.get('name', ''))
-                    confidence = item.get('confidence', item.get('value', 0))
+                if not isinstance(item, dict):
+                    continue
 
-                    # Soglie di confidenza
-                    if confidence > 0.7:  # 70% confidenza
-                        if label.lower() in ['explicit nudity', 'nudity', 'violence', 'graphic violence', 'drugs', 'weapons']:
-                            problematic_labels.append({
-                                'label': label,
-                                'confidence': confidence
-                            })
-
-            self.moderation_labels = problematic_labels
-
-            # Decidi: approved o rejected
-            # Priorità allo status se disponibile, altrimenti usa i labels
-            if status == 'rejected' or problematic_labels:
-                self.moderation_status = 'rejected'
-                self.attivo = False  # Disattiva annuncio automaticamente
-
-                # Applica strike all'utente
-                profile = self.utente.userprofile
-                profile.content_strikes += 1
-
-                # Sistema strike progressivo
-                if profile.content_strikes == 1:
-                    # Prima violazione: warning
-                    ban_reason = "Prima violazione: contenuto inappropriato rilevato"
-                    notifica_messaggio = (
-                        f"⚠️ Il tuo annuncio '{self.titolo}' è stato rimosso perché contiene contenuto inappropriato.\n\n"
-                        f"Hai ricevuto il tuo PRIMO strike. "
-                        f"Ti preghiamo di rispettare le linee guida della community.\n\n"
-                        f"⚠️ Attenzione: Al terzo strike riceverai un ban permanente."
-                    )
-                elif profile.content_strikes == 2:
-                    # Seconda violazione: sospensione 7 giorni
-                    from datetime import timedelta
-                    profile.suspension_until = timezone.now() + timedelta(days=7)
-                    ban_reason = "Seconda violazione: sospensione 7 giorni"
-                    notifica_messaggio = (
-                        f"🚫 Il tuo annuncio '{self.titolo}' è stato rimosso per contenuto inappropriato.\n\n"
-                        f"Hai ricevuto il SECONDO strike. Il tuo account è stato SOSPESO per 7 giorni.\n\n"
-                        f"⚠️ ULTIMO AVVISO: Al prossimo strike riceverai un ban permanente!"
-                    )
-                else:
-                    # Terza violazione: ban permanente
-                    profile.is_banned = True
-                    profile.banned_at = timezone.now()
-                    ban_reason = "Terza violazione: ban permanente"
-                    notifica_messaggio = (
-                        f"❌ Il tuo annuncio '{self.titolo}' è stato rimosso per contenuto inappropriato.\n\n"
-                        f"Hai ricevuto il TERZO strike. Il tuo account è stato BANNATO PERMANENTEMENTE.\n\n"
-                        f"Non potrai più pubblicare annunci o partecipare alla piattaforma."
-                    )
-
-                profile.ban_reason = ban_reason
-                profile.save()
-
-                # Crea notifica per informare l'utente
-                # Import lazy per evitare circular import
+                label = str(item.get('label', item.get('name', '')))
                 try:
-                    Notifica.objects.create(
-                        utente=self.utente,
-                        tipo='sistema',
-                        titolo=f'⚠️ Annuncio rimosso - Strike {profile.content_strikes}/3',
-                        messaggio=notifica_messaggio,
-                        letta=False
+                    confidence = float(
+                        item.get('confidence', item.get('value', 0))
                     )
-                    print(f"📬 Notifica inviata a user_id={self.utente_id}")
-                except Exception as exc:
-                    print(f"✗ Errore creazione notifica: {type(exc).__name__}")
+                except (TypeError, ValueError):
+                    continue
 
-                print(f"✗ Annuncio #{self.id} REJECTED - Strike {profile.content_strikes} per user_id={self.utente_id}")
-            else:
-                self.moderation_status = 'approved'
-                print(f"✓ Annuncio #{self.id} APPROVED")
+                blocked_labels = {
+                    'explicit nudity',
+                    'nudity',
+                    'violence',
+                    'graphic violence',
+                    'drugs',
+                    'weapons',
+                }
+                if confidence > 0.7 and label.lower() in blocked_labels:
+                    problematic_labels.append({
+                        'label': label,
+                        'confidence': confidence,
+                    })
 
-            self.save()
+        if status == 'rejected' or problematic_labels:
+            decision = reject_announcement(
+                self.pk,
+                moderation_response=moderation_data,
+                moderation_labels=problematic_labels,
+            )
+        else:
+            decision = approve_announcement(
+                self.pk,
+                moderation_response=moderation_data,
+                moderation_labels=problematic_labels,
+            )
 
-        except Exception as e:
-            print(f"✗ Errore nell'analisi risultati moderazione per annuncio #{self.id}: {e}")
-            # In caso di errore nell'analisi, approva per sicurezza
-            self.moderation_status = 'approved'
-            self.save()
+        # Mantiene coerente anche l'istanza già caricata dalla view webhook.
+        self.moderation_status = decision.annuncio.moderation_status
+        self.attivo = decision.annuncio.attivo
+        self.moderation_response = decision.annuncio.moderation_response
+        self.moderation_labels = decision.annuncio.moderation_labels
+        self.moderated_at = decision.annuncio.moderated_at
+        return decision
 
     class Meta:
         verbose_name_plural = "Annunci"
