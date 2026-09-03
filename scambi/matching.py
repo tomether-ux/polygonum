@@ -108,9 +108,9 @@ def trova_scambi_diretti():
 
                                     if not gia_presente:
                                         scambi_diretti.append(scambio)
-                                        print(f"💫 SCAMBIO DIRETTO: {utente_a.username} ↔ {utente_b.username}")
-                                        print(f"   📤 {utente_a.username} dà '{offerta_a.titolo}' → {utente_b.username}")
-                                        print(f"   📤 {utente_b.username} dà '{offerta_b.titolo}' → {utente_a.username}")
+                                        print(f"💫 SCAMBIO DIRETTO: user_id={utente_a.id} ↔ user_id={utente_b.id}")
+                                        print(f"   📤 annuncio_id={offerta_a.id} → user_id={utente_b.id}")
+                                        print(f"   📤 annuncio_id={offerta_b.id} → user_id={utente_a.id}")
 
     print(f"💫 Trovati {len(scambi_diretti)} scambi diretti")
     return scambi_diretti
@@ -124,11 +124,11 @@ def filtra_catene_per_utente(scambi_diretti, catene_lunghe, utente):
     ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True)))
     annunci_utente_ids = set(ann.id for ann in annunci_utente)
 
-    print(f"🔍 Filtraggio per utente {utente.username}: {len(annunci_utente)} annunci attivi")
+    print(f"🔍 Filtraggio per user_id={utente.id}: {len(annunci_utente)} annunci attivi")
 
     # Se l'utente non ha annunci, non può partecipare a nessuno scambio
     if not annunci_utente_ids:
-        print(f"❌ Utente {utente.username} non ha annunci attivi - nessuno scambio possibile")
+        print(f"❌ user_id={utente.id} non ha annunci attivi - nessuno scambio possibile")
         return [], []
 
     # Filtra scambi diretti
@@ -159,7 +159,7 @@ def filtra_catene_per_utente(scambi_diretti, catene_lunghe, utente):
             else:
                 print(f"❌ Catena esclusa: utente nel nome ma annunci non corrispondono")
 
-    print(f"📊 Risultati filtrati per {utente.username}:")
+    print(f"📊 Risultati filtrati per user_id={utente.id}:")
     print(f"   - Scambi diretti: {len(scambi_diretti_utente)}")
     print(f"   - Catene lunghe: {len(catene_utente)}")
 
@@ -273,7 +273,7 @@ def crea_scambio_diretto_avanzato(utente_a, utente_b, offerta_a, richiesta_b, of
 
 def trova_catene_per_annuncio(annuncio_specifico, max_lunghezza=6):
     """Trova catene che coinvolgono uno specifico annuncio - OTTIMIZZATO"""
-    print(f"\n=== RICERCA OTTIMIZZATA PER ANNUNCIO: {annuncio_specifico.titolo} ===")
+    print(f"\n=== RICERCA OTTIMIZZATA PER annuncio_id={annuncio_specifico.id} ===")
 
     utente_proprietario = annuncio_specifico.utente
     catene_trovate = []
@@ -312,7 +312,7 @@ def trova_catene_per_annuncio(annuncio_specifico, max_lunghezza=6):
                                     offerta_altro, richiesta_proprietario
                                 )
                                 catene_trovate.append(scambio)
-                                print(f"✅ Scambio diretto: {utente_proprietario.username} ↔ {altro_utente.username}")
+                                print(f"✅ Scambio diretto: user_id={utente_proprietario.id} ↔ user_id={altro_utente.id}")
 
         # Se l'annuncio è "cerco", cerca chi offre qualcosa di compatibile
         elif annuncio_specifico.tipo == 'cerco':
@@ -339,9 +339,9 @@ def trova_catene_per_annuncio(annuncio_specifico, max_lunghezza=6):
                                     offerta_proprietario, richiesta_altro
                                 )
                                 catene_trovate.append(scambio)
-                                print(f"✅ Scambio diretto: {altro_utente.username} ↔ {utente_proprietario.username}")
+                                print(f"✅ Scambio diretto: user_id={altro_utente.id} ↔ user_id={utente_proprietario.id}")
 
-    print(f"=== RICERCA OTTIMIZZATA: Trovati {len(catene_trovate)} scambi per '{annuncio_specifico.titolo}' ===")
+    print(f"=== RICERCA OTTIMIZZATA: Trovati {len(catene_trovate)} scambi per annuncio_id={annuncio_specifico.id} ===")
     return rimuovi_duplicati(catene_trovate)
 
 def trova_catene_scambio(max_lunghezza=6):
@@ -415,7 +415,7 @@ def trova_catene_ricorsive(max_lunghezza=3):
             print(f"⏰ Timeout totale raggiunto dopo {i} utenti")
             break
 
-        print(f"DEBUG: Inizio ricerca da utente {utente_partenza.username} ({i+1}/{len(utenti)})")
+        print(f"DEBUG: Inizio ricerca da user_id={utente_partenza.id} ({i+1}/{len(utenti)})")
 
         utente_start_time = time.time()
         try:
@@ -430,9 +430,9 @@ def trova_catene_ricorsive(max_lunghezza=3):
                 utente_start_time
             )
             catene_trovate.extend(catene)
-            print(f"DEBUG: Utente {utente_partenza.username} ha generato {len(catene)} catene")
+            print(f"DEBUG: user_id={utente_partenza.id} ha generato {len(catene)} catene")
         except Exception as e:
-            print(f"⚠️ Errore durante ricerca per {utente_partenza.username}: {e}")
+            print(f"⚠️ Errore durante ricerca per user_id={utente_partenza.id}: {type(e).__name__}")
             continue
 
     elapsed = time.time() - start_time
@@ -471,10 +471,10 @@ def cerca_catene_con_annunci(utente_corrente, utente_partenza, percorso_utenti, 
             attivo=True
         )
         
-        print(f"DEBUG: {utente_corrente.username} ha {len(offerte_correnti)} offerte")
+        print(f"DEBUG: user_id={utente_corrente.id} ha {len(offerte_correnti)} offerte")
         
         for offerta in offerte_correnti:
-            print(f"DEBUG: Controllo offerta '{offerta.titolo}' di {utente_corrente.username}")
+            print(f"DEBUG: Controllo annuncio_id={offerta.id} di user_id={utente_corrente.id}")
             
             for prossimo_utente in tutti_utenti:
                 if prossimo_utente not in nuovo_percorso:
@@ -484,13 +484,13 @@ def cerca_catene_con_annunci(utente_corrente, utente_partenza, percorso_utenti, 
                         attivo=True
                     )
                     
-                    print(f"DEBUG: {prossimo_utente.username} ha {len(richieste_prossime)} richieste")
+                    print(f"DEBUG: user_id={prossimo_utente.id} ha {len(richieste_prossime)} richieste")
                     
                     for richiesta in richieste_prossime:
-                        print(f"DEBUG: Confronto '{offerta.titolo}' con '{richiesta.titolo}'")
+                        print(f"DEBUG: Confronto annuncio_id={offerta.id} con annuncio_id={richiesta.id}")
                         
                         if oggetti_compatibili(offerta, richiesta):
-                            print(f"DEBUG: MATCH TROVATO! {offerta.titolo} → {richiesta.titolo}")
+                            print(f"DEBUG: MATCH TROVATO! annuncio_id={offerta.id} → annuncio_id={richiesta.id}")
                             
                             nuovi_annunci = percorso_annunci + [{
                                 'da': utente_corrente,
@@ -511,13 +511,13 @@ def cerca_catene_con_annunci(utente_corrente, utente_partenza, percorso_utenti, 
                             )
                             catene.extend(catene_ricorsive)
                         else:
-                            print(f"DEBUG: NO MATCH tra '{offerta.titolo}' e '{richiesta.titolo}'")
+                            print(f"DEBUG: NO MATCH tra annuncio_id={offerta.id} e annuncio_id={richiesta.id}")
     
     return catene
 
 def verifica_chiusura_cerchio(utente_corrente, utente_partenza, percorso_utenti, percorso_annunci):
     """Verifica se può chiudere il cerchio e crea la catena completa"""
-    print(f"DEBUG: Verifica chiusura cerchio da {utente_corrente.username} verso {utente_partenza.username}")
+    print(f"DEBUG: Verifica chiusura cerchio da user_id={utente_corrente.id} verso user_id={utente_partenza.id}")
     
     offerte_correnti = Annuncio.objects.filter(
         utente=utente_corrente,
@@ -533,9 +533,9 @@ def verifica_chiusura_cerchio(utente_corrente, utente_partenza, percorso_utenti,
     
     for offerta in offerte_correnti:
         for richiesta in richieste_partenza:
-            print(f"DEBUG: Chiusura? '{offerta.titolo}' vs '{richiesta.titolo}'")
+            print(f"DEBUG: Chiusura? annuncio_id={offerta.id} vs annuncio_id={richiesta.id}")
             if oggetti_compatibili(offerta, richiesta):
-                print(f"DEBUG: CERCHIO CHIUSO! {offerta.titolo} → {richiesta.titolo}")
+                print(f"DEBUG: CERCHIO CHIUSO! annuncio_id={offerta.id} → annuncio_id={richiesta.id}")
                 annunci_completi = percorso_annunci + [{
                     'da': utente_corrente,
                     'a': utente_partenza, 
@@ -1657,7 +1657,7 @@ def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
         annunci_da_verificare = list(user_offers.values()) + list(user_requests.values())
         for annuncio in annunci_da_verificare:
             if not annuncio.attivo:
-                print(f"⚠️ Ciclo {ciclo_db.id} contiene annuncio disattivato: {annuncio.id} - '{annuncio.titolo}'")
+                print(f"⚠️ Ciclo {ciclo_db.id} contiene annuncio disattivato: {annuncio.id}")
                 return None
 
         # NUOVO: Riordina gli utenti secondo la sequenza di scambio
@@ -1903,7 +1903,7 @@ def filtra_catene_per_utente_ottimizzato(scambi_diretti, catene, utente):
         if any(u['user'].id == utente.id for u in catena['utenti']):
             catene_lunghe_utente.append(catena)
 
-    print(f"🎯 Filtrato per {utente.username}: {len(scambi_diretti_utente)} scambi diretti, {len(catene_lunghe_utente)} catene")
+    print(f"🎯 Filtrato per user_id={utente.id}: {len(scambi_diretti_utente)} scambi diretti, {len(catene_lunghe_utente)} catene")
 
     return scambi_diretti_utente, catene_lunghe_utente
 
@@ -1924,7 +1924,7 @@ def trova_catene_per_annuncio_ottimizzato(annuncio, max_lunghezza=6, includi_gen
     import time
     start_time = time.time()
 
-    print(f"🔍 Ricerca ottimizzata per annuncio: {annuncio.titolo} (ID: {annuncio.id})")
+    print(f"🔍 Ricerca ottimizzata per annuncio_id={annuncio.id}")
 
     # Carica tutti i cicli pre-calcolati
     risultato = get_cicli_precalcolati()

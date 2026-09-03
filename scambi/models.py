@@ -1,11 +1,16 @@
+import logging
+
 from django.db import models
 from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.utils.html import escape
 from django.conf import settings
 from django.core import validators as django_validators
 from django.core.exceptions import ValidationError
 from cloudinary.models import CloudinaryField
+
+logger = logging.getLogger(__name__)
 
 class Categoria(models.Model):
     nome = models.CharField(max_length=100)
@@ -240,7 +245,7 @@ class Annuncio(models.Model):
         # Genera titolo automatico per annunci "cerco per categoria"
         if self.tipo == 'cerco' and self.cerca_per_categoria and self.categoria:
             self.titolo = f"Cerco {self.categoria.nome}"
-            print(f"📝 Titolo auto-generato: '{self.titolo}'")
+            print(f"📝 Titolo auto-generato per annuncio #{self.pk or 'NEW'}")
 
         # Validazione lunghezza minima titolo (safety check)
         # Se il titolo è troppo corto, non può funzionare nel matching
@@ -423,6 +428,17 @@ class Annuncio(models.Model):
             # Componi email
             subject = f'🔍 Moderazione richiesta - Annuncio #{annuncio.id}'
 
+            # I campi controllati dagli utenti devono essere trattati come testo
+            # anche nei client email che interpretano il contenuto HTML.
+            html_title = escape(annuncio.titolo)
+            html_username = escape(annuncio.utente.username)
+            html_category = escape(annuncio.categoria.nome)
+            html_type = escape(annuncio.get_tipo_display())
+            html_description = escape(annuncio.descrizione).replace('\n', '<br>')
+            html_image_url = escape(annuncio.get_image_url())
+            html_approve_url = escape(approve_url)
+            html_reject_url = escape(reject_url)
+
             # Testo semplice (fallback)
             text_content = f"""
 Nuovo annuncio da moderare
@@ -457,32 +473,32 @@ Per rifiutare: {reject_url}
     </div>
 
     <div style="background: #f9f9f9; padding: 30px; border: 1px solid #e0e0e0; border-top: none;">
-        <h2 style="color: #667eea; margin-top: 0;">{annuncio.titolo}</h2>
+        <h2 style="color: #667eea; margin-top: 0;">{html_title}</h2>
 
         <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <p style="margin: 5px 0;"><strong>👤 Utente:</strong> {annuncio.utente.username}</p>
-            <p style="margin: 5px 0;"><strong>📁 Categoria:</strong> {annuncio.categoria.nome}</p>
-            <p style="margin: 5px 0;"><strong>🏷️ Tipo:</strong> {annuncio.get_tipo_display()}</p>
+            <p style="margin: 5px 0;"><strong>👤 Utente:</strong> {html_username}</p>
+            <p style="margin: 5px 0;"><strong>📁 Categoria:</strong> {html_category}</p>
+            <p style="margin: 5px 0;"><strong>🏷️ Tipo:</strong> {html_type}</p>
             <p style="margin: 5px 0;"><strong>📅 Data:</strong> {annuncio.data_creazione.strftime('%d/%m/%Y %H:%M')}</p>
         </div>
 
         <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
             <h3 style="margin-top: 0; color: #667eea;">📝 Descrizione</h3>
-            <p style="margin: 0;">{annuncio.descrizione}</p>
+            <p style="margin: 0;">{html_description}</p>
         </div>
 
         <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 30px; text-align: center;">
             <h3 style="margin-top: 0; color: #667eea;">🖼️ Immagine</h3>
-            <img src="{annuncio.get_image_url()}" alt="{annuncio.titolo}"
+            <img src="{html_image_url}" alt="{html_title}"
                  style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         </div>
 
         <div style="text-align: center; margin-top: 30px;">
-            <a href="{approve_url}"
+            <a href="{html_approve_url}"
                style="display: inline-block; background: #10b981; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 0 10px 10px 0; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);">
                 ✅ Approva
             </a>
-            <a href="{reject_url}"
+            <a href="{html_reject_url}"
                style="display: inline-block; background: #ef4444; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 0 0 10px 0; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);">
                 ❌ Rifiuta
             </a>
@@ -506,19 +522,24 @@ Per rifiutare: {reject_url}
             email.attach_alternative(html_content, "text/html")
             email.send(fail_silently=False)
 
-            print(f"✓ Email moderazione inviata a {settings.ADMIN_MODERATION_EMAIL}")
+            logger.info("Moderation email sent annuncio_id=%s", annuncio_id)
 
-        except Exception as e:
-            print(f"✗ Errore invio email moderazione per annuncio #{annuncio_id}: {e}")
-            import traceback
-            traceback.print_exc()
+        except Exception as exc:
+            logger.error(
+                "Moderation email failed annuncio_id=%s error_type=%s",
+                annuncio_id,
+                type(exc).__name__,
+            )
 
             # In caso di errore, approva automaticamente per non bloccare l'utente
             try:
                 annuncio = Annuncio.objects.get(id=annuncio_id)
                 annuncio.moderation_status = 'approved'
                 annuncio.save(update_fields=['moderation_status'])
-                print(f"⚠️ Fallback: Annuncio #{annuncio_id} approvato automaticamente")
+                logger.warning(
+                    "Moderation email fallback auto-approved annuncio_id=%s",
+                    annuncio_id,
+                )
             except Exception:
                 pass
 
@@ -616,11 +637,11 @@ Per rifiutare: {reject_url}
                         messaggio=notifica_messaggio,
                         letta=False
                     )
-                    print(f"📬 Notifica inviata a {self.utente.username}")
-                except Exception as e:
-                    print(f"✗ Errore creazione notifica: {e}")
+                    print(f"📬 Notifica inviata a user_id={self.utente_id}")
+                except Exception as exc:
+                    print(f"✗ Errore creazione notifica: {type(exc).__name__}")
 
-                print(f"✗ Annuncio #{self.id} REJECTED - Strike {profile.content_strikes} per {self.utente.username}")
+                print(f"✗ Annuncio #{self.id} REJECTED - Strike {profile.content_strikes} per user_id={self.utente_id}")
             else:
                 self.moderation_status = 'approved'
                 print(f"✓ Annuncio #{self.id} APPROVED")

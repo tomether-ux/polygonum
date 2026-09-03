@@ -1,9 +1,14 @@
+import logging
+
 from django.contrib import admin
+from django.utils.html import escape
 from .models import (
     Categoria, Annuncio, UserProfile, Notifica, Preferiti,
     PropostaScambio, CicloScambio, Provincia,
     ConfermaCompletamento, ValutazioneScambio
 )
+
+logger = logging.getLogger(__name__)
 
 
 @admin.register(Provincia)
@@ -81,7 +86,6 @@ class AnnuncioAdmin(admin.ModelAdmin):
         """Reinvia le email di moderazione per gli annunci selezionati"""
         from django.core.mail import EmailMultiAlternatives
         from django.conf import settings
-        from django.core.signing import Signer
         import os
 
         # SECURITY: Skip email se ADMIN_MODERATION_EMAIL non configurato (dev/CI)
@@ -113,6 +117,15 @@ class AnnuncioAdmin(admin.ModelAdmin):
                 # Componi email
                 subject = f'🔍 Moderazione richiesta - Annuncio #{annuncio.id}'
 
+                html_title = escape(annuncio.titolo)
+                html_username = escape(annuncio.utente.username)
+                html_category = escape(annuncio.categoria.nome)
+                html_type = escape(annuncio.get_tipo_display())
+                html_description = escape(annuncio.descrizione).replace('\n', '<br>')
+                html_image_url = escape(annuncio.get_image_url())
+                html_approve_url = escape(approve_url)
+                html_reject_url = escape(reject_url)
+
                 html_content = f"""
 <!DOCTYPE html>
 <html>
@@ -127,32 +140,32 @@ class AnnuncioAdmin(admin.ModelAdmin):
     </div>
 
     <div style="background: #f9f9f9; padding: 30px; border: 1px solid #e0e0e0; border-top: none;">
-        <h2 style="color: #667eea; margin-top: 0;">{annuncio.titolo}</h2>
+        <h2 style="color: #667eea; margin-top: 0;">{html_title}</h2>
 
         <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <p style="margin: 5px 0;"><strong>👤 Utente:</strong> {annuncio.utente.username}</p>
-            <p style="margin: 5px 0;"><strong>📁 Categoria:</strong> {annuncio.categoria.nome}</p>
-            <p style="margin: 5px 0;"><strong>🏷️ Tipo:</strong> {annuncio.get_tipo_display()}</p>
+            <p style="margin: 5px 0;"><strong>👤 Utente:</strong> {html_username}</p>
+            <p style="margin: 5px 0;"><strong>📁 Categoria:</strong> {html_category}</p>
+            <p style="margin: 5px 0;"><strong>🏷️ Tipo:</strong> {html_type}</p>
             <p style="margin: 5px 0;"><strong>📅 Data:</strong> {annuncio.data_creazione.strftime('%d/%m/%Y %H:%M')}</p>
         </div>
 
         <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
             <h3 style="margin-top: 0; color: #667eea;">📝 Descrizione</h3>
-            <p style="margin: 0;">{annuncio.descrizione}</p>
+            <p style="margin: 0;">{html_description}</p>
         </div>
 
         <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 30px; text-align: center;">
             <h3 style="margin-top: 0; color: #667eea;">🖼️ Immagine</h3>
-            <img src="{annuncio.get_image_url()}" alt="{annuncio.titolo}"
+            <img src="{html_image_url}" alt="{html_title}"
                  style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         </div>
 
         <div style="text-align: center; margin-top: 30px;">
-            <a href="{approve_url}"
+            <a href="{html_approve_url}"
                style="display: inline-block; background: #10b981; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 0 10px 10px 0; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);">
                 ✅ Approva
             </a>
-            <a href="{reject_url}"
+            <a href="{html_reject_url}"
                style="display: inline-block; background: #ef4444; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 0 0 10px 0; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);">
                 ❌ Rifiuta
             </a>
@@ -195,10 +208,15 @@ Per rifiutare: {reject_url}
                 email.send(fail_silently=False)
                 sent += 1
 
-            except Exception as e:
+            except Exception as exc:
+                logger.error(
+                    "Unable to resend moderation email annuncio_id=%s error_type=%s",
+                    annuncio.id,
+                    type(exc).__name__,
+                )
                 self.message_user(
                     request,
-                    f'Errore invio email per annuncio #{annuncio.id}: {e}',
+                    f'Errore tecnico durante l\'invio per l\'annuncio #{annuncio.id}.',
                     level='error'
                 )
 

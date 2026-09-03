@@ -3,9 +3,12 @@ Validatori per contenuti testuali degli annunci.
 Sistema di blacklist per prevenire contenuti inappropriati, illegali o sessuali.
 """
 
+import logging
 import re
 from django.core.exceptions import ValidationError
 
+
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # BLACKLIST PAROLE VIETATE
@@ -163,16 +166,13 @@ def valida_contenuto_testuale(testo, campo_nome="testo"):
     Raises:
         ValidationError: Se il testo contiene contenuti vietati
     """
-    import logging
-    logger = logging.getLogger(__name__)
-
     if not testo:
         return  # Testo vuoto è OK
 
     testo_originale = testo
     testo_normalizzato = normalizza_testo(testo)
 
-    logger.info(f"🔍 Validando '{campo_nome}': original='{testo_originale}', normalized='{testo_normalizzato}'")
+    logger.debug("Validazione contenuto avviata campo=%s", campo_nome)
 
     # ===== CHECK 1: Parole vietate =====
     for parola_vietata in PAROLE_VIETATE:
@@ -182,13 +182,16 @@ def valida_contenuto_testuale(testo, campo_nome="testo"):
         pattern = r'\b' + re.escape(parola_norm) + r'\b'
 
         if re.search(pattern, testo_normalizzato, re.IGNORECASE):
-            logger.info(f"❌ BLOCCATO! Trovata parola vietata: '{parola_vietata}' (norm: '{parola_norm}') in '{testo_normalizzato}'")
+            logger.info(
+                "Contenuto bloccato campo=%s regola=parola_vietata",
+                campo_nome,
+            )
             raise ValidationError(
                 f"Il {campo_nome} contiene contenuti non ammessi. "
                 f"Ti preghiamo di rimuovere termini inappropriati o illegali."
             )
 
-    logger.info(f"✅ Nessuna parola vietata trovata in '{testo_normalizzato}'")
+    logger.debug("Controllo parole vietate superato campo=%s", campo_nome)
 
     # ===== CHECK 2: Pattern sospetti =====
     for pattern in PATTERN_SOSPETTI:

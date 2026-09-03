@@ -57,7 +57,11 @@ Benvenuto nella community degli scambi!
     from_email = settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@polygonum.com'
 
     try:
-        logger.info(f"Sending verification email to: {user.email} (timeout: {timeout_seconds}s)")
+        logger.info(
+            "Sending verification email user_id=%s timeout_seconds=%s",
+            user.id,
+            timeout_seconds,
+        )
 
         # SECURITY: Usa ThreadPoolExecutor con timeout invece di signal.alarm()
         # Funziona correttamente con Gunicorn multi-worker
@@ -65,16 +69,24 @@ Benvenuto nella community degli scambi!
             future = executor.submit(_send_mail_task, subject, message, from_email, [user.email])
             future.result(timeout=timeout_seconds)
 
-        logger.info(f"Email sent successfully to {user.email}")
+        logger.info("Verification email sent user_id=%s", user.id)
         return {"success": True, "message": "Email inviata"}
 
     except FuturesTimeoutError:
-        logger.warning(f"Email sending timeout after {timeout_seconds} seconds for {user.email}")
-        return {"success": False, "message": "timeout", "error": "Email sending timeout"}
+        logger.warning(
+            "Verification email timeout user_id=%s timeout_seconds=%s",
+            user.id,
+            timeout_seconds,
+        )
+        return {"success": False, "message": "timeout", "error": "Email delivery timeout"}
 
-    except Exception as e:
-        logger.error(f"Error sending email to {user.email}: {e}", exc_info=True)
-        return {"success": False, "message": "error", "error": str(e)}
+    except Exception as exc:
+        logger.error(
+            "Verification email failed user_id=%s error_type=%s",
+            user.id,
+            type(exc).__name__,
+        )
+        return {"success": False, "message": "error", "error": "Email delivery failed"}
 
 def send_verification_email(request, user, user_profile):
     """Wrapper per backward compatibility"""

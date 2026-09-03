@@ -16,8 +16,11 @@ from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_
 from .models import Annuncio, PropostaCatena, RispostaProposta, CicloScambio
 import hashlib
 import hmac
+import logging
 import os
 from .debug_views import debug_basso, debug_view_catene, debug_cyclefinder_basso  # Debug temporaneo
+
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # UTILITY FUNCTIONS
@@ -425,7 +428,7 @@ def catene_scambio(request):
 
     if ricalcola_per_utente and request.user.is_authenticated:
         # RICALCOLO PARZIALE: invalida cicli utente e ricalcola
-        print(f"🔄 Ricalcolo parziale richiesto per utente: {request.user.username}")
+        print(f"🔄 Ricalcolo parziale richiesto per user_id={request.user.id}")
 
         import time
         start_time = time.time()
@@ -522,13 +525,13 @@ def catene_scambio(request):
                 # Controlla se l'utente ha annunci attivi
                 annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
                 if annunci_utente.exists():
-                    print(f"🔍 Filtrando catene per utente: {request.user.username}")
+                    print(f"🔍 Filtrando catene per user_id={request.user.id}")
 
                     # OTTIMIZZAZIONE: Se è stato selezionato un annuncio specifico, usa ricerca ottimizzata
                     if annuncio_filtro_id:
                         try:
                             annuncio_specifico = Annuncio.objects.get(id=annuncio_filtro_id, utente=request.user, attivo=True)
-                            print(f"🎯 RICERCA OTTIMIZZATA per annuncio: {annuncio_specifico.titolo}")
+                            print(f"🎯 RICERCA OTTIMIZZATA per annuncio_id={annuncio_specifico.id}")
 
                             # Usa la funzione ottimizzata che cerca solo catene per questo annuncio (solo specifiche)
                             tutte_catene = trova_catene_per_annuncio_ottimizzato(annuncio_specifico, max_lunghezza=6, includi_generiche=False)
@@ -680,7 +683,7 @@ def catene_scambio(request):
 
                     tutte_catene = scambi_diretti_utente + catene_lunghe_utente
 
-                    print(f"✅ Caricate {len(tutte_catene)} catene totali per {request.user.username}")
+                    print(f"✅ Caricate {len(tutte_catene)} catene totali per user_id={request.user.id}")
                     print(f"   (Include: sinonimi, match categoria, annunci disattivati <3 min)")
 
                 except Exception as e:
@@ -940,9 +943,6 @@ from django.contrib.auth.decorators import login_required
 
 @ratelimit(key=get_real_ip_for_ratelimit, rate='3/1h', method='POST')
 def register(request):
-    import logging
-    logger = logging.getLogger(__name__)
-
     # Check if rate limited
     if getattr(request, 'limited', False):
         messages.error(request, '⏰ Troppi tentativi di registrazione. Riprova tra un\'ora.')
@@ -951,27 +951,19 @@ def register(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
 
-        # Debug: Log form data received (SECURITY: filtrato password)
-        safe_post_data = {k: v for k, v in request.POST.items() if 'password' not in k.lower()}
-        logger.info(f"Registration attempt - Form data (sanitized): {safe_post_data}")
-        logger.info(f"City from form: {request.POST.get('citta')}")
-        logger.info(f"Province from form: {request.POST.get('provincia')}")
+        logger.info("Registration attempt")
 
         if form.is_valid():
-            # Debug: Log cleaned data (SECURITY: filtrato password)
-            safe_cleaned_data = {k: v for k, v in form.cleaned_data.items() if 'password' not in k.lower()}
-            logger.info(f"Form valid - Cleaned data (sanitized): {safe_cleaned_data}")
-            logger.info(f"City from cleaned_data: {form.cleaned_data.get('citta')}")
-            logger.info(f"Province from cleaned_data: {form.cleaned_data.get('provincia')}")
+            logger.info("Registration form valid")
 
             try:
                 user = form.save()
-                logger.info(f"User created successfully: {user.username}")
+                logger.info("User created successfully user_id=%s", user.id)
 
                 # Invia email di verifica con timeout gestito
                 try:
                     user_profile = UserProfile.objects.get(user=user)
-                    logger.info(f"UserProfile found - City: {user_profile.citta}, Province: {user_profile.provincia}")
+                    logger.info("UserProfile found profile_id=%s", user_profile.id)
 
                     # Usa la nuova funzione con timeout esteso per SendGrid
                     from .email_utils import send_verification_email_with_timeout
@@ -986,31 +978,43 @@ def register(request):
                             f'✅ Registrazione completata! L\'invio dell\'email di verifica a {user.email} ha richiesto più di 30 secondi. '
                             'L\'email potrebbe essere ancora in elaborazione e arrivare nei prossimi minuti. '
                             'Se non la ricevi entro 10 minuti, contatta il supporto.')
-                        logger.warning(f"Email timeout (30s) for user {user.username} but registration successful")
+                        logger.warning("Email timeout after registration user_id=%s", user.id)
                     else:
                         messages.warning(request,
                             f'✅ Registrazione completata! Tuttavia c\'è stato un problema tecnico nell\'invio immediato dell\'email di verifica a {user.email}. '
                             'L\'email dovrebbe arrivare comunque nei prossimi minuti. Se non la ricevi, contatta il supporto.')
-                        logger.error(f"Email sending failed for user {user.username}: {email_result.get('error', 'Unknown error')}")
+                        logger.error("Email sending failed after registration user_id=%s", user.id)
 
-                except UserProfile.DoesNotExist as e:
-                    logger.error(f"UserProfile not found for user {user.username}: {e}")
+                except UserProfile.DoesNotExist:
+                    logger.error("UserProfile missing after registration user_id=%s", user.id)
                     messages.error(request, 'Errore nella creazione del profilo utente.')
-                except Exception as e:
-                    logger.error(f"Error during profile retrieval/email sending: {e}")
+                except Exception as exc:
+                    logger.error(
+                        "Profile retrieval or email failed user_id=%s error_type=%s",
+                        user.id,
+                        type(exc).__name__,
+                    )
                     messages.warning(request,
                         f'✅ Registrazione completata! Tuttavia c\'è stato un problema nell\'invio dell\'email di verifica. '
                         'L\'email dovrebbe arrivare nei prossimi minuti.')
 
-            except Exception as e:
-                logger.error(f"Error during user creation: {e}")
-                messages.error(request, f'Errore durante la registrazione: {e}')
+            except Exception as exc:
+                logger.error(
+                    "Error during user creation error_type=%s",
+                    type(exc).__name__,
+                )
+                messages.error(
+                    request,
+                    'Errore tecnico durante la registrazione. Riprova più tardi o contatta il supporto.'
+                )
                 return render(request, 'registration/register.html', {'form': form})
 
             return redirect('login')
         else:
-            # Debug: Log form errors
-            logger.warning(f"Form validation failed - Errors: {form.errors}")
+            logger.warning(
+                "Registration validation failed fields=%s",
+                sorted(form.errors.keys()),
+            )
             # Aggiungi messaggi di errore per il debug
             for field, errors in form.errors.items():
                 for error in errors:
@@ -1053,9 +1057,9 @@ def verify_email(request, token):
         messages.error(request, '❌ Link di verifica non valido.')
     except (User.DoesNotExist, UserProfile.DoesNotExist):
         messages.error(request, '❌ Utente non trovato.')
-    except Exception as e:
+    except Exception as exc:
         messages.error(request, '❌ Errore durante la verifica. Contatta il supporto.')
-        print(f"Error in verify_email: {e}")
+        logger.error("Email verification failed error_type=%s", type(exc).__name__)
 
     return redirect('login')
 
@@ -1357,7 +1361,7 @@ def le_mie_catene(request):
 
     # NUOVA LOGICA: Se non è richiesto ricalcolo, carica dal DB
     if not cerca_nuove and ha_annunci:
-        print(f"📦 CARICAMENTO CATENE DAL DB per utente: {request.user.username}")
+        print(f"📦 CARICAMENTO CATENE DAL DB per user_id={request.user.id}")
 
         # Carica cicli dal DB che contengono questo utente
         cicli_db = CicloScambio.find_for_user(request.user.id, limit=200)
@@ -1464,9 +1468,9 @@ def le_mie_catene(request):
         from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente, trova_catene_per_annuncio_ottimizzato
 
         if annuncio_selezionato:
-            print(f"🔍 RICERCA CATENE per annuncio specifico: {annuncio_selezionato.titolo}")
+            print(f"🔍 RICERCA CATENE per annuncio_id={annuncio_selezionato.id}")
         else:
-            print(f"🔍 RICERCA LE MIE CATENE per utente: {request.user.username}")
+            print(f"🔍 RICERCA LE MIE CATENE per user_id={request.user.id}")
 
         try:
             start_time = time.time()
@@ -1474,7 +1478,7 @@ def le_mie_catene(request):
 
             # Se è specificato un annuncio, usa la ricerca ottimizzata per annuncio
             if annuncio_selezionato:
-                print(f"⏰ Ricerca ottimizzata per annuncio: {annuncio_selezionato.titolo}")
+                print(f"⏰ Ricerca ottimizzata per annuncio_id={annuncio_selezionato.id}")
                 tutte_catene = trova_catene_per_annuncio_ottimizzato(
                     annuncio_selezionato,
                     max_lunghezza=6,
@@ -2804,7 +2808,7 @@ def webhook_calcola_cicli(request):
             return JsonResponse({"error": "Missing or invalid authorization header"}, status=401)
 
         token = auth_header[7:]  # Rimuove "Bearer "
-        if token != webhook_secret:
+        if not hmac.compare_digest(token, webhook_secret):
             return JsonResponse({"error": "Invalid webhook secret"}, status=401)
 
         # Importa il comando di calcolo cicli
@@ -3536,19 +3540,19 @@ def cloudinary_moderation_webhook(request):
     signature = request.META.get('HTTP_X_CLD_SIGNATURE')
     timestamp_raw = request.META.get('HTTP_X_CLD_TIMESTAMP')
     if not signature or not timestamp_raw:
-        print("✗ SECURITY: Webhook Cloudinary senza X-Cld-Signature o X-Cld-Timestamp")
+        logger.warning("Cloudinary webhook missing signature or timestamp")
         return HttpResponse(status=401)
 
     try:
         timestamp = int(timestamp_raw)
     except (ValueError, TypeError):
-        print(f"✗ SECURITY: X-Cld-Timestamp non valido: {timestamp_raw!r}")
+        logger.warning("Cloudinary webhook has invalid timestamp")
         return HttpResponse(status=400)
 
     import cloudinary
     from cloudinary.utils import verify_notification_signature
     if not cloudinary.config().api_secret:
-        print("✗ SECURITY: Cloudinary API secret non configurato")
+        logger.error("Cloudinary API secret is not configured")
         return HttpResponse(status=500)
 
     try:
@@ -3562,22 +3566,22 @@ def cloudinary_moderation_webhook(request):
             signature=signature,
             valid_for=300,
         )
-    except Exception as e:
-        print(f"✗ SECURITY: errore validazione firma Cloudinary: {e}")
+    except Exception as exc:
+        logger.error(
+            "Cloudinary webhook signature validation failed error_type=%s",
+            type(exc).__name__,
+        )
         return HttpResponse(status=400)
 
     if not is_valid:
-        print(f"✗ SECURITY: Firma o timestamp webhook Cloudinary non validi")
+        logger.warning("Cloudinary webhook signature rejected")
         return HttpResponse(status=403)
 
     try:
         # Parse il payload JSON
         payload = json.loads(request.body)
 
-        print("=" * 60)
-        print("📥 Webhook Cloudinary Moderation ricevuto:")
-        print(json.dumps(payload, indent=2))
-        print("=" * 60)
+        logger.info("Cloudinary moderation webhook received")
 
         # Estrai informazioni necessarie
         public_id = payload.get('public_id')
@@ -3585,7 +3589,7 @@ def cloudinary_moderation_webhook(request):
         moderation_response = payload.get('moderation')
 
         if not public_id:
-            print("✗ public_id mancante nel payload")
+            logger.warning("Cloudinary moderation webhook missing public_id")
             return JsonResponse({'error': 'public_id missing'}, status=400)
 
         # Trova l'annuncio corrispondente
@@ -3597,13 +3601,13 @@ def cloudinary_moderation_webhook(request):
             ).first()
 
             if not annuncio:
-                print(f"✗ Annuncio non trovato per public_id: {public_id}")
+                logger.warning("Cloudinary moderation asset not mapped to an announcement")
                 return JsonResponse({'error': 'annuncio not found'}, status=404)
 
             # Gestisci il risultato della moderazione
             annuncio.handle_moderation_result(payload)
 
-            print(f"✓ Moderazione processata per annuncio #{annuncio.id}")
+            logger.info("Cloudinary moderation processed annuncio_id=%s", annuncio.id)
             return JsonResponse({
                 'status': 'success',
                 'annuncio_id': annuncio.id,
@@ -3611,16 +3615,17 @@ def cloudinary_moderation_webhook(request):
             })
 
         except Annuncio.DoesNotExist:
-            print(f"✗ Annuncio non trovato per public_id: {public_id}")
+            logger.warning("Cloudinary moderation asset not mapped to an announcement")
             return JsonResponse({'error': 'annuncio not found'}, status=404)
 
-    except json.JSONDecodeError as e:
-        print(f"✗ Errore parsing JSON: {e}")
+    except json.JSONDecodeError:
+        logger.warning("Cloudinary moderation webhook contains invalid JSON")
         return JsonResponse({'error': 'invalid JSON'}, status=400)
-    except Exception as e:
-        print(f"✗ Errore nel webhook: {e}")
-        import traceback
-        traceback.print_exc()
+    except Exception as exc:
+        logger.error(
+            "Cloudinary moderation webhook failed error_type=%s",
+            type(exc).__name__,
+        )
         return JsonResponse({'error': 'Errore del server. Riprova più tardi.'}, status=500)
 
 
@@ -3669,9 +3674,9 @@ def moderazione_approve(request, token):
                     letta=False,
                     url_azione=f'/annuncio/{annuncio.id}/'
                 )
-                print(f"📬 Notifica approvazione inviata a {annuncio.utente.username}")
-            except Exception as e:
-                print(f"✗ Errore creazione notifica approvazione: {e}")
+                print(f"📬 Notifica approvazione inviata a user_id={annuncio.utente_id}")
+            except Exception as exc:
+                print(f"✗ Errore creazione notifica approvazione: {type(exc).__name__}")
 
             messages.success(request, f'✅ Annuncio "{annuncio.titolo}" approvato con successo!')
             print(f"✓ Annuncio #{annuncio_id} approvato via email")

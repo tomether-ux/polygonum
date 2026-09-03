@@ -38,13 +38,13 @@ def track_disattivazione_annuncio(sender, instance, **kwargs):
             if old.attivo and not instance.attivo:
                 # È stato disattivato ora
                 instance.disattivato_at = timezone.now()
-                print(f"📴 Annuncio '{instance.titolo}' (ID:{instance.id}) disattivato alle {instance.disattivato_at}")
+                print(f"📴 Annuncio ID:{instance.id} disattivato alle {instance.disattivato_at}")
 
             # Se sta cambiando da inattivo ad attivo
             elif not old.attivo and instance.attivo:
                 # È stato riattivato, reset del timestamp
                 instance.disattivato_at = None
-                print(f"✅ Annuncio '{instance.titolo}' (ID:{instance.id}) riattivato")
+                print(f"✅ Annuncio ID:{instance.id} riattivato")
 
         except Annuncio.DoesNotExist:
             # Caso edge: l'annuncio è stato cancellato nel frattempo

@@ -70,9 +70,7 @@ class CustomUserCreationForm(UserCreationForm):
             citta_data = self.cleaned_data.get('citta', '')
             provincia_obj_data = self.cleaned_data.get('provincia_obj')
 
-            logger.info(f"Creating UserProfile for {user.username}")
-            logger.info(f"Città: '{citta_data}'")
-            logger.info(f"Provincia: '{provincia_obj_data}'")
+            logger.info("Creating UserProfile user_id=%s", user.id)
 
             try:
                 # Get or create profile (signal might have already created it)
@@ -91,14 +89,18 @@ class CustomUserCreationForm(UserCreationForm):
                     user_profile.provincia_obj = provincia_obj_data
                     user_profile.email_verified = False
                     user_profile.save()
-                    logger.info(f"UserProfile updated - ID: {user_profile.id}")
+                    logger.info("UserProfile updated profile_id=%s", user_profile.id)
                 else:
-                    logger.info(f"UserProfile created - ID: {user_profile.id}")
+                    logger.info("UserProfile created profile_id=%s", user_profile.id)
 
-                logger.info(f"Location: {user_profile.citta}, {user_profile.provincia_obj.nome}")
+                logger.info("UserProfile location configured profile_id=%s", user_profile.id)
 
-            except Exception as e:
-                logger.error(f"Error creating/updating UserProfile: {e}")
+            except Exception as exc:
+                logger.error(
+                    "Error creating/updating UserProfile user_id=%s error_type=%s",
+                    user.id,
+                    type(exc).__name__,
+                )
                 raise
 
         return user
@@ -155,7 +157,7 @@ class AnnuncioForm(forms.ModelForm):
         titolo = cleaned_data.get('titolo')
         descrizione = cleaned_data.get('descrizione')
 
-        logger.info(f"🔍 AnnuncioForm.clean() chiamato - titolo: '{titolo}', descrizione: '{descrizione[:50] if descrizione else None}...'")
+        logger.debug("AnnuncioForm validation started")
 
         # Il flag cerca_per_categoria può essere usato SOLO su annunci "cerco"
         if cerca_per_categoria and tipo != 'cerco':
@@ -178,9 +180,9 @@ class AnnuncioForm(forms.ModelForm):
 
         # Validazione contenuto testuale (parole vietate e pattern inappropriati)
         if titolo or descrizione:
-            logger.info(f"🔍 Validando contenuto testuale...")
+            logger.debug("Annuncio content validation started")
             valida_annuncio_contenuto(titolo or '', descrizione or '')
-            logger.info(f"✅ Validazione contenuto passata")
+            logger.debug("Annuncio content validation passed")
 
         return cleaned_data
 
