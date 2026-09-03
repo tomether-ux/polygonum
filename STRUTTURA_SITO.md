@@ -99,12 +99,12 @@ Mappa completa di tutte le pagine e funzionalità del sito.
 
 ---
 
-## 💎 PREMIUM
+## 👤 PIANI ACCOUNT
 
-- `/pricing/` - Piani e prezzi
-- `/premium/checkout/` - Checkout pagamento
-- `/premium/success/` - Pagamento completato
-- `/premium/cancel/` - Pagamento annullato
+- `/pricing/` - Informazioni sul piano gratuito
+- `/premium/checkout/` - Redirect di compatibilità, nessun pagamento
+- `/premium/success/` - Redirect di compatibilità, nessuna attivazione
+- `/premium/cancel/` - Redirect di compatibilità
 
 ---
 

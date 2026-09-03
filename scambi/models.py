@@ -807,7 +807,10 @@ class UserProfile(models.Model):
 
         if count_attuale >= limite:
             tipo_display = "offro" if tipo == "offro" else "cerco"
-            return False, f"Hai raggiunto il limite di {limite} annunci '{tipo_display}'. Passa a Premium per annunci illimitati!"
+            return False, (
+                f"Hai raggiunto il limite di {limite} annunci '{tipo_display}'. "
+                "Disattiva un altro annuncio dello stesso tipo prima di riprovare."
+            )
 
         return True, ""
 

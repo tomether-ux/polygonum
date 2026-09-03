@@ -111,11 +111,12 @@ urlpatterns = [
     # path('debug/view-catene/', views.debug_view_catene, name='debug_view_catene'),
     # path('debug/cyclefinder-basso/', views.debug_cyclefinder_basso, name='debug_cyclefinder_basso'),
 
-    # Sistema Premium
+    # Piani account. I vecchi URL Premium restano come redirect innocui per
+    # compatibilità con bookmark e link già inviati.
     path('pricing/', views.pricing, name='pricing'),
-    path('premium/checkout/', views.premium_checkout, name='premium_checkout'),
-    path('premium/success/', views.premium_success, name='premium_success'),
-    path('premium/cancel/', views.premium_cancel, name='premium_cancel'),
+    path('premium/checkout/', views.premium_unavailable, name='premium_checkout'),
+    path('premium/success/', views.premium_unavailable, name='premium_success'),
+    path('premium/cancel/', views.premium_unavailable, name='premium_cancel'),
 
     # Regolamento e linee guida
     path('regolamento/', views.regolamento, name='regolamento'),

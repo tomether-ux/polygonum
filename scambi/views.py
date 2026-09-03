@@ -320,7 +320,7 @@ def attiva_annuncio(request, annuncio_id):
             messages.error(
                 request,
                 f'Non puoi riattivare questo annuncio: hai raggiunto il limite di {limite} annunci "{tipo_display}". '
-                f'Passa a Premium per annunci illimitati!'
+                'Disattiva un altro annuncio dello stesso tipo prima di riprovare.'
             )
             return redirect('profilo_utente', username=request.user.username)
 
@@ -3449,10 +3449,10 @@ def mie_proposte_catene(request):
     return render(request, 'scambi/mie_proposte_catene.html', context)
 
 
-# === SISTEMA PREMIUM ===
+# === PIANI ACCOUNT ===
 
 def pricing(request):
-    """Pagina dei prezzi e piani"""
+    """Mostra il piano gratuito attualmente disponibile."""
     return render(request, 'scambi/pricing.html')
 
 
@@ -3469,51 +3469,12 @@ def come_funziona(request):
     return render(request, 'scambi/come_funziona.html')
 
 
-@login_required
-def premium_checkout(request):
-    """Pagina di checkout per Premium con PayPal"""
-    profilo = request.user.userprofile
-    
-    # Se già premium, redirect al profilo
-    if profilo.is_premium:
-        messages.info(request, 'Sei già un utente Premium!')
-        return redirect('profilo_utente', username=request.user.username)
-    
-    context = {
-        'profilo': profilo,
-        # Queste verranno da settings/env in produzione
-        'paypal_client_id': settings.PAYPAL_CLIENT_ID if hasattr(settings, 'PAYPAL_CLIENT_ID') else 'sandbox',
-        'paypal_mode': settings.PAYPAL_MODE if hasattr(settings, 'PAYPAL_MODE') else 'sandbox',
-    }
-    
-    return render(request, 'scambi/premium_checkout.html', context)
-
-
-@login_required
-def premium_success(request):
-    """Callback di successo da PayPal"""
-    # In produzione, qui verificheresti il pagamento con PayPal API
-    # Per ora, attiviamo direttamente il premium
-    
-    profilo = request.user.userprofile
-    profilo.is_premium = True
-    
-    # Imposta scadenza a 1 mese da ora (per abbonamento mensile)
-    from datetime import timedelta
-    profilo.premium_scadenza = timezone.now() + timedelta(days=30)
-    profilo.save()
-    
-    messages.success(request, '🎉 Benvenuto in Premium! Il tuo account è stato aggiornato con successo!')
-    
-    return render(request, 'scambi/premium_success.html', {
-        'profilo': profilo
-    })
-
-
-@login_required
-def premium_cancel(request):
-    """Callback di cancellazione da PayPal"""
-    messages.warning(request, 'Upgrade a Premium cancellato. Puoi riprovare quando vuoi!')
+def premium_unavailable(request):
+    """Compatibilità per i vecchi URL Premium, senza modificare l'account."""
+    messages.info(
+        request,
+        'Il piano Premium non è attualmente disponibile. Il tuo account resta invariato.'
+    )
     return redirect('pricing')
 
 # ======================

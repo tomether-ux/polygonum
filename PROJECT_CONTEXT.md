@@ -7,7 +7,7 @@
 - Trovare catene di scambio multi-hop (es: A→B→C→A)
 - Comunicare tramite messaggistica interna
 - Ricevere notifiche per match e proposte
-- Accedere a funzionalità premium (Stripe)
+- Utilizzare il piano gratuito; i nuovi acquisti Premium sono disabilitati
 
 ---
 
@@ -72,10 +72,10 @@ scambio_sito/
 - Link diretto da annuncio → messaggio
 - Notifiche nuovi messaggi
 
-### 4. Sistema Premium
-- Checkout Stripe
-- Funzionalità extra per utenti premium
-- Gestione abbonamenti
+### 4. Piani account
+- Piano gratuito: 5 annunci "Offro" e 5 annunci "Cerco" attivi
+- Nuovi acquisti Premium e pagamenti online disabilitati
+- Campi Premium esistenti mantenuti solo per compatibilità con i dati storici
 
 ### 5. Newsletter
 - Comando custom `python manage.py invia_newsletter`
