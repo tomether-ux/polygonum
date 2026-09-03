@@ -200,8 +200,14 @@ def dettaglio_annuncio(request, annuncio_id):
 @login_required
 def crea_annuncio(request):
     """Crea un nuovo annuncio"""
-    # Ottieni o crea il profilo dell'utente
-    profilo, created = UserProfile.objects.get_or_create(user=request.user)
+    try:
+        profilo = request.user.userprofile
+    except UserProfile.DoesNotExist:
+        messages.warning(
+            request,
+            'Completa il profilo e seleziona la provincia prima di pubblicare un annuncio.',
+        )
+        return redirect('modifica_profilo')
 
     if request.method == 'POST':
         form = AnnuncioForm(request.POST, request.FILES)  # Aggiungi request.FILES
@@ -305,8 +311,16 @@ def attiva_annuncio(request, annuncio_id):
     """Attiva un annuncio disattivato (SECURITY: POST-only per CSRF protection)"""
     annuncio = get_object_or_404(Annuncio, id=annuncio_id, utente=request.user)
 
-    # Controlla i limiti prima di attivare
-    profilo, created = UserProfile.objects.get_or_create(user=request.user)
+    # Un account incompleto non deve generare automaticamente un profilo privo
+    # della provincia obbligatoria.
+    try:
+        profilo = request.user.userprofile
+    except UserProfile.DoesNotExist:
+        messages.warning(
+            request,
+            'Completa il profilo e seleziona la provincia prima di riattivare un annuncio.',
+        )
+        return redirect('modifica_profilo')
 
     # IMPORTANTE: Quando riattivi, devi contare come se l'annuncio fosse già attivo
     # perché puo_creare_annuncio conta solo annunci attivi, ma questo è ancora inattivo
@@ -1101,10 +1115,15 @@ def profilo_utente(request, username):
     utente = get_object_or_404(User, username=username)
 
     try:
-        profilo = UserProfile.objects.get(user=utente)
+        profilo = utente.userprofile
     except UserProfile.DoesNotExist:
-        # Se l'utente non ha profilo, creane uno vuoto
-        profilo = UserProfile.objects.create(user=utente, citta="Non specificata")
+        # Una visita GET non deve modificare il database. Il proprietario può
+        # completare il profilo; per gli altri il profilo incompleto non è pubblico.
+        if request.user.is_authenticated and request.user == utente:
+            messages.warning(request, 'Completa il tuo profilo per continuare.')
+            return redirect('modifica_profilo')
+        from django.http import Http404
+        raise Http404('Profilo utente non disponibile')
 
     # Se è il proprio profilo, mostra tutti gli annunci (anche disattivati)
     # Se è il profilo di un altro, mostra solo quelli attivi
@@ -1229,9 +1248,11 @@ def profilo_utente(request, username):
 def modifica_profilo(request):
     """Vista per modificare il proprio profilo"""
     try:
-        profilo = UserProfile.objects.get(user=request.user)
+        profilo = request.user.userprofile
     except UserProfile.DoesNotExist:
-        profilo = UserProfile.objects.create(user=request.user, citta="")
+        # Istanza non ancora salvata: il profilo verrà creato soltanto dopo un
+        # POST valido contenente la provincia obbligatoria.
+        profilo = UserProfile(user=request.user)
 
     if request.method == 'POST':
         form = UserProfileForm(request.POST, instance=profilo)

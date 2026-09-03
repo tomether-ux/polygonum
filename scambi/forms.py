@@ -1,6 +1,7 @@
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
+from django.db import transaction
 from .models import Annuncio, Categoria, UserProfile, Provincia
 
 class CustomUserCreationForm(UserCreationForm):
@@ -49,8 +50,8 @@ class CustomUserCreationForm(UserCreationForm):
 
     def clean_email(self):
         """Valida unicità email (SECURITY: previene account duplicati)"""
-        email = self.cleaned_data.get('email')
-        if email and User.objects.filter(email=email).exists():
+        email = (self.cleaned_data.get('email') or '').strip().lower()
+        if email and User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError(
                 'Questa email è già registrata. Usa un\'altra email o effettua il login.'
             )
@@ -60,50 +61,42 @@ class CustomUserCreationForm(UserCreationForm):
         import logging
         logger = logging.getLogger(__name__)
 
-        user = super().save(commit=commit)
-        if commit:
-            # Disabilita l'utente fino alla verifica email
-            user.is_active = False
-            user.save()
+        user = super().save(commit=False)
+        user.is_active = False
 
-            # Dati dal form
-            citta_data = self.cleaned_data.get('citta', '')
-            provincia_obj_data = self.cleaned_data.get('provincia_obj')
+        if not commit:
+            return user
 
-            logger.info("Creating UserProfile user_id=%s", user.id)
+        citta_data = self.cleaned_data.get('citta', '')
+        provincia_obj_data = self.cleaned_data['provincia_obj']
 
-            try:
-                # Get or create profile (signal might have already created it)
-                user_profile, created = UserProfile.objects.get_or_create(
+        # Utente, profilo e notifica sono un'unica operazione: se uno dei tre
+        # salvataggi fallisce non resta nel database un account a metà.
+        try:
+            with transaction.atomic():
+                user.save()
+                user_profile = UserProfile.objects.create(
                     user=user,
-                    defaults={
-                        'citta': citta_data,
-                        'provincia_obj': provincia_obj_data,
-                        'email_verified': False
-                    }
+                    citta=citta_data,
+                    provincia_obj=provincia_obj_data,
+                    email_verified=False,
                 )
 
-                # If profile already existed (created by signal), update it with form data
-                if not created:
-                    user_profile.citta = citta_data
-                    user_profile.provincia_obj = provincia_obj_data
-                    user_profile.email_verified = False
-                    user_profile.save()
-                    logger.info("UserProfile updated profile_id=%s", user_profile.id)
-                else:
-                    logger.info("UserProfile created profile_id=%s", user_profile.id)
+                from .notifications import notifica_benvenuto
+                notifica_benvenuto(user)
 
-                logger.info("UserProfile location configured profile_id=%s", user_profile.id)
-
-            except Exception as exc:
-                logger.error(
-                    "Error creating/updating UserProfile user_id=%s error_type=%s",
-                    user.id,
-                    type(exc).__name__,
-                )
-                raise
-
-        return user
+            logger.info(
+                "User and profile created user_id=%s profile_id=%s",
+                user.id,
+                user_profile.id,
+            )
+            return user
+        except Exception as exc:
+            logger.error(
+                "Atomic user/profile creation failed error_type=%s",
+                type(exc).__name__,
+            )
+            raise
 
 class AnnuncioForm(forms.ModelForm):
     class Meta:
@@ -229,7 +222,7 @@ class UserProfileForm(forms.ModelForm):
             }),
         }
         labels = {
-            'citta': 'Città/Comune *',
+            'citta': 'Città/Comune (opzionale)',
             'provincia_obj': 'Provincia *',
             'cap': 'CAP (opzionale)'
         }
