@@ -59,7 +59,6 @@ INSTALLED_APPS = [
 # Authentication backends
 AUTHENTICATION_BACKENDS = [
     'scambi.backends.EmailOrUsernameModelBackend',  # Login con username o email
-    'django.contrib.auth.backends.ModelBackend',     # Fallback standard
 ]
 
 MIDDLEWARE = [
