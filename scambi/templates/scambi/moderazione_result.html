@@ -22,6 +22,65 @@
                     </div>
                 </div>
 
+                {% elif confirmation_action %}
+                <!-- Conferma esplicita: il caricamento GET non modifica dati -->
+                <div class="card {% if confirmation_action == 'approve' %}border-success{% else %}border-danger{% endif %} shadow-lg">
+                    <div class="card-body py-5">
+                        <div class="text-center mb-4">
+                            {% if confirmation_action == 'approve' %}
+                            <i class="fas fa-check-circle fa-5x text-success"></i>
+                            <h2 class="text-success mt-3">Conferma approvazione</h2>
+                            {% else %}
+                            <i class="fas fa-times-circle fa-5x text-danger"></i>
+                            <h2 class="text-danger mt-3">Conferma rifiuto</h2>
+                            {% endif %}
+                        </div>
+
+                        <div class="card bg-light border-0 mb-4">
+                            <div class="card-body">
+                                <h4>{{ annuncio.titolo }}</h4>
+                                <p class="mb-2"><strong>Utente:</strong> {{ annuncio.utente.username }}</p>
+                                <p class="mb-2"><strong>Categoria:</strong> {{ annuncio.categoria.nome }}</p>
+                                <p class="mb-0"><strong>Descrizione:</strong><br>{{ annuncio.descrizione|linebreaksbr }}</p>
+                                {% if annuncio.immagine %}
+                                <img
+                                    src="{{ annuncio.get_large_image_url }}"
+                                    alt="Immagine dell'annuncio {{ annuncio.titolo }}"
+                                    class="img-fluid rounded mt-3"
+                                    style="max-height: 420px;"
+                                >
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if confirmation_action == 'reject' %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Il rifiuto disattiverà l'annuncio, notificherà l'utente e applicherà lo strike previsto.
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            L'approvazione renderà l'annuncio disponibile sulla piattaforma.
+                        </div>
+                        {% endif %}
+
+                        <form method="post" class="d-flex flex-column flex-sm-row gap-2 justify-content-center mt-4">
+                            {% csrf_token %}
+                            <button type="submit" class="btn {% if confirmation_action == 'approve' %}btn-success{% else %}btn-danger{% endif %} btn-lg">
+                                {% if confirmation_action == 'approve' %}
+                                <i class="fas fa-check me-2"></i>Conferma approvazione
+                                {% else %}
+                                <i class="fas fa-times me-2"></i>Conferma rifiuto
+                                {% endif %}
+                            </button>
+                            <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-lg">
+                                Annulla
+                            </a>
+                        </form>
+                    </div>
+                </div>
+
                 {% elif action == 'approvato' %}
                 <!-- Approvato -->
                 <div class="card border-success shadow-lg">
@@ -29,8 +88,8 @@
                         <div class="mb-4">
                             <i class="fas fa-check-circle fa-5x text-success"></i>
                         </div>
-                        <h2 class="text-success mb-3">Annuncio Approvato!</h2>
-                        <p class="lead">L'annuncio <strong>"{{ annuncio.titolo }}"</strong> è stato approvato con successo.</p>
+                        <h2 class="text-success mb-3">{% if already_processed %}Annuncio già approvato{% else %}Annuncio Approvato!{% endif %}</h2>
+                        <p class="lead">L'annuncio <strong>"{{ annuncio.titolo }}"</strong> {% if already_processed %}risulta già approvato.{% else %}è stato approvato con successo.{% endif %}</p>
 
                         <div class="alert alert-info mt-4">
                             <i class="fas fa-info-circle me-2"></i>
@@ -60,9 +119,16 @@
 
                         <div class="alert alert-warning mt-4">
                             <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>L'utente {{ annuncio.utente.username }} ha ricevuto uno strike.</strong>
-                            <br>
-                            <small>L'utente è stato notificato della violazione.</small>
+                            {% if strike_applied %}
+                            <strong>L'utente {{ annuncio.utente.username }} ha ricevuto lo strike {{ strike_count }}/3.</strong>
+                            <br><small>L'utente è stato notificato della violazione.</small>
+                            {% elif already_processed %}
+                            <strong>L'annuncio risultava già rifiutato.</strong>
+                            <br><small>Nessun ulteriore strike o notifica è stato applicato.</small>
+                            {% else %}
+                            <strong>L'annuncio è stato rifiutato.</strong>
+                            <br><small>L'account aveva già raggiunto il limite massimo di strike.</small>
+                            {% endif %}
                         </div>
 
                         <div class="alert alert-info">
@@ -74,6 +140,23 @@
                             </ul>
                         </div>
 
+                        <a href="{% url 'home' %}" class="btn btn-primary mt-3">
+                            <i class="fas fa-home me-2"></i>Torna alla Home
+                        </a>
+                    </div>
+                </div>
+
+                {% elif action == 'bloccato' %}
+                <div class="card border-warning shadow-lg">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-4">
+                            <i class="fas fa-ban fa-5x text-warning"></i>
+                        </div>
+                        <h2 class="text-warning mb-3">Approvazione non eseguita</h2>
+                        <p class="lead">L'annuncio <strong>"{{ annuncio.titolo }}"</strong> è già stato rifiutato.</p>
+                        <div class="alert alert-info mt-4">
+                            Per riapprovarlo è necessaria un'azione esplicita dal pannello Django di amministrazione.
+                        </div>
                         <a href="{% url 'home' %}" class="btn btn-primary mt-3">
                             <i class="fas fa-home me-2"></i>Torna alla Home
                         </a>

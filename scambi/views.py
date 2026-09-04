@@ -6,7 +6,8 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST, require_http_methods
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
 from django_ratelimit.exceptions import Ratelimited
@@ -1825,7 +1826,6 @@ def is_catena_preferita(user, catena_data):
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from django.views.decorators.http import require_POST
 from django.contrib import messages
 from .models import Preferiti, Notifica, PropostaScambio, CatenaPreferita
 from .notifications import (
@@ -2758,7 +2758,6 @@ def invia_messaggio_da_annuncio(request):
 # === API SISTEMA CALCOLO CICLI SEPARATO ===
 
 from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from .models import CicloScambio
 import time
@@ -3689,29 +3688,66 @@ def cloudinary_moderation_webhook(request):
 # MODERAZIONE MANUALE
 # ============================================================
 
+MODERATION_LINK_MAX_AGE = 24 * 60 * 60
+
+
+def _get_announcement_from_moderation_token(token, action):
+    """Valida un token di moderazione e restituisce il relativo annuncio."""
+    from django.core.signing import BadSignature, TimestampSigner
+
+    signer = TimestampSigner(salt=f'moderation-{action}')
+    unsigned = signer.unsign(token, max_age=MODERATION_LINK_MAX_AGE)
+    prefix = f'{action}_'
+    announcement_id = unsigned[len(prefix):] if unsigned.startswith(prefix) else ''
+
+    if not announcement_id.isdecimal():
+        raise BadSignature('Token non valido')
+
+    return Annuncio.objects.select_related('utente', 'categoria').get(
+        id=int(announcement_id),
+    )
+
+
+def _moderation_error_response(request, message, status):
+    messages.error(request, f'❌ {message}')
+    return render(
+        request,
+        'scambi/moderazione_result.html',
+        {'error': message},
+        status=status,
+    )
+
+
+@never_cache
+@require_http_methods(['GET', 'POST'])
 def moderazione_approve(request, token):
     """
-    Approva un annuncio tramite link firmato nell'email.
-    Accessibile anche da telefono.
+    Mostra la conferma via GET e approva soltanto via POST protetto da CSRF.
     """
-    from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
-    from django.shortcuts import render, redirect
-    from django.contrib import messages
-    from .models import Annuncio
+    from django.core.signing import BadSignature, SignatureExpired
     from .moderation import approve_announcement
 
     try:
-        # Verifica token con scadenza 24h
-        signer = TimestampSigner(salt='moderation-approve')
-        unsigned = signer.unsign(token, max_age=86400)  # 24 ore
+        annuncio = _get_announcement_from_moderation_token(token, 'approve')
 
-        # Estrai annuncio_id dal token
-        if not unsigned.startswith('approve_'):
-            raise BadSignature("Token non valido")
+        if request.method == 'GET':
+            if annuncio.moderation_status == 'rejected':
+                return render(request, 'scambi/moderazione_result.html', {
+                    'action': 'bloccato',
+                    'annuncio': annuncio,
+                })
+            if annuncio.moderation_status == 'approved':
+                return render(request, 'scambi/moderazione_result.html', {
+                    'action': 'approvato',
+                    'annuncio': annuncio,
+                    'already_processed': True,
+                })
+            return render(request, 'scambi/moderazione_result.html', {
+                'confirmation_action': 'approve',
+                'annuncio': annuncio,
+            })
 
-        annuncio_id = int(unsigned.replace('approve_', ''))
-
-        decision = approve_announcement(annuncio_id, notify_user=True)
+        decision = approve_announcement(annuncio.id, notify_user=True)
         annuncio = decision.annuncio
 
         if decision.blocked:
@@ -3720,67 +3756,65 @@ def moderazione_approve(request, token):
                 f'L\'annuncio "{annuncio.titolo}" è già stato rifiutato. '
                 'Può essere riapprovato soltanto dal pannello di amministrazione.',
             )
+            action = 'bloccato'
         elif not decision.changed:
             messages.info(request, f'L\'annuncio "{annuncio.titolo}" era già stato approvato.')
+            action = 'approvato'
         else:
             messages.success(request, f'✅ Annuncio "{annuncio.titolo}" approvato con successo!')
-            logger.info("Announcement approved via email annuncio_id=%s", annuncio_id)
+            logger.info("Announcement approved via email annuncio_id=%s", annuncio.id)
+            action = 'approvato'
 
         return render(request, 'scambi/moderazione_result.html', {
-            'action': 'approvato',
-            'annuncio': annuncio
+            'action': action,
+            'annuncio': annuncio,
+            'already_processed': not decision.changed,
         })
 
     except SignatureExpired:
-        messages.error(request, '❌ Link scaduto. I link di moderazione sono validi per 24 ore.')
-        return render(request, 'scambi/moderazione_result.html', {
-            'error': 'Link scaduto (24h)'
-        })
+        return _moderation_error_response(request, 'Link scaduto (24h)', 410)
     except BadSignature:
-        messages.error(request, '❌ Link non valido.')
-        return render(request, 'scambi/moderazione_result.html', {
-            'error': 'Link non valido'
-        })
+        return _moderation_error_response(request, 'Link non valido', 400)
     except Annuncio.DoesNotExist:
-        messages.error(request, '❌ Annuncio non trovato.')
-        return render(request, 'scambi/moderazione_result.html', {
-            'error': 'Annuncio non trovato'
-        })
+        return _moderation_error_response(request, 'Annuncio non trovato', 404)
     except Exception as exc:
         logger.error(
-            "Email moderation approval failed annuncio_id=%s error_type=%s",
-            locals().get('annuncio_id'),
+            "Email moderation approval failed error_type=%s",
             type(exc).__name__,
         )
-        messages.error(request, '❌ Errore durante l\'approvazione. Riprova più tardi.')
-        return render(request, 'scambi/moderazione_result.html', {
-            'error': 'Errore del server. Riprova più tardi.'
-        })
+        return _moderation_error_response(
+            request,
+            'Errore del server. Riprova più tardi.',
+            500,
+        )
 
 
+@never_cache
+@require_http_methods(['GET', 'POST'])
 def moderazione_reject(request, token):
     """
-    Rifiuta un annuncio tramite link firmato nell'email.
-    Applica strike all'utente e disattiva l'annuncio.
+    Mostra la conferma via GET e rifiuta soltanto via POST protetto da CSRF.
     """
-    from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
-    from django.shortcuts import render, redirect
-    from django.contrib import messages
-    from .models import Annuncio
+    from django.core.signing import BadSignature, SignatureExpired
     from .moderation import reject_announcement
 
     try:
-        # Verifica token con scadenza 24h
-        signer = TimestampSigner(salt='moderation-reject')
-        unsigned = signer.unsign(token, max_age=86400)  # 24 ore
+        annuncio = _get_announcement_from_moderation_token(token, 'reject')
 
-        # Estrai annuncio_id dal token
-        if not unsigned.startswith('reject_'):
-            raise BadSignature("Token non valido")
+        if request.method == 'GET':
+            if annuncio.moderation_status == 'rejected':
+                return render(request, 'scambi/moderazione_result.html', {
+                    'action': 'rifiutato',
+                    'annuncio': annuncio,
+                    'already_processed': True,
+                    'strike_applied': False,
+                })
+            return render(request, 'scambi/moderazione_result.html', {
+                'confirmation_action': 'reject',
+                'annuncio': annuncio,
+            })
 
-        annuncio_id = int(unsigned.replace('reject_', ''))
-
-        decision = reject_announcement(annuncio_id)
+        decision = reject_announcement(annuncio.id)
         annuncio = decision.annuncio
 
         if not decision.changed:
@@ -3794,40 +3828,34 @@ def moderazione_reject(request, token):
             )
             logger.info(
                 "Announcement rejected via email annuncio_id=%s strike_count=%s",
-                annuncio_id,
+                annuncio.id,
                 decision.strike_count,
             )
 
         return render(request, 'scambi/moderazione_result.html', {
             'action': 'rifiutato',
-            'annuncio': annuncio
+            'annuncio': annuncio,
+            'already_processed': not decision.changed,
+            'strike_applied': decision.strike_applied,
+            'strike_count': decision.strike_count,
         })
 
     except SignatureExpired:
-        messages.error(request, '❌ Link scaduto. I link di moderazione sono validi per 24 ore.')
-        return render(request, 'scambi/moderazione_result.html', {
-            'error': 'Link scaduto (24h)'
-        })
+        return _moderation_error_response(request, 'Link scaduto (24h)', 410)
     except BadSignature:
-        messages.error(request, '❌ Link non valido.')
-        return render(request, 'scambi/moderazione_result.html', {
-            'error': 'Link non valido'
-        })
+        return _moderation_error_response(request, 'Link non valido', 400)
     except Annuncio.DoesNotExist:
-        messages.error(request, '❌ Annuncio non trovato.')
-        return render(request, 'scambi/moderazione_result.html', {
-            'error': 'Annuncio non trovato'
-        })
+        return _moderation_error_response(request, 'Annuncio non trovato', 404)
     except Exception as exc:
         logger.error(
-            "Email moderation rejection failed annuncio_id=%s error_type=%s",
-            locals().get('annuncio_id'),
+            "Email moderation rejection failed error_type=%s",
             type(exc).__name__,
         )
-        messages.error(request, '❌ Errore durante il rifiuto. Riprova più tardi.')
-        return render(request, 'scambi/moderazione_result.html', {
-            'error': 'Errore del server. Riprova più tardi.'
-        })
+        return _moderation_error_response(
+            request,
+            'Errore del server. Riprova più tardi.',
+            500,
+        )
 
 
 # ==================== PAGINE INFORMATIVE ====================

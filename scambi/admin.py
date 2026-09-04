@@ -163,11 +163,11 @@ class AnnuncioAdmin(admin.ModelAdmin):
         <div style="text-align: center; margin-top: 30px;">
             <a href="{html_approve_url}"
                style="display: inline-block; background: #10b981; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 0 10px 10px 0; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);">
-                ✅ Approva
+                ✅ Controlla e approva
             </a>
             <a href="{html_reject_url}"
                style="display: inline-block; background: #ef4444; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 0 0 10px 0; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);">
-                ❌ Rifiuta
+                ❌ Controlla e rifiuta
             </a>
         </div>
 
@@ -193,8 +193,8 @@ Descrizione:
 Immagine: {annuncio.get_image_url()}
 
 ---
-Per approvare: {approve_url}
-Per rifiutare: {reject_url}
+Per aprire la conferma di approvazione: {approve_url}
+Per aprire la conferma di rifiuto: {reject_url}
                 """
 
                 # Invia email
