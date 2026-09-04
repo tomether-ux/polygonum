@@ -2395,8 +2395,32 @@ def lista_messaggi(request):
 
 
 @login_required
+@ratelimit(
+    group='message-send-minute',
+    key='user',
+    rate='20/m',
+    method='POST',
+    block=False,
+)
+@ratelimit(
+    group='message-send-hour',
+    key='user',
+    rate='200/h',
+    method='POST',
+    block=False,
+)
 def chat_conversazione(request, conversazione_id):
     """Vista per visualizzare e inviare messaggi in una conversazione"""
+    if request.method == 'POST' and getattr(request, 'limited', False):
+        messages.error(
+            request,
+            'Hai inviato troppi messaggi. Attendi qualche minuto e riprova.',
+        )
+        return redirect(
+            'chat_conversazione',
+            conversazione_id=conversazione_id,
+        )
+
     conversazione = get_object_or_404(
         Conversazione,
         id=conversazione_id,
@@ -2617,16 +2641,45 @@ def verifica_conversazione_esistente(request, user_id):
 
 
 @login_required
+@ratelimit(
+    group='message-send-minute',
+    key='user',
+    rate='20/m',
+    method='POST',
+    block=False,
+)
+@ratelimit(
+    group='message-send-hour',
+    key='user',
+    rate='200/h',
+    method='POST',
+    block=False,
+)
 def invia_messaggio_da_annuncio(request):
     """API endpoint per inviare un messaggio riguardo a un annuncio"""
     if request.method != 'POST':
         return JsonResponse({'error': 'Metodo non supportato'}, status=405)
 
+    if getattr(request, 'limited', False):
+        return JsonResponse({
+            'error': 'Hai inviato troppi messaggi. Attendi qualche minuto e riprova.'
+        }, status=429)
+
     try:
         data = json.loads(request.body)
-        destinatario_id = data.get('destinatario_id')
-        messaggio_testo = data.get('messaggio', '').strip()
-        annuncio_id = data.get('annuncio_id')
+        if not isinstance(data, dict):
+            return JsonResponse({'error': 'Dati JSON non validi'}, status=400)
+
+        try:
+            destinatario_id = int(data.get('destinatario_id'))
+            annuncio_id = int(data.get('annuncio_id'))
+        except (TypeError, ValueError):
+            return JsonResponse({'error': 'Dati messaggio non validi'}, status=400)
+
+        messaggio_raw = data.get('messaggio', '')
+        if not isinstance(messaggio_raw, str):
+            return JsonResponse({'error': 'Dati messaggio non validi'}, status=400)
+        messaggio_testo = messaggio_raw.strip()
 
         if not messaggio_testo:
             return JsonResponse({'error': 'Il messaggio non può essere vuoto'}, status=400)
@@ -2638,8 +2691,21 @@ def invia_messaggio_da_annuncio(request):
                 'error': f'Messaggio troppo lungo. Massimo {MAX_MESSAGE_LENGTH} caratteri.'
             }, status=400)
 
-        destinatario = get_object_or_404(User, id=destinatario_id)
-        annuncio = get_object_or_404(Annuncio, id=annuncio_id)
+        annuncio = Annuncio.objects.select_related('utente').filter(
+            id=annuncio_id,
+            attivo=True,
+        ).first()
+        if not annuncio:
+            return JsonResponse({'error': 'Annuncio non disponibile'}, status=404)
+
+        # Il destinatario arriva dal browser e quindi non è attendibile. Deve
+        # coincidere con il proprietario dell'annuncio indicato.
+        if annuncio.utente_id != destinatario_id:
+            return JsonResponse({
+                'error': 'Il destinatario non corrisponde al proprietario dell’annuncio'
+            }, status=400)
+
+        destinatario = annuncio.utente
 
         if destinatario == request.user:
             return JsonResponse({'error': 'Non puoi inviare un messaggio a te stesso'}, status=400)
@@ -2680,7 +2746,12 @@ def invia_messaggio_da_annuncio(request):
 
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Dati JSON non validi'}, status=400)
-    except Exception as e:
+    except Exception as exc:
+        logger.error(
+            'Announcement message failed sender_id=%s error_type=%s',
+            request.user.id,
+            type(exc).__name__,
+        )
         return JsonResponse({'error': 'Errore del server'}, status=500)
 
 
