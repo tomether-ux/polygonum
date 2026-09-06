@@ -4,7 +4,7 @@ from django.contrib.auth import views as auth_views
 from django.contrib.auth.forms import UserCreationForm  # Se usi il form base
 from django.shortcuts import render, redirect
 from django.urls import reverse
-from django.http import HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST, require_http_methods
@@ -3373,11 +3373,20 @@ def valuta_scambio(request, proposta_id, valutato_id):
 
 
 @login_required
+@never_cache
+@require_http_methods(['GET'])
 def stato_proposta_catena(request, ciclo_id):
-    """Vista per ottenere lo stato di una proposta per una catena (MVP)"""
-    try:
-        ciclo = get_object_or_404(CicloScambio, id=ciclo_id, valido=True)
+    """Restituisce lo stato solo ai partecipanti della catena."""
+    ciclo = get_object_or_404(CicloScambio, id=ciclo_id, valido=True)
 
+    # SECURITY: lo stato della proposta contiene nomi utente, conteggi e date.
+    # Il semplice possesso dell'ID del ciclo non deve renderlo visibile a un
+    # utente estraneo. Rispondiamo con 404 per non confermare nemmeno
+    # l'esistenza di una catena privata.
+    if request.user.id not in ciclo.users:
+        raise Http404
+
+    try:
         # Cerca proposta per questa catena (solo NON scadute)
         proposta = PropostaCatena.objects.filter(
             ciclo=ciclo,
@@ -3413,14 +3422,15 @@ def stato_proposta_catena(request, ciclo_id):
             'data_scadenza': proposta.data_scadenza.isoformat() if proposta.data_scadenza else None
         })
 
-    except Exception as e:
-        print(f"API Error: {e}")  # Log per debug
-        import traceback
-        traceback.print_exc()
+    except Exception:
+        logger.exception(
+            "Errore nel recupero dello stato della proposta ciclo_id=%s",
+            ciclo_id,
+        )
         return JsonResponse({
             'success': False,
             'error': 'Errore del server. Riprova più tardi.'
-        })
+        }, status=500)
 
 
 @login_required
