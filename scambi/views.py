@@ -13,7 +13,13 @@ from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
 from django_ratelimit.exceptions import Ratelimited
 from django.conf import settings
+from django.db import transaction
 from .ratelimit_utils import get_real_ip_for_ratelimit
+from .conversation_services import (
+    find_private_conversation,
+    get_or_create_cycle_group_conversation,
+    get_or_create_private_conversation,
+)
 from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente, trova_catene_per_annuncio, trova_scambi_diretti_ottimizzato, trova_catene_scambio_ottimizzato, filtra_catene_per_utente_ottimizzato, trova_catene_per_annuncio_ottimizzato
 from .models import Annuncio, PropostaCatena, RispostaProposta, CicloScambio
 import hashlib
@@ -2693,22 +2699,13 @@ def inizia_conversazione(request, username):
         messages.error(request, "Non puoi avviare una conversazione con te stesso.")
         return redirect('lista_messaggi')
 
-    # Verifica se esiste già una conversazione tra i due utenti
-    conversazione_esistente = Conversazione.objects.filter(
-        tipo='privata',
-        utenti=request.user
-    ).filter(
-        utenti=destinatario
-    ).first()
+    conversazione, created = get_or_create_private_conversation(
+        request.user,
+        destinatario,
+    )
 
-    if conversazione_esistente:
-        return redirect('chat_conversazione', conversazione_id=conversazione_esistente.id)
-
-    # Crea nuova conversazione
-    conversazione = Conversazione.objects.create(tipo='privata')
-    conversazione.utenti.add(request.user, destinatario)
-
-    messages.success(request, f'Conversazione avviata con {destinatario.username}')
+    if created:
+        messages.success(request, f'Conversazione avviata con {destinatario.username}')
     return redirect('chat_conversazione', conversazione_id=conversazione.id)
 
 
@@ -2733,17 +2730,24 @@ def lista_catene_attivabili(request):
 @require_POST
 def attiva_catena(request, catena_id):
     """Vista per attivare una catena di scambio"""
-    catena = get_object_or_404(CatenaScambio, catena_id=catena_id, partecipanti=request.user)
-
-    if catena.stato != 'proposta':
-        return JsonResponse({
-            'success': False,
-            'error': 'Questa catena non può essere attivata'
-        })
-
     try:
-        # Attiva la catena (il metodo gestisce creazione chat e notifiche)
-        catena.attiva_catena(request.user)
+        with transaction.atomic():
+            # Il lock impedisce a due richieste simultanee di creare due chat.
+            catena = get_object_or_404(
+                CatenaScambio.objects.select_for_update(),
+                catena_id=catena_id,
+            )
+            if not catena.partecipanti.filter(pk=request.user.pk).exists():
+                raise Http404
+
+            if catena.stato != 'proposta':
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Questa catena non può essere attivata'
+                })
+
+            # Il metodo gestisce creazione chat e notifiche.
+            catena.attiva_catena(request.user)
 
         return JsonResponse({
             'success': True,
@@ -2751,14 +2755,14 @@ def attiva_catena(request, catena_id):
             'chat_url': reverse('chat_conversazione', kwargs={'conversazione_id': catena.conversazione.id}) if catena.conversazione else None
         })
 
-    except Exception as e:
-        print(f"Error in attiva_catena: {e}")  # Log per debug
-        import traceback
-        traceback.print_exc()
+    except Http404:
+        raise
+    except Exception:
+        logger.exception("Errore nell'attivazione della catena %s", catena_id)
         return JsonResponse({
             'success': False,
             'error': 'Errore durante l\'attivazione. Riprova più tardi.'
-        })
+        }, status=500)
 
 
 @login_required
@@ -2793,13 +2797,10 @@ def verifica_conversazione_esistente(request, user_id):
         if destinatario == request.user:
             return JsonResponse({'error': 'Non puoi avviare una conversazione con te stesso'}, status=400)
 
-        # Verifica se esiste già una conversazione tra i due utenti
-        conversazione_esistente = Conversazione.objects.filter(
-            tipo='privata',
-            utenti=request.user
-        ).filter(
-            utenti=destinatario
-        ).first()
+        conversazione_esistente = find_private_conversation(
+            request.user,
+            destinatario,
+        )
 
         if conversazione_esistente:
             return JsonResponse({
@@ -2885,18 +2886,10 @@ def invia_messaggio_da_annuncio(request):
         if destinatario == request.user:
             return JsonResponse({'error': 'Non puoi inviare un messaggio a te stesso'}, status=400)
 
-        # Verifica se esiste già una conversazione
-        conversazione = Conversazione.objects.filter(
-            tipo='privata',
-            utenti=request.user
-        ).filter(
-            utenti=destinatario
-        ).first()
-
-        # Se non esiste, creala
-        if not conversazione:
-            conversazione = Conversazione.objects.create(tipo='privata')
-            conversazione.utenti.add(request.user, destinatario)
+        conversazione, _ = get_or_create_private_conversation(
+            request.user,
+            destinatario,
+        )
 
         # Crea il messaggio con riferimento all'annuncio
         messaggio_contenuto = f"Riguardo all'annuncio '{annuncio.titolo}':\n\n{messaggio_testo}"
@@ -3148,278 +3141,266 @@ def webhook_calcola_cicli(request):
 def proponi_catena(request, ciclo_id):
     """Vista AJAX per proporre/annullare interesse a una catena di scambio (toggle)"""
     try:
-        ciclo = get_object_or_404(CicloScambio, id=ciclo_id, valido=True)
-
-        # Verifica che l'utente sia coinvolto nella catena
-        if request.user.id not in ciclo.users:
-            return JsonResponse({
-                'success': False,
-                'error': 'Non fai parte di questa catena'
-            })
-
-        # Cerca se esiste già una proposta per questo ciclo (NON scaduta)
-        proposta_esistente = PropostaCatena.objects.filter(
-            ciclo=ciclo,
-            data_scadenza__gt=timezone.now()  # Solo proposte non scadute
-        ).first()
-
-        if proposta_esistente:
-            # Esiste già una proposta ATTIVA, gestisci il toggle dell'interesse dell'utente
-            try:
-                risposta_obj = RispostaProposta.objects.get(
-                    proposta=proposta_esistente,
-                    utente=request.user
-                )
-
-                # Toggle: se interessato → rimuovi interesse, se non interessato/in_attesa → aggiungi interesse
-                if risposta_obj.risposta == 'interessato':
-                    # Annulla interesse
-                    risposta_obj.risposta = 'non_interessato'
-                    risposta_obj.save()
-
-                    # Se l'utente è l'iniziatore, annulla tutta la proposta
-                    if proposta_esistente.iniziatore == request.user:
-                        proposta_esistente.stato = 'annullata'
-                        proposta_esistente.save()
-
-                    return JsonResponse({
-                        'success': True,
-                        'action': 'removed',
-                        'message': 'Interesse rimosso',
-                        'count_interessati': proposta_esistente.get_count_interessati(),
-                        'count_totale': proposta_esistente.get_count_totale()
-                    })
-                else:
-                    # Aggiungi interesse
-                    risposta_obj.risposta = 'interessato'
-                    risposta_obj.data_risposta = timezone.now()
-                    risposta_obj.save()
-
-                    # Verifica se tutti sono interessati
-                    count_interessati = proposta_esistente.get_count_interessati()
-                    count_totale = proposta_esistente.get_count_totale()
-                    tutti_interessati = count_interessati == count_totale
-
-                    if tutti_interessati:
-                        # Aggiorna stato proposta
-                        proposta_esistente.stato = 'tutti_interessati'
-                        proposta_esistente.save()
-
-                        # Crea chat di gruppo
-                        from .models import Conversazione, Messaggio
-                        from django.contrib.auth.models import User
-
-                        utenti_coinvolti = User.objects.filter(id__in=ciclo.users)
-
-                        # Crea conversazione di gruppo
-                        conversazione = Conversazione.objects.create(
-                            tipo='gruppo',
-                            nome=f"Catena di scambio #{ciclo.id}",
-                            catena_scambio_id=str(ciclo.id)
-                        )
-                        conversazione.utenti.set(utenti_coinvolti)
-
-                        # Messaggio di sistema
-                        Messaggio.objects.create(
-                            conversazione=conversazione,
-                            mittente=request.user,
-                            contenuto=f"🎉 Tutti sono interessati! Catena attivata. Coordinate gli scambi qui.",
-                            is_sistema=True
-                        )
-
-                        # Invia notifiche a tutti
-                        from .notifications import notifica_tutti_interessati
-                        for utente in utenti_coinvolti:
-                            notifica_tutti_interessati(utente, proposta_esistente)
-
-                    response_data = {
-                        'success': True,
-                        'action': 'added',
-                        'message': 'Interesse confermato!',
-                        'count_interessati': count_interessati,
-                        'count_totale': count_totale,
-                        'tutti_interessati': tutti_interessati
-                    }
-
-                    # Se tutti sono interessati, aggiungi info sulla chat creata
-                    if tutti_interessati:
-                        response_data['chat_creata'] = True
-                        response_data['chat_id'] = conversazione.id
-                        response_data['redirect_url'] = reverse('lista_messaggi')
-
-                    return JsonResponse(response_data)
-            except RispostaProposta.DoesNotExist:
-                # L'utente non ha ancora una risposta, creala
-                RispostaProposta.objects.create(
-                    proposta=proposta_esistente,
-                    utente=request.user,
-                    risposta='interessato',
-                    data_risposta=timezone.now()
-                )
-
-                # Verifica se tutti sono interessati
-                count_interessati = proposta_esistente.get_count_interessati()
-                count_totale = proposta_esistente.get_count_totale()
-                tutti_interessati = count_interessati == count_totale
-
-                if tutti_interessati:
-                    # Aggiorna stato proposta
-                    proposta_esistente.stato = 'tutti_interessati'
-                    proposta_esistente.save()
-
-                    # Crea chat di gruppo
-                    from .models import Conversazione, Messaggio
-                    from django.contrib.auth.models import User
-
-                    utenti_coinvolti = User.objects.filter(id__in=ciclo.users)
-
-                    # Crea conversazione di gruppo
-                    conversazione = Conversazione.objects.create(
-                        tipo='gruppo',
-                        nome=f"Catena di scambio #{ciclo.id}",
-                        catena_scambio_id=str(ciclo.id)
-                    )
-                    conversazione.utenti.set(utenti_coinvolti)
-
-                    # Messaggio di sistema
-                    Messaggio.objects.create(
-                        conversazione=conversazione,
-                        mittente=request.user,
-                        contenuto=f"🎉 Tutti sono interessati! Catena attivata. Coordinate gli scambi qui.",
-                        is_sistema=True
-                    )
-
-                    # Invia notifiche a tutti
-                    from .notifications import notifica_tutti_interessati
-                    for utente in utenti_coinvolti:
-                        notifica_tutti_interessati(utente, proposta_esistente)
-
-                response_data = {
-                    'success': True,
-                    'action': 'added',
-                    'message': 'Interesse confermato!',
-                    'count_interessati': count_interessati,
-                    'count_totale': count_totale,
-                    'tutti_interessati': tutti_interessati
-                }
-
-                # Se tutti sono interessati, aggiungi info sulla chat creata
-                if tutti_interessati:
-                    response_data['chat_creata'] = True
-                    response_data['chat_id'] = conversazione.id
-                    response_data['redirect_url'] = reverse('lista_messaggi')
-
-                return JsonResponse(response_data)
-        else:
-            # Nessuna proposta esistente, crea nuova proposta
-            proposta = PropostaCatena.objects.create(
-                ciclo=ciclo,
-                iniziatore=request.user
+        with transaction.atomic():
+            # Tutte le modifiche a una proposta vengono serializzate sul ciclo.
+            ciclo = get_object_or_404(
+                CicloScambio.objects.select_for_update(),
+                id=ciclo_id,
+                valido=True,
             )
 
-            # Crea le risposte per tutti gli utenti coinvolti
-            from django.contrib.auth.models import User
-            utenti_coinvolti = User.objects.filter(id__in=ciclo.users)
+            if request.user.id not in ciclo.users:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Non fai parte di questa catena'
+                }, status=403)
 
-            for utente in utenti_coinvolti:
+            proposta = (
+                PropostaCatena.objects.select_for_update()
+                .filter(ciclo=ciclo, data_scadenza__gt=timezone.now())
+                .first()
+            )
+
+            if not proposta:
+                proposta = PropostaCatena.objects.create(
+                    ciclo=ciclo,
+                    iniziatore=request.user,
+                )
+                utenti_coinvolti = list(
+                    User.objects.filter(id__in=ciclo.users).order_by('id')
+                )
+                for utente in utenti_coinvolti:
+                    RispostaProposta.objects.create(
+                        proposta=proposta,
+                        utente=utente,
+                        risposta=(
+                            'interessato'
+                            if utente == request.user
+                            else 'in_attesa'
+                        ),
+                    )
+
+                from .notifications import notifica_proposta_catena
+                altri_utenti = [
+                    utente for utente in utenti_coinvolti
+                    if utente.pk != request.user.pk
+                ]
+                for utente in altri_utenti:
+                    notifica_proposta_catena(utente, proposta, request.user)
+
+                return JsonResponse({
+                    'success': True,
+                    'action': 'added',
+                    'message': f'Proposta inviata a {len(altri_utenti)} utenti!',
+                    'proposta_id': proposta.id,
+                    'count_interessati': 1,
+                    'count_totale': len(ciclo.users),
+                })
+
+            risposta_obj = (
+                RispostaProposta.objects.select_for_update()
+                .filter(proposta=proposta, utente=request.user)
+                .first()
+            )
+
+            if risposta_obj and risposta_obj.risposta == 'interessato':
+                risposta_obj.risposta = 'non_interessato'
+                risposta_obj.data_risposta = timezone.now()
+                risposta_obj.save(update_fields=['risposta', 'data_risposta'])
+
+                if proposta.iniziatore_id == request.user.id:
+                    proposta.stato = 'annullata'
+                    proposta.save(update_fields=[
+                        'stato',
+                        'data_ultimo_aggiornamento',
+                    ])
+
+                return JsonResponse({
+                    'success': True,
+                    'action': 'removed',
+                    'message': 'Interesse rimosso',
+                    'count_interessati': proposta.get_count_interessati(),
+                    'count_totale': proposta.get_count_totale(),
+                })
+
+            if risposta_obj:
+                risposta_obj.risposta = 'interessato'
+                risposta_obj.data_risposta = timezone.now()
+                risposta_obj.save(update_fields=['risposta', 'data_risposta'])
+            else:
                 RispostaProposta.objects.create(
                     proposta=proposta,
-                    utente=utente,
-                    risposta='interessato' if utente == request.user else 'in_attesa'
+                    utente=request.user,
+                    risposta='interessato',
+                    data_risposta=timezone.now(),
                 )
 
-            # Invia notifiche agli altri utenti
-            from .notifications import notifica_proposta_catena
-            altri_utenti = utenti_coinvolti.exclude(id=request.user.id)
-            for utente in altri_utenti:
-                notifica_proposta_catena(utente, proposta, request.user)
+            count_interessati = proposta.get_count_interessati()
+            count_totale = proposta.get_count_totale()
+            tutti_interessati = count_interessati == count_totale
+            conversazione = None
 
-            return JsonResponse({
+            if tutti_interessati:
+                stato_cambiato = proposta.stato != 'tutti_interessati'
+                if stato_cambiato:
+                    proposta.stato = 'tutti_interessati'
+                    proposta.save(update_fields=[
+                        'stato',
+                        'data_ultimo_aggiornamento',
+                    ])
+
+                conversazione, _, utenti_coinvolti = (
+                    get_or_create_cycle_group_conversation(ciclo, request.user)
+                )
+                if stato_cambiato:
+                    from .notifications import notifica_tutti_interessati
+                    for utente in utenti_coinvolti:
+                        notifica_tutti_interessati(utente, proposta)
+
+            response_data = {
                 'success': True,
                 'action': 'added',
-                'message': f'Proposta inviata a {altri_utenti.count()} utenti!',
-                'proposta_id': proposta.id,
-                'count_interessati': 1,
-                'count_totale': len(ciclo.users)
-            })
+                'message': 'Interesse confermato!',
+                'count_interessati': count_interessati,
+                'count_totale': count_totale,
+                'tutti_interessati': tutti_interessati,
+            }
+            if conversazione:
+                response_data.update({
+                    'chat_creata': True,
+                    'chat_id': conversazione.id,
+                    'redirect_url': reverse('lista_messaggi'),
+                })
+            return JsonResponse(response_data)
 
-    except Exception as e:
-        print(f"API Error: {e}")  # Log per debug
-        import traceback
-        traceback.print_exc()
+    except Http404:
+        raise
+    except Exception:
+        logger.exception("Errore nella proposta per il ciclo %s", ciclo_id)
         return JsonResponse({
             'success': False,
             'error': 'Errore del server. Riprova più tardi.'
-        })
+        }, status=500)
 
 
 @login_required
 @require_POST  
 def rispondi_proposta_catena(request, proposta_id):
     """Vista AJAX per rispondere a una proposta di catena (MVP)"""
-    try:
-        proposta = get_object_or_404(PropostaCatena, id=proposta_id)
-        
-        # Verifica che l'utente sia coinvolto
-        risposta_obj = get_object_or_404(
-            RispostaProposta,
-            proposta=proposta,
-            utente=request.user
-        )
-        
-        azione = request.POST.get('azione')  # 'interessato' o 'non_interessato'
-        
-        if azione == 'interessato':
-            risposta_obj.segna_interessato()
-            message = 'Hai confermato il tuo interesse!'
-            
-            # Controlla se tutti sono interessati
-            if proposta.stato == 'tutti_interessati':
-                # Notifica a tutti che la catena è pronta
-                from .notifications import notifica_tutti_interessati
-                utenti = proposta.get_utenti_coinvolti()
-                for utente in utenti:
-                    notifica_tutti_interessati(utente, proposta)
-                    
-                message = '🎉 Tutti sono interessati! Contattatevi per organizzare lo scambio.'
-            else:
-                # Notifica agli altri che qualcuno ha risposto
-                from .notifications import notifica_risposta_proposta
-                utenti = proposta.get_utenti_coinvolti().exclude(id=request.user.id)
-                for utente in utenti:
-                    notifica_risposta_proposta(utente, proposta, request.user, True)
-                    
-        elif azione == 'non_interessato':
-            risposta_obj.segna_non_interessato()
-            message = 'Proposta rifiutata'
-            
-            # Notifica a tutti che la proposta è stata rifiutata
-            from .notifications import notifica_risposta_proposta
-            utenti = proposta.get_utenti_coinvolti().exclude(id=request.user.id)
-            for utente in utenti:
-                notifica_risposta_proposta(utente, proposta, request.user, False)
-        else:
-            return JsonResponse({
-                'success': False,
-                'error': 'Azione non valida'
-            })
-        
+    azione = request.POST.get('azione')
+    if azione not in {'interessato', 'non_interessato'}:
         return JsonResponse({
-            'success': True,
-            'message': message,
-            'stato': proposta.stato,
-            'count_interessati': proposta.get_count_interessati(),
-            'count_totale': proposta.get_count_totale()
-        })
-        
-    except Exception as e:
-        print(f"API Error: {e}")  # Log per debug
-        import traceback
-        traceback.print_exc()
+            'success': False,
+            'error': 'Azione non valida'
+        }, status=400)
+
+    try:
+        proposta_riferimento = get_object_or_404(
+            PropostaCatena.objects.only('id', 'ciclo_id'),
+            id=proposta_id,
+        )
+
+        with transaction.atomic():
+            ciclo = get_object_or_404(
+                CicloScambio.objects.select_for_update(),
+                id=proposta_riferimento.ciclo_id,
+            )
+            proposta = get_object_or_404(
+                PropostaCatena.objects.select_for_update(),
+                id=proposta_id,
+                ciclo=ciclo,
+            )
+            risposta_obj = get_object_or_404(
+                RispostaProposta.objects.select_for_update(),
+                proposta=proposta,
+                utente=request.user,
+            )
+
+            risposta_cambiata = risposta_obj.risposta != azione
+            if risposta_cambiata:
+                risposta_obj.risposta = azione
+                risposta_obj.data_risposta = timezone.now()
+                risposta_obj.save(update_fields=['risposta', 'data_risposta'])
+
+            if azione == 'interessato':
+                count_interessati = proposta.get_count_interessati()
+                count_totale = proposta.get_count_totale()
+                tutti_interessati = count_interessati == count_totale
+                stato_cambiato = (
+                    tutti_interessati
+                    and proposta.stato != 'tutti_interessati'
+                )
+
+                if stato_cambiato:
+                    proposta.stato = 'tutti_interessati'
+                    proposta.save(update_fields=[
+                        'stato',
+                        'data_ultimo_aggiornamento',
+                    ])
+
+                if tutti_interessati:
+                    get_or_create_cycle_group_conversation(ciclo, request.user)
+                    if stato_cambiato:
+                        from .notifications import notifica_tutti_interessati
+                        for utente in proposta.get_utenti_coinvolti():
+                            notifica_tutti_interessati(utente, proposta)
+                    message = (
+                        '🎉 Tutti sono interessati! '
+                        'Contattatevi per organizzare lo scambio.'
+                    )
+                else:
+                    message = 'Hai confermato il tuo interesse!'
+                    if risposta_cambiata:
+                        from .notifications import notifica_risposta_proposta
+                        utenti = proposta.get_utenti_coinvolti().exclude(
+                            id=request.user.id
+                        )
+                        for utente in utenti:
+                            notifica_risposta_proposta(
+                                utente,
+                                proposta,
+                                request.user,
+                                True,
+                            )
+            else:
+                count_interessati = proposta.get_count_interessati()
+                count_totale = proposta.get_count_totale()
+                message = 'Proposta rifiutata'
+                if risposta_cambiata:
+                    proposta.stato = 'rifiutata'
+                    proposta.save(update_fields=[
+                        'stato',
+                        'data_ultimo_aggiornamento',
+                    ])
+
+                    from .notifications import notifica_risposta_proposta
+                    utenti = proposta.get_utenti_coinvolti().exclude(
+                        id=request.user.id
+                    )
+                    for utente in utenti:
+                        notifica_risposta_proposta(
+                            utente,
+                            proposta,
+                            request.user,
+                            False,
+                        )
+
+            return JsonResponse({
+                'success': True,
+                'message': message,
+                'stato': proposta.stato,
+                'count_interessati': count_interessati,
+                'count_totale': count_totale,
+            })
+
+    except Http404:
+        raise
+    except Exception:
+        logger.exception("Errore nella risposta alla proposta %s", proposta_id)
         return JsonResponse({
             'success': False,
             'error': 'Errore del server. Riprova più tardi.'
-        })
+        }, status=500)
 
 
 @login_required
