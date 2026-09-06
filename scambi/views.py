@@ -2,6 +2,7 @@ from django.contrib.auth import login
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.forms import UserCreationForm  # Se usi il form base
+from django.core.exceptions import RequestDataTooBig
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.http import Http404, HttpResponse, JsonResponse
@@ -19,6 +20,7 @@ import hashlib
 import hmac
 import logging
 import os
+import re
 from .debug_views import debug_basso, debug_view_catene, debug_cyclefinder_basso  # Debug temporaneo
 
 logger = logging.getLogger(__name__)
@@ -1721,7 +1723,7 @@ def converti_ciclo_a_catena(ciclo):
 def processa_catene_preferite(catene_preferite):
     """
     Processa una queryset di catene preferite, gestendo eventuali dati JSON corrotti.
-    Rimuove automaticamente le catene con dati non validi dal database.
+    I record non validi vengono ignorati, mai eliminati automaticamente.
     """
     catene_preferite_valide = []
     for catena_preferita in catene_preferite:
@@ -1729,17 +1731,16 @@ def processa_catene_preferite(catene_preferite):
             # Assicurati che catena_data sia un dict per il template
             if isinstance(catena_preferita.catena_data, str):
                 catena_preferita.catena_data = json.loads(catena_preferita.catena_data)
+            if not isinstance(catena_preferita.catena_data, dict):
+                raise TypeError('catena_data deve essere un oggetto JSON')
             # Aggiungi anche la versione JSON per il JavaScript
             catena_preferita.json_data = json.dumps(catena_preferita.catena_data, default=str)
             catene_preferite_valide.append(catena_preferita)
-        except (json.JSONDecodeError, TypeError) as e:
-            print(f"⚠️ Errore nel parsing dei dati di catena preferita ID {catena_preferita.id}: {e}")
-            # Rimuovi la catena preferita corrotta dal database
-            try:
-                catena_preferita.delete()
-                print(f"✅ Catena preferita corrotta ID {catena_preferita.id} rimossa dal database")
-            except Exception as delete_error:
-                print(f"❌ Errore nella rimozione della catena preferita ID {catena_preferita.id}: {delete_error}")
+        except (json.JSONDecodeError, TypeError, ValueError, RecursionError):
+            logger.warning(
+                "Catena preferita ignorata perché non valida id=%s",
+                catena_preferita.id,
+            )
     return catene_preferite_valide
 
 def riordina_catena_per_utente(catena, utente):
@@ -1821,6 +1822,58 @@ def is_catena_preferita(user, catena_data):
     return CatenaPreferita.objects.filter(utente=user, catena_hash=catena_hash).exists()
 
 
+MAX_CHAIN_FAVORITE_REQUEST_BYTES = 64 * 1024
+MAX_CHAIN_FAVORITE_SNAPSHOT_BYTES = 256 * 1024
+MAX_CHAIN_FAVORITES_PER_USER = 100
+CHAIN_FAVORITE_HASH_RE = re.compile(r'^(?:[0-9a-fA-F]{32}|[0-9a-fA-F]{64})$')
+
+
+def _canonical_chain_favorite(ciclo):
+    """Costruisce lo snapshot da dati server-side, senza fidarsi del browser."""
+    from .matching import converti_ciclo_db_a_view_format
+
+    catena = converti_ciclo_db_a_view_format(ciclo)
+    if not catena:
+        return None, None
+
+    catena_hash = genera_hash_catena(catena)
+    catena['hash_catena'] = catena_hash
+    catena['tipo'] = (
+        'scambio_diretto' if ciclo.lunghezza == 2 else 'catena_lunga'
+    )
+
+    # JSONField deve ricevere solo tipi JSON nativi. User, Annuncio e datetime
+    # presenti nella struttura di visualizzazione diventano snapshot testuali.
+    serialized = json.dumps(
+        catena,
+        default=str,
+        ensure_ascii=False,
+        separators=(',', ':'),
+    )
+    if len(serialized.encode('utf-8')) > MAX_CHAIN_FAVORITE_SNAPSHOT_BYTES:
+        return None, None
+
+    return json.loads(serialized), catena_hash
+
+
+def _accepted_chain_favorite_hashes(ciclo, canonical_hash):
+    """Accetta solo identificatori ricostruibili dai formati server storici."""
+    accepted_hashes = {canonical_hash}
+
+    cycle_hash = str(ciclo.hash_ciclo).strip().lower()
+    if CHAIN_FAVORITE_HASH_RE.fullmatch(cycle_hash):
+        accepted_hashes.add(cycle_hash)
+
+    try:
+        legacy_hash = genera_hash_catena(converti_ciclo_a_catena(ciclo))
+    except (KeyError, TypeError, ValueError, AttributeError):
+        legacy_hash = None
+    if legacy_hash:
+        accepted_hashes.add(legacy_hash)
+
+    return accepted_hashes
+
+
 # === SISTEMA NOTIFICHE E PREFERITI ===
 
 from django.contrib.auth.decorators import login_required
@@ -1889,68 +1942,162 @@ def lista_preferiti(request):
 @login_required
 @require_POST
 def aggiungi_catena_preferita(request):
-    """Vista AJAX per aggiungere/rimuovere una catena dai preferiti"""
+    """Aggiunge/rimuove preferiti usando il ciclo server-side come autorità."""
+    content_length = request.META.get('CONTENT_LENGTH')
     try:
-        # Recupera i dati della catena dal POST (supporta sia form data che JSON)
-        if request.content_type == 'application/json':
-            # Dati inviati come JSON nel body
-            data = json.loads(request.body)
-            catena_data_json = data.get('catena_data')
-            catena_hash_directo = data.get('catena_hash')  # Nuovo: accetta hash diretto
-        else:
-            # Dati inviati come form data
-            catena_data_json = request.POST.get('catena_data')
-            catena_hash_directo = request.POST.get('catena_hash')
+        if content_length and int(content_length) > MAX_CHAIN_FAVORITE_REQUEST_BYTES:
+            return JsonResponse({
+                'success': False,
+                'error': 'Richiesta troppo grande',
+            }, status=413)
+    except (TypeError, ValueError):
+        return JsonResponse({
+            'success': False,
+            'error': 'Dimensione richiesta non valida',
+        }, status=400)
 
-        # Supporta due modi: hash diretto o dati completi
-        if catena_hash_directo:
-            # Usa l'hash fornito direttamente
-            catena_hash = catena_hash_directo
-            # Cerca se esiste già questa catena nei preferiti per recuperare i dati
+    try:
+        raw_body = request.body
+        if len(raw_body) > MAX_CHAIN_FAVORITE_REQUEST_BYTES:
+            return JsonResponse({
+                'success': False,
+                'error': 'Richiesta troppo grande',
+            }, status=413)
+
+        # Mantiene compatibilità sia con il client JSON sia con eventuali form.
+        if request.content_type == 'application/json':
+            data = json.loads(raw_body.decode('utf-8'))
+            if not isinstance(data, dict):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Dati catena non validi',
+                }, status=400)
+            catena_data_json = data.get('catena_data')
+            catena_hash_diretto = data.get('catena_hash')
+        else:
+            catena_data_json = request.POST.get('catena_data')
+            catena_hash_diretto = request.POST.get('catena_hash')
+
+        catena_hash = None
+        if catena_hash_diretto is not None:
+            if not isinstance(catena_hash_diretto, str):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Hash catena non valido',
+                }, status=400)
+            catena_hash = catena_hash_diretto.strip().lower()
+            if not CHAIN_FAVORITE_HASH_RE.fullmatch(catena_hash):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Hash catena non valido',
+                }, status=400)
+
+            # La rimozione resta possibile anche se il ciclo non è più valido.
+            # La query è sempre limitata ai preferiti dell'utente autenticato.
             catena_esistente = CatenaPreferita.objects.filter(
                 utente=request.user,
-                catena_hash=catena_hash
+                catena_hash__iexact=catena_hash,
             ).first()
-
             if catena_esistente:
-                # Catena già nei preferiti - la rimuoviamo
-                catena_data = catena_esistente.catena_data
                 catena_esistente.delete()
                 return JsonResponse({
                     'success': True,
                     'action': 'removed',
                     'message': 'Catena rimossa dai preferiti'
                 })
-            else:
-                # Catena non nei preferiti - dobbiamo ricevere i dati completi per salvarla
-                # Fallback ai dati completi se forniti
-                if catena_data_json:
-                    if isinstance(catena_data_json, str):
-                        catena_data = json.loads(catena_data_json)
-                    else:
-                        catena_data = catena_data_json
-                    # TODO: L'hash potrebbe non corrispondere a causa della serializzazione con default=str
-                    # Temporaneamente disabilitiamo la validazione dell'hash
-                    expected_hash = genera_hash_catena(catena_data)
-                    if expected_hash != catena_hash:
-                        print(f"DEBUG: Hash mismatch - using catena_data without validation")
-                        print(f"DEBUG: expected_hash = {expected_hash}")
-                        print(f"DEBUG: received catena_hash = {catena_hash}")
-                        # Continuiamo comunque con i dati ricevuti
-                else:
-                    return JsonResponse({'success': False, 'error': 'Catena non trovata nei preferiti e nessun dato fornito per salvarla'})
 
-        elif catena_data_json:
-            # Metodo originale: usa i dati completi
-            if isinstance(catena_data_json, str):
-                catena_data = json.loads(catena_data_json)
-            else:
-                catena_data = catena_data_json
-            catena_hash = genera_hash_catena(catena_data)
+        if isinstance(catena_data_json, str):
+            catena_data_ricevuta = json.loads(catena_data_json)
         else:
-            return JsonResponse({'success': False, 'error': 'Né hash né dati catena forniti'})
+            catena_data_ricevuta = catena_data_json
+        if not isinstance(catena_data_ricevuta, dict):
+            return JsonResponse({
+                'success': False,
+                'error': 'Dati catena non validi',
+            }, status=400)
 
-        # A questo punto abbiamo i dati completi, gestiamo aggiunta/rimozione
+        ciclo_id_raw = catena_data_ricevuta.get('id_ciclo')
+        if isinstance(ciclo_id_raw, bool):
+            ciclo_id_raw = None
+        try:
+            ciclo_id = int(ciclo_id_raw)
+        except (TypeError, ValueError):
+            return JsonResponse({
+                'success': False,
+                'error': 'Identificativo catena non valido',
+            }, status=400)
+        if ciclo_id <= 0:
+            return JsonResponse({
+                'success': False,
+                'error': 'Identificativo catena non valido',
+            }, status=400)
+
+        ciclo = CicloScambio.objects.filter(id=ciclo_id, valido=True).first()
+        if not ciclo:
+            return JsonResponse({
+                'success': False,
+                'error': 'Catena non disponibile',
+            }, status=404)
+
+        user_ids = ciclo.users
+        if (
+            not isinstance(user_ids, list)
+            or not 2 <= len(user_ids) <= 6
+            or any(
+                isinstance(user_id, bool) or not isinstance(user_id, int)
+                for user_id in user_ids
+            )
+            or len(set(user_ids)) != len(user_ids)
+            or ciclo.lunghezza != len(user_ids)
+            or request.user.id not in user_ids
+        ):
+            return JsonResponse({
+                'success': False,
+                'error': 'Catena non disponibile',
+            }, status=404)
+
+        catena_data, expected_hash = _canonical_chain_favorite(ciclo)
+        if not catena_data:
+            return JsonResponse({
+                'success': False,
+                'error': 'Catena non disponibile',
+            }, status=404)
+
+        accepted_hashes = _accepted_chain_favorite_hashes(
+            ciclo,
+            expected_hash,
+        )
+        if catena_hash and catena_hash not in accepted_hashes:
+            return JsonResponse({
+                'success': False,
+                'error': 'I dati della catena non corrispondono',
+            }, status=400)
+        catena_hash = expected_hash
+
+        # Compatibilità con il vecchio client che inviava solo catena_data:
+        # se il preferito esiste già, il toggle deve poterlo rimuovere anche
+        # quando l'utente ha raggiunto il limite massimo.
+        catena_esistente = CatenaPreferita.objects.filter(
+            utente=request.user,
+            catena_hash=catena_hash,
+        ).first()
+        if catena_esistente:
+            catena_esistente.delete()
+            return JsonResponse({
+                'success': True,
+                'action': 'removed',
+                'message': 'Catena rimossa dai preferiti',
+            })
+
+        if (
+            CatenaPreferita.objects.filter(utente=request.user).count()
+            >= MAX_CHAIN_FAVORITES_PER_USER
+        ):
+            return JsonResponse({
+                'success': False,
+                'error': f'Puoi salvare al massimo {MAX_CHAIN_FAVORITES_PER_USER} catene',
+            }, status=400)
+
         catena_preferita, created = CatenaPreferita.objects.get_or_create(
             utente=request.user,
             catena_hash=catena_hash,
@@ -1976,13 +2123,22 @@ def aggiungi_catena_preferita(request):
             'message': message
         })
 
-    except json.JSONDecodeError as e:
-        return JsonResponse({'success': False, 'error': 'Dati catena non validi'})
-    except Exception as e:
-        print(f"Error in aggiungi_catena_preferita: {e}")  # Log per debug
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({'success': False, 'error': 'Errore del server. Riprova più tardi.'})
+    except RequestDataTooBig:
+        return JsonResponse({
+            'success': False,
+            'error': 'Richiesta troppo grande',
+        }, status=413)
+    except (json.JSONDecodeError, UnicodeDecodeError, RecursionError):
+        return JsonResponse({
+            'success': False,
+            'error': 'Dati catena non validi',
+        }, status=400)
+    except Exception:
+        logger.exception("Errore nella gestione di una catena preferita")
+        return JsonResponse({
+            'success': False,
+            'error': 'Errore del server. Riprova più tardi.',
+        }, status=500)
 
 
 @login_required
