@@ -2510,8 +2510,9 @@ def chat_conversazione(request, conversazione_id):
 
 
 @login_required
+@require_POST
 def inizia_conversazione(request, username):
-    """Vista per iniziare una conversazione privata con un utente"""
+    """Avvia una conversazione privata solo dopo una richiesta POST esplicita."""
     destinatario = get_object_or_404(User, username=username)
 
     if destinatario == request.user:
