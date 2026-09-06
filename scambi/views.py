@@ -363,7 +363,7 @@ def catene_scambio(request):
     - Carica TUTTE le catene dal DB (inclusi sinonimi, annunci disattivati <3min)
     - NO filtri server-side (troppo lenti, causavano timeout)
     - Filtri applicati lato client in JavaScript (istantanei)
-    - RICALCOLO PARZIALE: ?ricalcola=true → calcola solo cicli per utente corrente
+    - I ricalcoli avvengono solo tramite il job protetto, mai dalla richiesta web
     - CARICAMENTO LAZY: ?load=true → carica catene dal DB, altrimenti pagina vuota
     - SOLO UTENTI AUTENTICATI: utenti non loggati vedono solo avviso di login
     """
@@ -391,8 +391,17 @@ def catene_scambio(request):
         request.session.pop('catene_timestamp', None)
         messages.info(request, 'Sessione resettata. Clicca "Cerca Catene" per una nuova ricerca.')
 
-    # Check se richiesto caricamento catene
+    # Check se richiesto caricamento catene. I vecchi link con
+    # ?ricalcola=true vengono trattati come un semplice caricamento: il
+    # ricalcolo è riservato al job protetto e non può essere avviato via GET.
     load_chains = request.GET.get('load') == 'true'
+    legacy_recalculation_requested = request.GET.get('ricalcola') == 'true'
+    if legacy_recalculation_requested:
+        load_chains = True
+        logger.info(
+            "Richiesta web di ricalcolo ignorata user_id=%s",
+            request.user.id,
+        )
 
     # NUOVA LOGICA SESSIONE: Se l'utente ha già caricato catene in precedenza, ricarica automaticamente
     has_session = request.session.get('catene_loaded', False)
@@ -440,8 +449,10 @@ def catene_scambio(request):
             'cicli_interessati': set(),  # Set vuoto - nessuna catena
         })
 
-    # Check se richiesto ricalcolo parziale
-    ricalcola_per_utente = request.GET.get('ricalcola') == 'true'
+    # SECURITY/STABILITY: questo ramo legacy resta temporaneamente nel file
+    # per ridurre il rischio di regressioni, ma non è più raggiungibile da una
+    # richiesta HTTP. Il calcolo autorizzato passa dal webhook protetto.
+    ricalcola_per_utente = False
 
     if ricalcola_per_utente and request.user.is_authenticated:
         # RICALCOLO PARZIALE: invalida cicli utente e ricalcola
@@ -526,7 +537,7 @@ def catene_scambio(request):
             import traceback
             traceback.print_exc()
             tutte_catene = []
-            messages.error(request, f'Errore durante il ricalcolo: {str(e)}')
+            messages.error(request, 'Errore durante il ricalcolo. Riprova più tardi.')
 
     elif False:  # Blocco legacy disabilitato (era if cerca_nuove:)
         import time
@@ -1362,7 +1373,7 @@ def le_mie_catene(request):
     Vista ottimizzata per le catene personali dell'utente.
     NUOVA LOGICA:
     - Di default: carica catene dal DB (CicloScambio) senza ricalcolare
-    - Solo se ?cerca=true: ricalcola e salva nuovi cicli
+    - I vecchi link ?cerca=true caricano i dati esistenti senza ricalcolare
     """
     import time
 
@@ -1370,8 +1381,15 @@ def le_mie_catene(request):
     annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
     ha_annunci = annunci_utente.exists()
 
-    # Controlla se è stata richiesta una nuova ricerca
-    cerca_nuove = request.GET.get('cerca') == 'true'
+    # SECURITY/STABILITY: un parametro GET non deve avviare lavoro pesante.
+    # Conserviamo la compatibilità del vecchio URL, ma carichiamo soltanto i
+    # cicli già presenti nel database.
+    cerca_nuove = False
+    if request.GET.get('cerca') == 'true':
+        logger.info(
+            "Richiesta web di ricerca completa ignorata user_id=%s",
+            request.user.id,
+        )
 
     # Controlla se è stata richiesta una ricerca per annuncio specifico
     annuncio_id = request.GET.get('annuncio_id')
