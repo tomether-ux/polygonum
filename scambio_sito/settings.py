@@ -283,7 +283,11 @@ if os.environ.get('RENDER'):
     # Database in production
     import dj_database_url
     DATABASES = {
-        'default': dj_database_url.parse(os.environ.get('DATABASE_URL'))
+        'default': dj_database_url.parse(
+            os.environ.get('DATABASE_URL'),
+            conn_max_age=60,
+            conn_health_checks=True,
+        )
     }
 
     # Static files in production

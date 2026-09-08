@@ -1366,10 +1366,17 @@ class PropostaCatena(models.Model):
         la catena è ora completata.
         """
         if self.get_count_conferme() >= self.get_count_totale():
-            if self.stato != 'completata':
+            # Compare-and-set atomico: anche senza un lock esterno una sola
+            # richiesta può effettuare la transizione a "completata".
+            aggiornate = type(self).objects.filter(pk=self.pk).exclude(
+                stato='completata'
+            ).update(
+                stato='completata',
+                data_ultimo_aggiornamento=timezone.now(),
+            )
+            if aggiornate:
                 self.stato = 'completata'
-                self.save(update_fields=['stato', 'data_ultimo_aggiornamento'])
-            return True
+                return True
         return False
 
     @property

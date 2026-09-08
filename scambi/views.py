@@ -2267,35 +2267,93 @@ def crea_proposta_scambio(request, annuncio_offerto_id, annuncio_richiesto_id):
         messages.error(request, "Non puoi proporti uno scambio con te stesso.")
         return redirect('dettaglio_annuncio', annuncio_id=annuncio_richiesto_id)
 
-    # Verifica che non esista già una proposta simile in attesa
+    if request.method == 'POST':
+        messaggio = request.POST.get('messaggio', '')
+
+        with transaction.atomic():
+            # Il lock sugli annunci, sempre nello stesso ordine, serializza
+            # richieste simultanee per la stessa coppia senza una migrazione.
+            annunci_bloccati = {
+                annuncio.id: annuncio
+                for annuncio in (
+                    Annuncio.objects.select_for_update()
+                    .select_related('utente')
+                    .filter(id__in=[annuncio_offerto_id, annuncio_richiesto_id])
+                    .order_by('id')
+                )
+            }
+            annuncio_offerto = annunci_bloccati.get(annuncio_offerto_id)
+            annuncio_richiesto = annunci_bloccati.get(annuncio_richiesto_id)
+
+            # Ricontrolla proprietà e stato dopo l'acquisizione dei lock: un
+            # annuncio potrebbe essere stato modificato tra GET e POST.
+            if not annuncio_offerto or not annuncio_richiesto:
+                raise Http404
+            if not annuncio_offerto.attivo or not annuncio_richiesto.attivo:
+                messages.error(request, "Uno degli annunci non è più attivo.")
+                return redirect(
+                    'dettaglio_annuncio',
+                    annuncio_id=annuncio_richiesto_id,
+                )
+            if annuncio_offerto.utente_id != request.user.id:
+                messages.error(
+                    request,
+                    "Puoi proporre solo i tuoi annunci per uno scambio.",
+                )
+                return redirect(
+                    'dettaglio_annuncio',
+                    annuncio_id=annuncio_richiesto_id,
+                )
+            if annuncio_richiesto.utente_id == request.user.id:
+                messages.error(
+                    request,
+                    "Non puoi proporti uno scambio con te stesso.",
+                )
+                return redirect(
+                    'dettaglio_annuncio',
+                    annuncio_id=annuncio_richiesto_id,
+                )
+
+            proposta_esistente = PropostaScambio.objects.filter(
+                richiedente=request.user,
+                destinatario=annuncio_richiesto.utente,
+                annuncio_offerto=annuncio_offerto,
+                annuncio_richiesto=annuncio_richiesto,
+                stato='in_attesa',
+            ).exists()
+            if proposta_esistente:
+                messages.warning(
+                    request,
+                    "Hai già una proposta di scambio in attesa per questi annunci.",
+                )
+                return redirect(
+                    'dettaglio_annuncio',
+                    annuncio_id=annuncio_richiesto_id,
+                )
+
+            proposta = PropostaScambio.objects.create(
+                richiedente=request.user,
+                destinatario=annuncio_richiesto.utente,
+                annuncio_offerto=annuncio_offerto,
+                annuncio_richiesto=annuncio_richiesto,
+                messaggio=messaggio,
+            )
+            notifica_proposta_scambio(proposta)
+
+        messages.success(request, f"Proposta di scambio inviata a {annuncio_richiesto.utente.username}!")
+        return redirect('dettaglio_annuncio', annuncio_id=annuncio_richiesto_id)
+
+    # Controllo usato dalla pagina di conferma GET. Il POST ripete questo
+    # controllo dentro la transazione, dove non soffre di race condition.
     proposta_esistente = PropostaScambio.objects.filter(
         richiedente=request.user,
         destinatario=annuncio_richiesto.utente,
         annuncio_offerto=annuncio_offerto,
         annuncio_richiesto=annuncio_richiesto,
-        stato='in_attesa'
+        stato='in_attesa',
     ).exists()
-
     if proposta_esistente:
         messages.warning(request, "Hai già una proposta di scambio in attesa per questi annunci.")
-        return redirect('dettaglio_annuncio', annuncio_id=annuncio_richiesto_id)
-
-    if request.method == 'POST':
-        messaggio = request.POST.get('messaggio', '')
-
-        # Crea la proposta di scambio
-        proposta = PropostaScambio.objects.create(
-            richiedente=request.user,
-            destinatario=annuncio_richiesto.utente,
-            annuncio_offerto=annuncio_offerto,
-            annuncio_richiesto=annuncio_richiesto,
-            messaggio=messaggio
-        )
-
-        # Crea notifica per il destinatario
-        notifica_proposta_scambio(proposta)
-
-        messages.success(request, f"Proposta di scambio inviata a {annuncio_richiesto.utente.username}!")
         return redirect('dettaglio_annuncio', annuncio_id=annuncio_richiesto_id)
 
     context = {
@@ -2331,30 +2389,37 @@ def lista_proposte_scambio(request):
 @require_POST
 def rispondi_proposta_scambio(request, proposta_id):
     """Vista AJAX per rispondere a una proposta di scambio"""
-    proposta = get_object_or_404(PropostaScambio, id=proposta_id, destinatario=request.user)
-
-    if proposta.stato != 'in_attesa':
-        return JsonResponse({
-            'success': False,
-            'error': 'Questa proposta è già stata gestita'
-        })
-
     azione = request.POST.get('azione')
     if azione not in ['accetta', 'rifiuta']:
         return JsonResponse({
             'success': False,
             'error': 'Azione non valida'
-        })
+        }, status=400)
 
-    if azione == 'accetta':
-        proposta.stato = 'accettata'
-        messaggio = f"Proposta di scambio accettata! Ora puoi contattare {proposta.richiedente.username} per organizzare lo scambio."
-    else:
-        proposta.stato = 'rifiutata'
-        messaggio = "Proposta di scambio rifiutata."
+    with transaction.atomic():
+        proposta = get_object_or_404(
+            PropostaScambio.objects.select_for_update().select_related(
+                'richiedente'
+            ),
+            id=proposta_id,
+            destinatario=request.user,
+        )
 
-    proposta.data_risposta = timezone.now()
-    proposta.save()
+        if proposta.stato != 'in_attesa':
+            return JsonResponse({
+                'success': False,
+                'error': 'Questa proposta è già stata gestita'
+            })
+
+        if azione == 'accetta':
+            proposta.stato = 'accettata'
+            messaggio = f"Proposta di scambio accettata! Ora puoi contattare {proposta.richiedente.username} per organizzare lo scambio."
+        else:
+            proposta.stato = 'rifiutata'
+            messaggio = "Proposta di scambio rifiutata."
+
+        proposta.data_risposta = timezone.now()
+        proposta.save(update_fields=['stato', 'data_risposta'])
 
     return JsonResponse({
         'success': True,
@@ -2933,6 +2998,13 @@ import time
 
 @require_http_methods(["GET"])
 @login_required
+@ratelimit(
+    group='api-cicli-utente',
+    key='user',
+    rate='60/m',
+    method='GET',
+    block=False,
+)
 def api_cicli_utente(request, user_id):
     """
     API endpoint per ottenere i cicli di scambio per un utente specifico
@@ -2941,6 +3013,11 @@ def api_cicli_utente(request, user_id):
     start_time = time.time()
 
     try:
+        if getattr(request, 'limited', False):
+            return JsonResponse({
+                'error': 'Troppe richieste. Attendi un minuto e riprova.'
+            }, status=429)
+
         # Verifica che l'utente possa accedere ai propri cicli
         if request.user.id != user_id and not request.user.is_staff:
             return JsonResponse({
@@ -2948,8 +3025,22 @@ def api_cicli_utente(request, user_id):
             }, status=403)
 
         # Query ottimizzata per trovare cicli dell'utente
-        limit = min(int(request.GET.get('limit', 50)), 100)  # Max 100 cicli
-        offset = int(request.GET.get('offset', 0))
+        try:
+            limit = int(request.GET.get('limit', 50))
+            offset = int(request.GET.get('offset', 0))
+        except (TypeError, ValueError):
+            return JsonResponse({
+                'error': 'I parametri limit e offset devono essere numeri interi.'
+            }, status=400)
+
+        if not 1 <= limit <= 100:
+            return JsonResponse({
+                'error': 'Il parametro limit deve essere compreso tra 1 e 100.'
+            }, status=400)
+        if offset < 0:
+            return JsonResponse({
+                'error': 'Il parametro offset non può essere negativo.'
+            }, status=400)
 
         # Usa il metodo ottimizzato del model
         cicli_queryset = CicloScambio.find_for_user(user_id, limit + offset)[offset:offset + limit]
@@ -2983,16 +3074,25 @@ def api_cicli_utente(request, user_id):
 
         return response
 
-    except Exception as e:
-        print(f"API Error: {e}")  # Log per debug
-        import traceback
-        traceback.print_exc()
+    except Exception:
+        logger.exception(
+            'Errore API cicli utente user_id=%s requester_id=%s',
+            user_id,
+            request.user.id,
+        )
         return JsonResponse({
             'error': 'Errore del server. Riprova più tardi.'
         }, status=500)
 
 
 @require_http_methods(["GET"])
+@ratelimit(
+    group='api-cicli-stats',
+    key=get_real_ip_for_ratelimit,
+    rate='60/m',
+    method='GET',
+    block=False,
+)
 def api_cicli_stats(request):
     """
     API endpoint per statistiche generali sui cicli
@@ -3001,6 +3101,11 @@ def api_cicli_stats(request):
     start_time = time.time()
 
     try:
+        if getattr(request, 'limited', False):
+            return JsonResponse({
+                'error': 'Troppe richieste. Attendi un minuto e riprova.'
+            }, status=429)
+
         # Query ottimizzate per statistiche
         stats = {
             'cicli_totali': CicloScambio.objects.filter(valido=True).count(),
@@ -3034,10 +3139,8 @@ def api_cicli_stats(request):
 
         return response
 
-    except Exception as e:
-        print(f"API Error: {e}")  # Log per debug
-        import traceback
-        traceback.print_exc()
+    except Exception:
+        logger.exception('Errore API statistiche cicli')
         return JsonResponse({
             'error': 'Errore del server. Riprova più tardi.'
         }, status=500)
@@ -3414,11 +3517,9 @@ def conferma_completamento_catena(request, ciclo_id):
     """
     from .models import ConfermaCompletamento, Conversazione, Messaggio
 
-    ciclo = get_object_or_404(CicloScambio, id=ciclo_id)
-
     # Conversazione di gruppo collegata (per il redirect di ritorno)
     conversazione = Conversazione.objects.filter(
-        tipo='gruppo', catena_scambio_id=str(ciclo.id)
+        tipo='gruppo', catena_scambio_id=str(ciclo_id)
     ).first()
 
     def _back():
@@ -3426,39 +3527,51 @@ def conferma_completamento_catena(request, ciclo_id):
             return redirect('chat_conversazione', conversazione_id=conversazione.id)
         return redirect('lista_messaggi')
 
-    # L'utente deve far parte della catena
-    if request.user.id not in ciclo.users:
-        messages.error(request, 'Non fai parte di questa catena.')
-        return _back()
+    with transaction.atomic():
+        # Il ciclo e la proposta vengono bloccati nello stesso ordine usato
+        # dagli altri endpoint delle catene. Solo l'ultima conferma effettua
+        # la transizione e crea il messaggio di sistema.
+        ciclo = get_object_or_404(
+            CicloScambio.objects.select_for_update(),
+            id=ciclo_id,
+        )
 
-    # La proposta deve essere arrivata a 'tutti_interessati' (o già completata)
-    proposta = PropostaCatena.objects.filter(
-        ciclo=ciclo,
-        stato__in=['tutti_interessati', 'completata']
-    ).order_by('-data_creazione').first()
+        if request.user.id not in ciclo.users:
+            messages.error(request, 'Non fai parte di questa catena.')
+            return _back()
 
-    if not proposta:
-        messages.error(request, 'Puoi confermare il completamento solo quando tutti i partecipanti sono interessati alla catena.')
-        return _back()
-
-    conferma, created = ConfermaCompletamento.objects.get_or_create(
-        proposta=proposta, utente=request.user
-    )
-
-    if not created:
-        messages.info(request, 'Avevi già confermato il completamento.')
-        return _back()
-
-    # Se tutti hanno confermato, completa la catena e sblocca le valutazioni
-    completata_ora = proposta.check_tutti_confermato()
-    if completata_ora:
-        if conversazione:
-            Messaggio.objects.create(
-                conversazione=conversazione,
-                mittente=request.user,
-                contenuto="✅ Tutti i partecipanti hanno confermato il completamento dello scambio! Ora potete lasciarvi una valutazione.",
-                is_sistema=True
+        proposta = (
+            PropostaCatena.objects.select_for_update()
+            .filter(
+                ciclo=ciclo,
+                stato__in=['tutti_interessati', 'completata'],
             )
+            .order_by('-data_creazione')
+            .first()
+        )
+        if not proposta:
+            messages.error(request, 'Puoi confermare il completamento solo quando tutti i partecipanti sono interessati alla catena.')
+            return _back()
+
+        _, created = ConfermaCompletamento.objects.get_or_create(
+            proposta=proposta,
+            utente=request.user,
+        )
+        if not created:
+            messages.info(request, 'Avevi già confermato il completamento.')
+            return _back()
+
+        completata_ora = proposta.check_tutti_confermato()
+        if completata_ora:
+            if conversazione:
+                Messaggio.objects.create(
+                    conversazione=conversazione,
+                    mittente=request.user,
+                    contenuto="✅ Tutti i partecipanti hanno confermato il completamento dello scambio! Ora potete lasciarvi una valutazione.",
+                    is_sistema=True,
+                )
+
+    if completata_ora:
         messages.success(request, '✅ Scambio completato da tutti! Ora puoi valutare gli altri partecipanti.')
     else:
         messages.success(request, 'Hai confermato il completamento dello scambio. In attesa degli altri partecipanti.')
