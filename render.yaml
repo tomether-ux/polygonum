@@ -39,10 +39,9 @@ services:
         value: "4"
       - key: GUNICORN_TIMEOUT_SECONDS
         value: "120"
-      # Rollout in due fasi: sarà portato a True solo dopo avere verificato
-      # manualmente il cron. Fino ad allora resta attivo il thread storico.
+      # Le email di moderazione sono accodate nel DB e gestite dal cron.
       - key: MODERATION_QUEUE_ENABLED
-        value: "False"
+        value: "True"
     healthCheckPath: /health/
     domains:
       - polygonum.io

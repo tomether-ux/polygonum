@@ -1,11 +1,7 @@
 name: Polygonum Cycle Calculator
 on:
-  push:
-    branches: [ main ]
-  schedule:
-    # Ogni 30 minuti (stessa cadenza del cron job di Render)
-    - cron: '*/30 * * * *'
-  workflow_dispatch: # Permette esecuzione manuale
+  # Fallback d'emergenza: il calcolo automatico è affidato al cron Render.
+  workflow_dispatch:
 
 jobs:
   calculate-cycles:
