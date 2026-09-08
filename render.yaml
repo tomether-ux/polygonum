@@ -37,7 +37,7 @@ services:
         value: "4"
       - key: GUNICORN_TIMEOUT_SECONDS
         value: "120"
-    healthCheckPath: /
+    healthCheckPath: /health/
     domains:
       - polygonum.io
 
