@@ -6,6 +6,7 @@ from datetime import datetime
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 
 # Setup Django environment per script standalone
 if __name__ == "__main__":
@@ -58,6 +59,7 @@ class Command(BaseCommand):
         """
         import time
         start_time = time.time()
+        calculation_started_at = timezone.now()
 
         max_length = options['max_length']
         batch_size = options['commit_batch_size']
@@ -140,7 +142,13 @@ class Command(BaseCommand):
             # Step 5: Aggiorna metadata e statistiche finali
             elapsed = time.time() - start_time
             cicli_validi = CicloScambio.objects.filter(valido=True).count()
-            CalcoloMetadata.aggiorna_calcolo(cicli_validi, elapsed)
+            # Il timestamp rappresenta la fotografia all'inizio del calcolo.
+            # Una modifica successiva resta quindi pendente per il prossimo cron.
+            CalcoloMetadata.aggiorna_calcolo(
+                cicli_validi,
+                elapsed,
+                calculated_through=calculation_started_at,
+            )
 
             self.stdout.write(
                 self.style.SUCCESS(

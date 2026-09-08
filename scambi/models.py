@@ -1654,6 +1654,14 @@ class CalcoloMetadata(models.Model):
         help_text="Timestamp dell'ultimo calcolo completo di tutti i cicli"
     )
 
+    # Una modifica agli annunci richiede un nuovo calcolo al prossimo passaggio
+    # del cron, senza eseguire lavoro pesante dentro la richiesta web.
+    ricalcolo_richiesto_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Ultima modifica agli annunci ancora da considerare",
+    )
+
     # Statistiche dell'ultimo calcolo
     cicli_calcolati = models.IntegerField(default=0)
     durata_calcolo_secondi = models.FloatField(default=0.0)
@@ -1675,11 +1683,31 @@ class CalcoloMetadata(models.Model):
         return obj
 
     @classmethod
-    def aggiorna_calcolo(cls, cicli_count, durata):
+    def richiedi_ricalcolo(cls):
+        """Registra in modo persistente una modifica rilevante agli annunci."""
+        obj = cls.get_or_create_singleton()
+        requested_at = timezone.now()
+        cls.objects.filter(pk=obj.pk).update(
+            ricalcolo_richiesto_at=requested_at,
+        )
+        return requested_at
+
+    @classmethod
+    def aggiorna_calcolo(
+        cls,
+        cicli_count,
+        durata,
+        *,
+        calculated_through=None,
+    ):
         """Aggiorna i metadati dopo un calcolo"""
         obj = cls.get_or_create_singleton()
-        obj.ultimo_calcolo_completo = timezone.now()
-        obj.cicli_calcolati = cicli_count
-        obj.durata_calcolo_secondi = durata
-        obj.save()
+        cls.objects.filter(pk=obj.pk).update(
+            ultimo_calcolo_completo=calculated_through or timezone.now(),
+            cicli_calcolati=cicli_count,
+            durata_calcolo_secondi=durata,
+        )
+        # Non salviamo l'oggetto intero: una richiesta di ricalcolo arrivata
+        # durante il calcolo non deve essere sovrascritta da dati già letti.
+        obj.refresh_from_db()
         return obj

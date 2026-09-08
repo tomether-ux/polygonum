@@ -57,11 +57,23 @@ class Command(BaseCommand):
 
     @staticmethod
     def _cycles_are_due(interval_minutes):
-        last_calculation = CalcoloMetadata.objects.filter(
+        metadata = CalcoloMetadata.objects.filter(
             singleton_id=1
-        ).values_list('ultimo_calcolo_completo', flat=True).first()
-        if last_calculation is None:
+        ).values(
+            'ultimo_calcolo_completo',
+            'ricalcolo_richiesto_at',
+        ).first()
+        if metadata is None:
             return True
+
+        last_calculation = metadata['ultimo_calcolo_completo']
+        recalculation_requested = metadata['ricalcolo_richiesto_at']
+        if (
+            recalculation_requested is not None
+            and recalculation_requested > last_calculation
+        ):
+            return True
+
         return last_calculation <= (
             timezone.now() - timedelta(minutes=interval_minutes)
         )

@@ -18,6 +18,7 @@ from .management.commands.run_scheduled_tasks import Command as ScheduledCommand
 from .management.commands.run_scheduled_tasks_guarded import (
     Command as GuardedScheduledCommand,
 )
+from .moderation import approve_announcement
 from .models import (
     Annuncio,
     CalcoloMetadata,
@@ -207,6 +208,113 @@ class ScheduledCommandTests(TestCase):
             command.handle(**self.command_options())
 
         calculate.assert_not_called()
+
+    def test_recent_announcement_change_runs_before_periodic_interval(self):
+        metadata = CalcoloMetadata.objects.create(
+            singleton_id=1,
+            ultimo_calcolo_completo=timezone.now(),
+        )
+        user = User.objects.create_user(username='ricalcolo-rapido')
+        category = Categoria.objects.create(nome='Ricalcolo rapido')
+        Annuncio.objects.create(
+            utente=user,
+            titolo='Oggetto appena pubblicato',
+            descrizione='Descrizione valida',
+            categoria=category,
+            tipo='offro',
+        )
+        metadata.refresh_from_db()
+        self.assertGreater(
+            metadata.ricalcolo_richiesto_at,
+            metadata.ultimo_calcolo_completo,
+        )
+
+        command = ScheduledCommand(stdout=StringIO(), stderr=StringIO())
+        with (
+            patch(
+                'scambi.management.commands.run_scheduled_tasks.'
+                'process_moderation_email_jobs',
+                return_value={
+                    'sent': 0,
+                    'retried': 0,
+                    'failed': 0,
+                    'cancelled': 0,
+                },
+            ),
+            patch(
+                'scambi.management.commands.run_scheduled_tasks.'
+                'cycle_calculation_lock',
+                return_value=self.lock_result(True),
+            ),
+            patch(
+                'scambi.management.commands.run_scheduled_tasks.call_command'
+            ) as calculate,
+        ):
+            command.handle(**self.command_options())
+
+        calculate.assert_called_once()
+
+    def test_successful_snapshot_keeps_later_change_pending(self):
+        before_calculation = timezone.now() - timedelta(seconds=2)
+        calculation_started = timezone.now() - timedelta(seconds=1)
+        metadata = CalcoloMetadata.objects.create(
+            singleton_id=1,
+            ultimo_calcolo_completo=before_calculation,
+            ricalcolo_richiesto_at=before_calculation,
+        )
+
+        CalcoloMetadata.aggiorna_calcolo(
+            0,
+            0,
+            calculated_through=calculation_started,
+        )
+        self.assertFalse(ScheduledCommand._cycles_are_due(30))
+
+        requested_at = CalcoloMetadata.richiedi_ricalcolo()
+        metadata.refresh_from_db()
+        self.assertEqual(metadata.ricalcolo_richiesto_at, requested_at)
+        self.assertTrue(ScheduledCommand._cycles_are_due(30))
+
+    def test_announcement_deletion_requests_recalculation(self):
+        user = User.objects.create_user(username='ricalcolo-eliminazione')
+        category = Categoria.objects.create(nome='Ricalcolo eliminazione')
+        announcement = Annuncio.objects.create(
+            utente=user,
+            titolo='Oggetto da eliminare',
+            descrizione='Descrizione valida',
+            categoria=category,
+            tipo='offro',
+        )
+        metadata = CalcoloMetadata.objects.get(singleton_id=1)
+        metadata.ultimo_calcolo_completo = timezone.now()
+        metadata.ricalcolo_richiesto_at = None
+        metadata.save()
+
+        announcement.delete()
+
+        self.assertTrue(ScheduledCommand._cycles_are_due(30))
+
+    def test_moderation_approval_requests_recalculation(self):
+        user = User.objects.create_user(username='ricalcolo-approvazione')
+        category = Categoria.objects.create(nome='Ricalcolo approvazione')
+        announcement = Annuncio.objects.create(
+            utente=user,
+            titolo='Oggetto da approvare',
+            descrizione='Descrizione valida',
+            categoria=category,
+            tipo='offro',
+        )
+        Annuncio.objects.filter(pk=announcement.pk).update(
+            moderation_status='pending',
+        )
+        metadata = CalcoloMetadata.objects.get(singleton_id=1)
+        metadata.ultimo_calcolo_completo = timezone.now()
+        metadata.ricalcolo_richiesto_at = None
+        metadata.save()
+
+        approve_announcement(announcement.pk)
+
+        self.assertTrue(ScheduledCommand._cycles_are_due(30))
 
     def test_due_cycle_calculation_runs_under_existing_lock(self):
         CalcoloMetadata.objects.create(

@@ -3,10 +3,10 @@ Signals per il sistema di notifiche Polygonum
 """
 import logging
 
-from django.db.models.signals import pre_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
-from .models import Annuncio
+from .models import Annuncio, CalcoloMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -37,3 +37,9 @@ def track_disattivazione_annuncio(sender, instance, **kwargs):
         except Annuncio.DoesNotExist:
             # Caso edge: l'annuncio è stato cancellato nel frattempo
             pass
+
+
+@receiver([post_save, post_delete], sender=Annuncio)
+def request_cycle_recalculation(sender, instance, **kwargs):
+    """Fa ricalcolare le catene dal cron dopo ogni modifica agli annunci."""
+    CalcoloMetadata.richiedi_ricalcolo()
