@@ -18,6 +18,59 @@ class ModerationDecision:
     strike_count: int | None = None
 
 
+def get_announcement_by_cloudinary_public_id(public_id):
+    """Trova un solo annuncio tramite il public_id Cloudinary esatto.
+
+    Il valore nel database contiene anche resource type, upload type, versione
+    ed estensione. CloudinaryField lo converte però in una CloudinaryResource,
+    dalla quale possiamo confrontare il public_id originale senza affidarci a
+    una corrispondenza parziale sul nome del file.
+    """
+    if (
+        not isinstance(public_id, str)
+        or not public_id
+        or len(public_id) > 255
+        or '\x00' in public_id
+    ):
+        raise ValueError('public_id Cloudinary non valido')
+
+    matches = []
+    candidates = (
+        Annuncio.objects.filter(immagine__contains=public_id)
+        .order_by('pk')
+    )
+    for announcement in candidates:
+        stored_public_id = getattr(announcement.immagine, 'public_id', None)
+        if stored_public_id == public_id:
+            matches.append(announcement)
+            if len(matches) > 1:
+                raise Annuncio.MultipleObjectsReturned(
+                    'Più annunci usano lo stesso public_id Cloudinary'
+                )
+
+    if not matches:
+        raise Annuncio.DoesNotExist(
+            'Nessun annuncio usa questo public_id Cloudinary'
+        )
+    return matches[0]
+
+
+@transaction.atomic
+def apply_cloudinary_moderation_result(
+    announcement_id,
+    expected_public_id,
+    payload,
+):
+    """Applica il risultato solo se l'immagine non è cambiata nel frattempo."""
+    announcement = Annuncio.objects.select_for_update().get(pk=announcement_id)
+    current_public_id = getattr(announcement.immagine, 'public_id', None)
+    if current_public_id != expected_public_id:
+        return None
+
+    announcement.handle_moderation_result(payload)
+    return announcement
+
+
 def _strike_details(annuncio, strike_count):
     if strike_count == 1:
         return (

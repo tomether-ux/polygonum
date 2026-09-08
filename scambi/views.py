@@ -3743,6 +3743,10 @@ def premium_unavailable(request):
 
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
+from .moderation import (
+    apply_cloudinary_moderation_result,
+    get_announcement_by_cloudinary_public_id,
+)
 import json
 
 @csrf_exempt
@@ -3806,38 +3810,45 @@ def cloudinary_moderation_webhook(request):
 
         # Estrai informazioni necessarie
         public_id = payload.get('public_id')
-        moderation_status = payload.get('moderation_status')
-        moderation_response = payload.get('moderation')
+        if not isinstance(public_id, str) or not public_id:
+            logger.warning("Cloudinary moderation webhook has invalid public_id")
+            return JsonResponse({'error': 'public_id invalid'}, status=400)
 
-        if not public_id:
-            logger.warning("Cloudinary moderation webhook missing public_id")
-            return JsonResponse({'error': 'public_id missing'}, status=400)
-
-        # Trova l'annuncio corrispondente
-        # Il public_id dovrebbe essere del tipo: annunci/filename
         try:
-            # Cerca l'annuncio che ha quell'immagine
-            annuncio = Annuncio.objects.filter(
-                immagine__contains=public_id.split('/')[-1]
-            ).first()
-
-            if not annuncio:
-                logger.warning("Cloudinary moderation asset not mapped to an announcement")
-                return JsonResponse({'error': 'annuncio not found'}, status=404)
-
-            # Gestisci il risultato della moderazione
-            annuncio.handle_moderation_result(payload)
-
-            logger.info("Cloudinary moderation processed annuncio_id=%s", annuncio.id)
-            return JsonResponse({
-                'status': 'success',
-                'annuncio_id': annuncio.id,
-                'moderation_status': annuncio.moderation_status
-            })
-
+            annuncio = get_announcement_by_cloudinary_public_id(public_id)
+        except ValueError:
+            logger.warning("Cloudinary moderation webhook has invalid public_id")
+            return JsonResponse({'error': 'public_id invalid'}, status=400)
         except Annuncio.DoesNotExist:
             logger.warning("Cloudinary moderation asset not mapped to an announcement")
             return JsonResponse({'error': 'annuncio not found'}, status=404)
+        except Annuncio.MultipleObjectsReturned:
+            logger.error("Cloudinary moderation asset maps to multiple announcements")
+            return JsonResponse({'error': 'ambiguous asset mapping'}, status=409)
+
+        # Ricontrolla l'immagine sotto lock: un webhook arrivato in ritardo non
+        # deve moderare una nuova immagine caricata dopo la prima ricerca.
+        annuncio_aggiornato = apply_cloudinary_moderation_result(
+            annuncio.pk,
+            public_id,
+            payload,
+        )
+        if annuncio_aggiornato is None:
+            logger.info(
+                "Cloudinary moderation ignored for replaced asset annuncio_id=%s",
+                annuncio.pk,
+            )
+            return JsonResponse({'status': 'ignored', 'reason': 'asset replaced'})
+
+        logger.info(
+            "Cloudinary moderation processed annuncio_id=%s",
+            annuncio_aggiornato.id,
+        )
+        return JsonResponse({
+            'status': 'success',
+            'annuncio_id': annuncio_aggiornato.id,
+            'moderation_status': annuncio_aggiornato.moderation_status
+        })
 
     except json.JSONDecodeError:
         logger.warning("Cloudinary moderation webhook contains invalid JSON")
