@@ -27,7 +27,6 @@ import hmac
 import logging
 import os
 import re
-from .debug_views import debug_basso, debug_view_catene, debug_cyclefinder_basso  # Debug temporaneo
 
 logger = logging.getLogger(__name__)
 
@@ -267,21 +266,21 @@ def modifica_annuncio(request, annuncio_id):
     annuncio = get_object_or_404(Annuncio, id=annuncio_id, utente=request.user)
 
     if request.method == 'POST':
-        print(f"📝 Modifica annuncio #{annuncio.id} - POST ricevuto")
-        print(f"   request.FILES: {list(request.FILES.keys())}")
-        print(f"   'immagine' in FILES: {'immagine' in request.FILES}")
+        logger.debug(f"📝 Modifica annuncio #{annuncio.id} - POST ricevuto")
+        logger.debug(f"   request.FILES: {list(request.FILES.keys())}")
+        logger.debug(f"   'immagine' in FILES: {'immagine' in request.FILES}")
 
         form = AnnuncioForm(request.POST, request.FILES, instance=annuncio)
 
         if form.is_valid():
-            print(f"✅ Form valido - procedendo al salvataggio")
+            logger.debug(f"✅ Form valido - procedendo al salvataggio")
 
             # Salva direttamente - il metodo save() del modello gestirà la moderazione automaticamente
             annuncio_aggiornato = form.save()
 
-            print(f"💾 Annuncio salvato - ID: {annuncio_aggiornato.id}")
-            print(f"   Immagine dopo save: {annuncio_aggiornato.immagine}")
-            print(f"   Moderation status: {annuncio_aggiornato.moderation_status}")
+            logger.debug(f"💾 Annuncio salvato - ID: {annuncio_aggiornato.id}")
+            logger.debug(f"   Immagine dopo save: {annuncio_aggiornato.immagine}")
+            logger.debug(f"   Moderation status: {annuncio_aggiornato.moderation_status}")
 
             # Messaggio diverso se l'annuncio ha immagine in moderazione
             if 'immagine' in request.FILES and annuncio_aggiornato.moderation_status == 'pending':
@@ -291,8 +290,8 @@ def modifica_annuncio(request, annuncio_id):
 
             return redirect('profilo_utente', username=request.user.username)
         else:
-            print(f"❌ Form NON valido - Errori:")
-            print(f"   {form.errors}")
+            logger.debug(f"❌ Form NON valido - Errori:")
+            logger.debug(f"   {form.errors}")
             messages.error(request, 'Errore nel salvataggio. Controlla i campi del form.')
     else:
         form = AnnuncioForm(instance=annuncio)
@@ -462,7 +461,7 @@ def catene_scambio(request):
 
     if ricalcola_per_utente and request.user.is_authenticated:
         # RICALCOLO PARZIALE: invalida cicli utente e ricalcola
-        print(f"🔄 Ricalcolo parziale richiesto per user_id={request.user.id}")
+        logger.debug(f"🔄 Ricalcolo parziale richiesto per user_id={request.user.id}")
 
         import time
         start_time = time.time()
@@ -478,21 +477,21 @@ def catene_scambio(request):
                 messages.warning(request, 'Non hai annunci attivi! Pubblica un annuncio per partecipare agli scambi.')
             else:
                 # Step 1: Invalida cicli vecchi per questo utente
-                print(f"   ❌ Invalidando cicli vecchi per utente {request.user.id}...")
+                logger.debug(f"   ❌ Invalidando cicli vecchi per utente {request.user.id}...")
                 finder = CycleFinder()
                 invalidati = finder.invalida_cicli_con_utenti([request.user.id])
-                print(f"   Invalidati {invalidati} cicli")
+                logger.debug(f"   Invalidati {invalidati} cicli")
 
                 # Step 2: Costruisci grafo e ricalcola
-                print(f"   🔨 Costruendo grafo...")
+                logger.debug(f"   🔨 Costruendo grafo...")
                 finder.costruisci_grafo()
 
-                print(f"   🔍 Cercando nuovi cicli...")
+                logger.debug(f"   🔍 Cercando nuovi cicli...")
                 cicli_raw = finder.trova_cicli_per_utenti([request.user.id], max_length=6)
-                print(f"   Trovati {len(cicli_raw)} cicli raw")
+                logger.debug(f"   Trovati {len(cicli_raw)} cicli raw")
 
                 # Step 3: Salva cicli nel DB
-                print(f"   💾 Salvando cicli nel DB...")
+                logger.debug(f"   💾 Salvando cicli nel DB...")
                 from .management.commands.calcola_cicli import Command as CalcolaCicliCommand
                 cmd = CalcolaCicliCommand()
 
@@ -514,7 +513,7 @@ def catene_scambio(request):
                     else:
                         aggiornati += 1
 
-                print(f"   ✅ Salvati {salvati} nuovi cicli, aggiornati {aggiornati} cicli nel DB")
+                logger.debug(f"   ✅ Salvati {salvati} nuovi cicli, aggiornati {aggiornati} cicli nel DB")
 
                 # Step 4: Ricarica con funzione esistente
                 risultato = get_cicli_precalcolati()
@@ -535,20 +534,21 @@ def catene_scambio(request):
                 tutte_catene = scambi_diretti_utente + catene_lunghe_utente
 
                 elapsed = time.time() - start_time
-                print(f"✅ Ricalcolo completato in {elapsed:.2f}s - Trovate {len(tutte_catene)} catene per l'utente")
+                logger.debug(f"✅ Ricalcolo completato in {elapsed:.2f}s - Trovate {len(tutte_catene)} catene per l'utente")
                 messages.success(request, f'🔄 Catene aggiornate! Trovate {len(tutte_catene)} catene in {elapsed:.1f} secondi.')
 
-        except Exception as e:
-            print(f"❌ Errore durante ricalcolo parziale: {e}")
-            import traceback
-            traceback.print_exc()
+        except Exception:
+            logger.exception(
+                'Errore durante il ricalcolo parziale user_id=%s',
+                request.user.id,
+            )
             tutte_catene = []
             messages.error(request, 'Errore durante il ricalcolo. Riprova più tardi.')
 
     elif False:  # Blocco legacy disabilitato (era if cerca_nuove:)
         import time
 
-        print("🔍 RICERCA CATENE ATTIVATA MANUALMENTE")
+        logger.debug("🔍 RICERCA CATENE ATTIVATA MANUALMENTE")
 
         try:
             start_time = time.time()
@@ -559,13 +559,13 @@ def catene_scambio(request):
                 # Controlla se l'utente ha annunci attivi
                 annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
                 if annunci_utente.exists():
-                    print(f"🔍 Filtrando catene per user_id={request.user.id}")
+                    logger.debug(f"🔍 Filtrando catene per user_id={request.user.id}")
 
                     # OTTIMIZZAZIONE: Se è stato selezionato un annuncio specifico, usa ricerca ottimizzata
                     if annuncio_filtro_id:
                         try:
                             annuncio_specifico = Annuncio.objects.get(id=annuncio_filtro_id, utente=request.user, attivo=True)
-                            print(f"🎯 RICERCA OTTIMIZZATA per annuncio_id={annuncio_specifico.id}")
+                            logger.debug(f"🎯 RICERCA OTTIMIZZATA per annuncio_id={annuncio_specifico.id}")
 
                             # Usa la funzione ottimizzata che cerca solo catene per questo annuncio (solo specifiche)
                             tutte_catene = trova_catene_per_annuncio_ottimizzato(annuncio_specifico, max_lunghezza=6, includi_generiche=False)
@@ -574,14 +574,14 @@ def catene_scambio(request):
                             messages.success(request, f'🎯 Ricerca ottimizzata completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} catene per "{annuncio_specifico.titolo}"!')
 
                         except Annuncio.DoesNotExist:
-                            print("❌ Annuncio specificato non valido, eseguo ricerca completa")
+                            logger.debug("❌ Annuncio specificato non valido, eseguo ricerca completa")
                             # Fallback alla ricerca completa se l'annuncio non esiste
                             annuncio_filtro_id = None
 
                     # Se non c'è filtro specifico, esegui ricerca completa
                     if not annuncio_filtro_id:
                         # Esegui ricerca con limitazioni per evitare timeout
-                        print("⚡ Caricamento scambi diretti da database...")
+                        logger.debug("⚡ Caricamento scambi diretti da database...")
                         scambi_diretti = []  # Inizializza prima per evitare UnboundLocalError
                         scambi_diretti = trova_scambi_diretti_ottimizzato()
 
@@ -599,7 +599,7 @@ def catene_scambio(request):
                             )
                             tutte_catene = scambi_diretti_utente
                         else:
-                            print("⏰ Inizio ricerca catene lunghe...")
+                            logger.debug("⏰ Inizio ricerca catene lunghe...")
                             try:
                                 # Import della funzione aggiornata
                                 from .matching import calcola_qualita_ciclo
@@ -650,10 +650,10 @@ def catene_scambio(request):
 
                                     elapsed = time.time() - start_time
                                     messages.success(request, f'Ricerca completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} catene con parole in comune nei titoli!')
-                            except Exception as e:
-                                print(f"❌ Errore durante ricerca catene lunghe: {type(e).__name__}: {e}")
-                                import traceback
-                                traceback.print_exc()
+                            except Exception:
+                                logger.exception(
+                                    'Errore durante la ricerca legacy delle catene lunghe'
+                                )
                                 # IMPORTANTE: Filtra scambi diretti anche in caso di errore
                                 from .matching import calcola_qualita_ciclo, filtra_catene_per_utente_ottimizzato
                                 scambi_diretti_specifici = []
@@ -671,19 +671,19 @@ def catene_scambio(request):
                     messages.warning(request, 'Non hai annunci attivi! Pubblica un annuncio per partecipare agli scambi.')
             else:
                 # Utente non autenticato - ricerca molto limitata
-                print("🔍 Ricerca per utente non autenticato (limitata a scambi diretti)")
+                logger.debug("🔍 Ricerca per utente non autenticato (limitata a scambi diretti)")
                 try:
                     scambi_diretti = trova_scambi_diretti_ottimizzato()
                     tutte_catene = scambi_diretti
                     elapsed = time.time() - start_time
                     messages.info(request, f'Ricerca completata in {elapsed:.1f} secondi. Solo scambi diretti per utenti non registrati.')
-                except Exception as e:
-                    print(f"Errore durante ricerca: {e}")
+                except Exception:
+                    logger.exception('Errore durante la ricerca pubblica legacy')
                     tutte_catene = []
                     messages.error(request, 'Errore durante la ricerca. Riprova più tardi.')
 
-        except Exception as e:
-            print(f"Errore generale durante ricerca catene: {e}")
+        except Exception:
+            logger.exception('Errore generale durante la ricerca legacy delle catene')
             messages.error(request, 'Errore durante la ricerca delle catene. Riprova più tardi.')
             tutte_catene = []
     else:
@@ -717,13 +717,14 @@ def catene_scambio(request):
 
                     tutte_catene = scambi_diretti_utente + catene_lunghe_utente
 
-                    print(f"✅ Caricate {len(tutte_catene)} catene totali per user_id={request.user.id}")
-                    print(f"   (Include: sinonimi, match categoria, annunci disattivati <3 min)")
+                    logger.debug(f"✅ Caricate {len(tutte_catene)} catene totali per user_id={request.user.id}")
+                    logger.debug(f"   (Include: sinonimi, match categoria, annunci disattivati <3 min)")
 
-                except Exception as e:
-                    print(f"❌ Errore caricamento catene dal DB: {e}")
-                    import traceback
-                    traceback.print_exc()
+                except Exception:
+                    logger.exception(
+                        'Errore caricamento catene dal DB user_id=%s',
+                        request.user.id,
+                    )
                     tutte_catene = []
                     messages.error(request, 'Errore durante il caricamento delle catene. Riprova più tardi.')
             else:
@@ -1409,7 +1410,7 @@ def le_mie_catene(request):
 
     # NUOVA LOGICA: Se non è richiesto ricalcolo, carica dal DB
     if not cerca_nuove and ha_annunci:
-        print(f"📦 CARICAMENTO CATENE DAL DB per user_id={request.user.id}")
+        logger.debug(f"📦 CARICAMENTO CATENE DAL DB per user_id={request.user.id}")
 
         # Carica cicli dal DB che contengono questo utente
         cicli_db = CicloScambio.find_for_user(request.user.id, limit=200)
@@ -1434,7 +1435,7 @@ def le_mie_catene(request):
         # Converti cicli DB in formato template
         catene_uniche = [converti_ciclo_a_catena(ciclo) for ciclo in cicli_db]
 
-        print(f"✅ Caricate {len(catene_uniche)} catene dal DB")
+        logger.debug(f"✅ Caricate {len(catene_uniche)} catene dal DB")
 
         # Separa per qualità
         catene_alta_qualita = [c for c in catene_uniche if c.get('categoria_qualita') == 'alta']
@@ -1516,9 +1517,9 @@ def le_mie_catene(request):
         from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente, trova_catene_per_annuncio_ottimizzato
 
         if annuncio_selezionato:
-            print(f"🔍 RICERCA CATENE per annuncio_id={annuncio_selezionato.id}")
+            logger.debug(f"🔍 RICERCA CATENE per annuncio_id={annuncio_selezionato.id}")
         else:
-            print(f"🔍 RICERCA LE MIE CATENE per user_id={request.user.id}")
+            logger.debug(f"🔍 RICERCA LE MIE CATENE per user_id={request.user.id}")
 
         try:
             start_time = time.time()
@@ -1526,7 +1527,7 @@ def le_mie_catene(request):
 
             # Se è specificato un annuncio, usa la ricerca ottimizzata per annuncio
             if annuncio_selezionato:
-                print(f"⏰ Ricerca ottimizzata per annuncio_id={annuncio_selezionato.id}")
+                logger.debug(f"⏰ Ricerca ottimizzata per annuncio_id={annuncio_selezionato.id}")
                 tutte_catene = trova_catene_per_annuncio_ottimizzato(
                     annuncio_selezionato,
                     max_lunghezza=6,
@@ -1536,14 +1537,14 @@ def le_mie_catene(request):
                 messages.success(request, f'Ricerca ottimizzata completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} catene per "{annuncio_selezionato.titolo}"!')
             else:
                 # Esegui ricerca con limitazioni per evitare timeout
-                print("⏰ Inizio ricerca scambi diretti...")
+                logger.debug("⏰ Inizio ricerca scambi diretti...")
                 scambi_diretti = trova_scambi_diretti_ottimizzato()
 
                 if time.time() - start_time > timeout_seconds:
                     messages.error(request, 'Ricerca interrotta per timeout. Troppi dati da elaborare.')
                     tutte_catene = scambi_diretti
                 else:
-                    print("⏰ Inizio ricerca catene lunghe...")
+                    logger.debug("⏰ Inizio ricerca catene lunghe...")
                     try:
                         # Ricerca tutte le catene disponibili nel database
                         catene = trova_catene_scambio_ottimizzato()
@@ -1566,13 +1567,19 @@ def le_mie_catene(request):
 
                             elapsed = time.time() - start_time
                             messages.success(request, f'Ricerca completata in {elapsed:.1f} secondi. Trovate {len(tutte_catene)} opportunità di scambio per te!')
-                    except Exception as e:
-                        print(f"Errore durante ricerca catene lunghe: {e}")
+                    except Exception:
+                        logger.exception(
+                            'Errore durante la ricerca delle catene lunghe user_id=%s',
+                            request.user.id,
+                        )
                         tutte_catene = scambi_diretti
                         messages.warning(request, 'Errore nella ricerca catene lunghe. Mostrando solo scambi diretti.')
 
-        except Exception as e:
-            print(f"Errore generale durante ricerca catene: {e}")
+        except Exception:
+            logger.exception(
+                'Errore generale durante la ricerca catene user_id=%s',
+                request.user.id,
+            )
             messages.error(request, 'Errore durante la ricerca delle catene. Riprova più tardi.')
             tutte_catene = []
 
@@ -2624,9 +2631,11 @@ def lista_messaggi(request):
         }
         return render(request, 'scambi/lista_messaggi.html', context)
 
-    except Exception as e:
-        # Log dell'errore per debug
-        print(f"Errore in lista_messaggi: {e}")
+    except Exception:
+        logger.exception(
+            'Errore nel caricamento della lista messaggi user_id=%s',
+            request.user.id,
+        )
         # Fallback semplice
         conversazioni = Conversazione.objects.filter(
             utenti=request.user,
@@ -3161,7 +3170,7 @@ def webhook_calcola_cicli(request):
         # Verifica autorizzazione con secret token (SECURITY FIX: nessun fallback)
         webhook_secret = os.environ.get("POLYGONUM_WEBHOOK_SECRET")
         if not webhook_secret:
-            print("✗ SECURITY: POLYGONUM_WEBHOOK_SECRET non configurato")
+            logger.error("POLYGONUM_WEBHOOK_SECRET non configurato")
             return JsonResponse({"error": "Webhook secret not configured"}, status=500)
 
         # Verifica header Authorization
@@ -3226,10 +3235,8 @@ def webhook_calcola_cicli(request):
             "timestamp": time.time()
         })
 
-    except Exception as e:
-        print(f"Error in webhook_calcola_cicli: {e}")  # Log per debug
-        import traceback
-        traceback.print_exc()
+    except Exception:
+        logger.exception('Errore nel webhook di calcolo cicli')
         return JsonResponse({
             "success": False,
             "error": "Errore durante il calcolo cicli. Contatta il supporto.",

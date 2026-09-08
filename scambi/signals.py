@@ -1,10 +1,14 @@
 """
 Signals per il sistema di notifiche Polygonum
 """
+import logging
+
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from .models import Annuncio
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(pre_save, sender=Annuncio)
@@ -22,13 +26,13 @@ def track_disattivazione_annuncio(sender, instance, **kwargs):
             if old.attivo and not instance.attivo:
                 # È stato disattivato ora
                 instance.disattivato_at = timezone.now()
-                print(f"📴 Annuncio ID:{instance.id} disattivato alle {instance.disattivato_at}")
+                logger.debug(f"📴 Annuncio ID:{instance.id} disattivato alle {instance.disattivato_at}")
 
             # Se sta cambiando da inattivo ad attivo
             elif not old.attivo and instance.attivo:
                 # È stato riattivato, reset del timestamp
                 instance.disattivato_at = None
-                print(f"✅ Annuncio ID:{instance.id} riattivato")
+                logger.debug(f"✅ Annuncio ID:{instance.id} riattivato")
 
         except Annuncio.DoesNotExist:
             # Caso edge: l'annuncio è stato cancellato nel frattempo

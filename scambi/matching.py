@@ -2,19 +2,22 @@ from .models import Annuncio, UserProfile
 from django.contrib.auth.models import User
 from django.db.models import Q
 from collections import defaultdict
+import logging
 import re
 import math
 
+logger = logging.getLogger(__name__)
+
 def trova_scambi_diretti():
     """Trova scambi diretti tra 2 persone (massima priorità) - VERSIONE OTTIMIZZATA"""
-    print("\n🔄 === RICERCA SCAMBI DIRETTI OTTIMIZZATA (2 PERSONE) ===")
+    logger.debug("\n🔄 === RICERCA SCAMBI DIRETTI OTTIMIZZATA (2 PERSONE) ===")
 
     # Ottimizzazione: Limita gli utenti anche per scambi diretti
     utenti = list(User.objects.filter(annuncio__attivo=True).distinct())
-    print(f"🔍 Trovati {len(utenti)} utenti totali")
+    logger.debug(f"🔍 Trovati {len(utenti)} utenti totali")
 
     if len(utenti) > 10:
-        print(f"⚡ Limitando a 10 utenti per stabilità massima")
+        logger.debug(f"⚡ Limitando a 10 utenti per stabilità massima")
         utenti = utenti[:10]
 
     scambi_diretti = []
@@ -29,11 +32,11 @@ def trova_scambi_diretti():
 
     for i, utente_a in enumerate(utenti):
         if time.time() - start_time > timeout_scambi_diretti:
-            print(f"⏰ Timeout scambi diretti raggiunto dopo {i} utenti")
+            logger.debug(f"⏰ Timeout scambi diretti raggiunto dopo {i} utenti")
             break
 
         if iterazioni_totali > max_iterazioni:
-            print(f"🛡️ Limite iterazioni raggiunto ({max_iterazioni}) per sicurezza")
+            logger.debug(f"🛡️ Limite iterazioni raggiunto ({max_iterazioni}) per sicurezza")
             break
 
         for utente_b in utenti:
@@ -43,11 +46,11 @@ def trova_scambi_diretti():
 
             # Check timeout e iterazioni anche nel loop interno
             if time.time() - start_time > timeout_scambi_diretti:
-                print(f"⏰ Timeout scambi diretti raggiunto nel loop interno")
+                logger.debug(f"⏰ Timeout scambi diretti raggiunto nel loop interno")
                 break
 
             if iterazioni_totali > max_iterazioni:
-                print(f"🛡️ Limite iterazioni raggiunto nel loop interno")
+                logger.debug(f"🛡️ Limite iterazioni raggiunto nel loop interno")
                 break
 
             # Trova cosa offre A e cosa cerca B
@@ -108,11 +111,11 @@ def trova_scambi_diretti():
 
                                     if not gia_presente:
                                         scambi_diretti.append(scambio)
-                                        print(f"💫 SCAMBIO DIRETTO: user_id={utente_a.id} ↔ user_id={utente_b.id}")
-                                        print(f"   📤 annuncio_id={offerta_a.id} → user_id={utente_b.id}")
-                                        print(f"   📤 annuncio_id={offerta_b.id} → user_id={utente_a.id}")
+                                        logger.debug(f"💫 SCAMBIO DIRETTO: user_id={utente_a.id} ↔ user_id={utente_b.id}")
+                                        logger.debug(f"   📤 annuncio_id={offerta_a.id} → user_id={utente_b.id}")
+                                        logger.debug(f"   📤 annuncio_id={offerta_b.id} → user_id={utente_a.id}")
 
-    print(f"💫 Trovati {len(scambi_diretti)} scambi diretti")
+    logger.debug(f"💫 Trovati {len(scambi_diretti)} scambi diretti")
     return scambi_diretti
 
 def filtra_catene_per_utente(scambi_diretti, catene_lunghe, utente):
@@ -124,11 +127,11 @@ def filtra_catene_per_utente(scambi_diretti, catene_lunghe, utente):
     ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True)))
     annunci_utente_ids = set(ann.id for ann in annunci_utente)
 
-    print(f"🔍 Filtraggio per user_id={utente.id}: {len(annunci_utente)} annunci attivi")
+    logger.debug(f"🔍 Filtraggio per user_id={utente.id}: {len(annunci_utente)} annunci attivi")
 
     # Se l'utente non ha annunci, non può partecipare a nessuno scambio
     if not annunci_utente_ids:
-        print(f"❌ user_id={utente.id} non ha annunci attivi - nessuno scambio possibile")
+        logger.debug(f"❌ user_id={utente.id} non ha annunci attivi - nessuno scambio possibile")
         return [], []
 
     # Filtra scambi diretti
@@ -141,9 +144,9 @@ def filtra_catene_per_utente(scambi_diretti, catene_lunghe, utente):
             annunci_coinvolti_ids = set(item['annuncio'].id for item in scambio['annunci_coinvolti'])
             if annunci_coinvolti_ids.intersection(annunci_utente_ids):
                 scambi_diretti_utente.append(scambio)
-                print(f"✅ Scambio diretto incluso: {utenti_coinvolti}")
+                logger.debug(f"✅ Scambio diretto incluso: {utenti_coinvolti}")
             else:
-                print(f"❌ Scambio escluso: utente nel nome ma annunci non corrispondono")
+                logger.debug(f"❌ Scambio escluso: utente nel nome ma annunci non corrispondono")
 
     # Filtra catene lunghe
     catene_utente = []
@@ -155,13 +158,13 @@ def filtra_catene_per_utente(scambi_diretti, catene_lunghe, utente):
             annunci_coinvolti_ids = set(item['annuncio'].id for item in catena['annunci_coinvolti'])
             if annunci_coinvolti_ids.intersection(annunci_utente_ids):
                 catene_utente.append(catena)
-                print(f"✅ Catena lunga inclusa: {len(utenti_catena)} persone")
+                logger.debug(f"✅ Catena lunga inclusa: {len(utenti_catena)} persone")
             else:
-                print(f"❌ Catena esclusa: utente nel nome ma annunci non corrispondono")
+                logger.debug(f"❌ Catena esclusa: utente nel nome ma annunci non corrispondono")
 
-    print(f"📊 Risultati filtrati per user_id={utente.id}:")
-    print(f"   - Scambi diretti: {len(scambi_diretti_utente)}")
-    print(f"   - Catene lunghe: {len(catene_utente)}")
+    logger.debug(f"📊 Risultati filtrati per user_id={utente.id}:")
+    logger.debug(f"   - Scambi diretti: {len(scambi_diretti_utente)}")
+    logger.debug(f"   - Catene lunghe: {len(catene_utente)}")
 
     return scambi_diretti_utente, catene_utente
 
@@ -273,13 +276,13 @@ def crea_scambio_diretto_avanzato(utente_a, utente_b, offerta_a, richiesta_b, of
 
 def trova_catene_per_annuncio(annuncio_specifico, max_lunghezza=6):
     """Trova catene che coinvolgono uno specifico annuncio - OTTIMIZZATO"""
-    print(f"\n=== RICERCA OTTIMIZZATA PER annuncio_id={annuncio_specifico.id} ===")
+    logger.debug(f"\n=== RICERCA OTTIMIZZATA PER annuncio_id={annuncio_specifico.id} ===")
 
     utente_proprietario = annuncio_specifico.utente
     catene_trovate = []
 
     # 1. Cerca scambi diretti che coinvolgono questo annuncio
-    print("🔍 Cercando scambi diretti per l'annuncio specifico...")
+    logger.debug("🔍 Cercando scambi diretti per l'annuncio specifico...")
 
     utenti = list(User.objects.filter(annuncio__attivo=True).distinct())[:10]  # Limite per performance
 
@@ -312,7 +315,7 @@ def trova_catene_per_annuncio(annuncio_specifico, max_lunghezza=6):
                                     offerta_altro, richiesta_proprietario
                                 )
                                 catene_trovate.append(scambio)
-                                print(f"✅ Scambio diretto: user_id={utente_proprietario.id} ↔ user_id={altro_utente.id}")
+                                logger.debug(f"✅ Scambio diretto: user_id={utente_proprietario.id} ↔ user_id={altro_utente.id}")
 
         # Se l'annuncio è "cerco", cerca chi offre qualcosa di compatibile
         elif annuncio_specifico.tipo == 'cerco':
@@ -339,14 +342,14 @@ def trova_catene_per_annuncio(annuncio_specifico, max_lunghezza=6):
                                     offerta_proprietario, richiesta_altro
                                 )
                                 catene_trovate.append(scambio)
-                                print(f"✅ Scambio diretto: user_id={altro_utente.id} ↔ user_id={utente_proprietario.id}")
+                                logger.debug(f"✅ Scambio diretto: user_id={altro_utente.id} ↔ user_id={utente_proprietario.id}")
 
-    print(f"=== RICERCA OTTIMIZZATA: Trovati {len(catene_trovate)} scambi per annuncio_id={annuncio_specifico.id} ===")
+    logger.debug(f"=== RICERCA OTTIMIZZATA: Trovati {len(catene_trovate)} scambi per annuncio_id={annuncio_specifico.id} ===")
     return rimuovi_duplicati(catene_trovate)
 
 def trova_catene_scambio(max_lunghezza=6):
     """Trova catene di scambio con classificazione di qualità"""
-    print("\n=== DEBUG: Inizio ricerca catene ===")
+    logger.debug("\n=== DEBUG: Inizio ricerca catene ===")
 
     # 1. Prima trova scambi diretti (priorità massima)
     scambi_diretti = trova_scambi_diretti()
@@ -357,7 +360,7 @@ def trova_catene_scambio(max_lunghezza=6):
     # 3. Combina i risultati (scambi diretti hanno priorità)
     tutte_catene = scambi_diretti + catene_lunghe
 
-    print(f"=== DEBUG: Totale trovato: {len(scambi_diretti)} scambi diretti + {len(catene_lunghe)} catene lunghe ===")
+    logger.debug(f"=== DEBUG: Totale trovato: {len(scambi_diretti)} scambi diretti + {len(catene_lunghe)} catene lunghe ===")
     return rimuovi_duplicati(tutte_catene)
 
 def rimuovi_duplicati(catene):
@@ -374,21 +377,21 @@ def rimuovi_duplicati(catene):
             combinazioni_viste.add(utenti_ordinati)
             catene_uniche.append(catena)
 
-    print(f"🔧 Deduplicazione: {len(catene)} → {len(catene_uniche)} catene uniche")
+    logger.debug(f"🔧 Deduplicazione: {len(catene)} → {len(catene_uniche)} catene uniche")
     return catene_uniche
 
 def trova_catene_ricorsive(max_lunghezza=3):
     """Algoritmo per trovare catene con annunci dettagliati - VERSIONE OTTIMIZZATA"""
     import time
 
-    print(f"\n=== RICERCA CATENE CON CLASSIFICAZIONE QUALITÀ (MAX {max_lunghezza} UTENTI) ===")
+    logger.debug(f"\n=== RICERCA CATENE CON CLASSIFICAZIONE QUALITÀ (MAX {max_lunghezza} UTENTI) ===")
 
     utenti = list(User.objects.filter(annuncio__attivo=True).distinct())
-    print(f"DEBUG: Trovati {len(utenti)} utenti con annunci attivi")
+    logger.debug(f"DEBUG: Trovati {len(utenti)} utenti con annunci attivi")
 
     # OTTIMIZZAZIONE AVANZATA: Limita ulteriormente per velocità
     if len(utenti) > 8:
-        print(f"⚠️ Troppi utenti ({len(utenti)}), limitando a 8 per stabilità massima")
+        logger.debug(f"⚠️ Troppi utenti ({len(utenti)}), limitando a 8 per stabilità massima")
         # Ordina per numero di annunci attivi (utenti più attivi hanno priorità)
         utenti_con_count = []
         for utente in utenti:
@@ -400,7 +403,7 @@ def trova_catene_ricorsive(max_lunghezza=3):
         # Prendi i 8 utenti con più annunci attivi
         utenti_con_count.sort(key=lambda x: x[1], reverse=True)
         utenti = [u[0] for u in utenti_con_count[:8]]
-        print(f"🎯 Selezionati i 8 utenti più attivi")
+        logger.debug(f"🎯 Selezionati i 8 utenti più attivi")
 
     catene_trovate = []
     start_time = time.time()
@@ -412,10 +415,10 @@ def trova_catene_ricorsive(max_lunghezza=3):
 
     for i, utente_partenza in enumerate(utenti):
         if time.time() - start_time > timeout_totale:
-            print(f"⏰ Timeout totale raggiunto dopo {i} utenti")
+            logger.debug(f"⏰ Timeout totale raggiunto dopo {i} utenti")
             break
 
-        print(f"DEBUG: Inizio ricerca da user_id={utente_partenza.id} ({i+1}/{len(utenti)})")
+        logger.debug(f"DEBUG: Inizio ricerca da user_id={utente_partenza.id} ({i+1}/{len(utenti)})")
 
         utente_start_time = time.time()
         try:
@@ -430,13 +433,17 @@ def trova_catene_ricorsive(max_lunghezza=3):
                 utente_start_time
             )
             catene_trovate.extend(catene)
-            print(f"DEBUG: user_id={utente_partenza.id} ha generato {len(catene)} catene")
-        except Exception as e:
-            print(f"⚠️ Errore durante ricerca per user_id={utente_partenza.id}: {type(e).__name__}")
+            logger.debug(f"DEBUG: user_id={utente_partenza.id} ha generato {len(catene)} catene")
+        except Exception as exc:
+            logger.warning(
+                'Errore durante ricerca catene user_id=%s error_type=%s',
+                utente_partenza.id,
+                type(exc).__name__,
+            )
             continue
 
     elapsed = time.time() - start_time
-    print(f"Trovate {len(catene_trovate)} catene complete in {elapsed:.1f} secondi")
+    logger.debug(f"Trovate {len(catene_trovate)} catene complete in {elapsed:.1f} secondi")
     return catene_trovate
 
 def cerca_catene_con_annunci(utente_corrente, utente_partenza, percorso_utenti, percorso_annunci, tutti_utenti, max_lunghezza, timeout_per_utente=None, start_time=None):
@@ -446,7 +453,7 @@ def cerca_catene_con_annunci(utente_corrente, utente_partenza, percorso_utenti, 
 
     # Controllo timeout per utente
     if timeout_per_utente and start_time and (time.time() - start_time > timeout_per_utente):
-        print(f"⏰ Timeout per utente raggiunto")
+        logger.debug(f"⏰ Timeout per utente raggiunto")
         return catene
 
     if len(percorso_utenti) > max_lunghezza:
@@ -471,10 +478,10 @@ def cerca_catene_con_annunci(utente_corrente, utente_partenza, percorso_utenti, 
             attivo=True
         )
         
-        print(f"DEBUG: user_id={utente_corrente.id} ha {len(offerte_correnti)} offerte")
+        logger.debug(f"DEBUG: user_id={utente_corrente.id} ha {len(offerte_correnti)} offerte")
         
         for offerta in offerte_correnti:
-            print(f"DEBUG: Controllo annuncio_id={offerta.id} di user_id={utente_corrente.id}")
+            logger.debug(f"DEBUG: Controllo annuncio_id={offerta.id} di user_id={utente_corrente.id}")
             
             for prossimo_utente in tutti_utenti:
                 if prossimo_utente not in nuovo_percorso:
@@ -484,13 +491,13 @@ def cerca_catene_con_annunci(utente_corrente, utente_partenza, percorso_utenti, 
                         attivo=True
                     )
                     
-                    print(f"DEBUG: user_id={prossimo_utente.id} ha {len(richieste_prossime)} richieste")
+                    logger.debug(f"DEBUG: user_id={prossimo_utente.id} ha {len(richieste_prossime)} richieste")
                     
                     for richiesta in richieste_prossime:
-                        print(f"DEBUG: Confronto annuncio_id={offerta.id} con annuncio_id={richiesta.id}")
+                        logger.debug(f"DEBUG: Confronto annuncio_id={offerta.id} con annuncio_id={richiesta.id}")
                         
                         if oggetti_compatibili(offerta, richiesta):
-                            print(f"DEBUG: MATCH TROVATO! annuncio_id={offerta.id} → annuncio_id={richiesta.id}")
+                            logger.debug(f"DEBUG: MATCH TROVATO! annuncio_id={offerta.id} → annuncio_id={richiesta.id}")
                             
                             nuovi_annunci = percorso_annunci + [{
                                 'da': utente_corrente,
@@ -511,13 +518,13 @@ def cerca_catene_con_annunci(utente_corrente, utente_partenza, percorso_utenti, 
                             )
                             catene.extend(catene_ricorsive)
                         else:
-                            print(f"DEBUG: NO MATCH tra annuncio_id={offerta.id} e annuncio_id={richiesta.id}")
+                            logger.debug(f"DEBUG: NO MATCH tra annuncio_id={offerta.id} e annuncio_id={richiesta.id}")
     
     return catene
 
 def verifica_chiusura_cerchio(utente_corrente, utente_partenza, percorso_utenti, percorso_annunci):
     """Verifica se può chiudere il cerchio e crea la catena completa"""
-    print(f"DEBUG: Verifica chiusura cerchio da user_id={utente_corrente.id} verso user_id={utente_partenza.id}")
+    logger.debug(f"DEBUG: Verifica chiusura cerchio da user_id={utente_corrente.id} verso user_id={utente_partenza.id}")
     
     offerte_correnti = Annuncio.objects.filter(
         utente=utente_corrente,
@@ -533,9 +540,9 @@ def verifica_chiusura_cerchio(utente_corrente, utente_partenza, percorso_utenti,
     
     for offerta in offerte_correnti:
         for richiesta in richieste_partenza:
-            print(f"DEBUG: Chiusura? annuncio_id={offerta.id} vs annuncio_id={richiesta.id}")
+            logger.debug(f"DEBUG: Chiusura? annuncio_id={offerta.id} vs annuncio_id={richiesta.id}")
             if oggetti_compatibili(offerta, richiesta):
-                print(f"DEBUG: CERCHIO CHIUSO! annuncio_id={offerta.id} → annuncio_id={richiesta.id}")
+                logger.debug(f"DEBUG: CERCHIO CHIUSO! annuncio_id={offerta.id} → annuncio_id={richiesta.id}")
                 annunci_completi = percorso_annunci + [{
                     'da': utente_corrente,
                     'a': utente_partenza, 
@@ -652,32 +659,32 @@ def normalizza_testo(testo):
 
 def estrai_parole_chiave(testo):
     """Estrae le parole chiave significative dal testo, preservando termini composti"""
-    print(f"🔧 ESTRAZIONE PAROLE da: '{testo}'")
+    logger.debug(f"🔧 ESTRAZIONE PAROLE da: '{testo}'")
 
     # NOVITÀ: Estrai termini composti PRIMA di normalizzare
     from .synonym_matcher import extract_compound_terms
     termini_composti = extract_compound_terms(testo)
-    print(f"🔧 Termini composti trovati: {termini_composti}")
+    logger.debug(f"🔧 Termini composti trovati: {termini_composti}")
 
     testo_normalizzato = normalizza_testo(testo)
-    print(f"🔧 Testo normalizzato: '{testo_normalizzato}'")
+    logger.debug(f"🔧 Testo normalizzato: '{testo_normalizzato}'")
 
     # Stop words ridotte (solo le più comuni)
     stop_words = {'di', 'da', 'per', 'con', 'in', 'su', 'a', 'il', 'la', 'lo', 'e', 'o', 'del', 'della'}
 
     parole_base = set(testo_normalizzato.split())
-    print(f"🔧 Parole base: {parole_base}")
+    logger.debug(f"🔧 Parole base: {parole_base}")
 
     parole_senza_stop = parole_base - stop_words
-    print(f"🔧 Senza stop words: {parole_senza_stop}")
+    logger.debug(f"🔧 Senza stop words: {parole_senza_stop}")
 
     # Rimuovi parole troppo corte
     parole_singole = {p for p in parole_senza_stop if len(p) > 2}
-    print(f"🔧 Parole singole (>2 caratteri): {parole_singole}")
+    logger.debug(f"🔧 Parole singole (>2 caratteri): {parole_singole}")
 
     # UNISCI parole singole + termini composti
     parole_finali = parole_singole | termini_composti
-    print(f"🔧 Parole finali (singole + composti): {parole_finali}")
+    logger.debug(f"🔧 Parole finali (singole + composti): {parole_finali}")
 
     return parole_finali
 
@@ -993,7 +1000,7 @@ class CycleFinder:
             last_modified__gt=timestamp_ultimo_calcolo
         ).filter(filtro_validi)
 
-        print(f"[{datetime.now()}] 📋 Trovati {annunci_modificati.count()} annunci modificati dal {timestamp_ultimo_calcolo}")
+        logger.debug(f"[{datetime.now()}] 📋 Trovati {annunci_modificati.count()} annunci modificati dal {timestamp_ultimo_calcolo}")
         return annunci_modificati
 
     def get_utenti_impattati(self, annunci_modificati):
@@ -1036,7 +1043,7 @@ class CycleFinder:
                 if self._utente_compatibile_con_annuncio(utente, annuncio_mod):
                     utenti_impattati.add(utente.id)
 
-        print(f"[{datetime.now()}] 👥 Identificati {len(utenti_impattati)} utenti impattati dalle modifiche")
+        logger.debug(f"[{datetime.now()}] 👥 Identificati {len(utenti_impattati)} utenti impattati dalle modifiche")
         return utenti_impattati
 
     def _utente_compatibile_con_annuncio(self, utente, annuncio):
@@ -1100,7 +1107,7 @@ class CycleFinder:
                 cicli.update(valido=False)
                 count_invalidati += count
 
-        print(f"[{datetime.now()}] ❌ Invalidati {count_invalidati} cicli impattati")
+        logger.debug(f"[{datetime.now()}] ❌ Invalidati {count_invalidati} cicli impattati")
         return count_invalidati
 
     def trova_cicli_per_utenti(self, utenti_ids, max_length=6):
@@ -1114,13 +1121,13 @@ class CycleFinder:
         Returns:
             list: Cicli trovati
         """
-        print(f"[{datetime.now()}] 🔍 Calcolo incrementale per {len(utenti_ids)} utenti...")
+        logger.debug(f"[{datetime.now()}] 🔍 Calcolo incrementale per {len(utenti_ids)} utenti...")
 
         self.cicli_trovati.clear()
         self.cicli_hash_set.clear()
 
         if not self.grafo:
-            print(f"[{datetime.now()}] ⚠️ Grafo vuoto, costruisco il grafo completo")
+            logger.debug(f"[{datetime.now()}] ⚠️ Grafo vuoto, costruisco il grafo completo")
             self.costruisci_grafo()
 
         # Trova cicli che iniziano da ciascuno degli utenti impattati
@@ -1128,7 +1135,7 @@ class CycleFinder:
             if user_id in self.grafo:
                 self._trova_cicli_da_nodo(user_id, [user_id], max_length)
 
-        print(f"[{datetime.now()}] ✅ Calcolo incrementale: trovati {len(self.cicli_trovati)} nuovi cicli")
+        logger.debug(f"[{datetime.now()}] ✅ Calcolo incrementale: trovati {len(self.cicli_trovati)} nuovi cicli")
         return self.cicli_trovati
 
     def costruisci_grafo(self):
@@ -1140,7 +1147,7 @@ class CycleFinder:
         from django.utils import timezone
         from datetime import timedelta
 
-        print(f"[{datetime.now()}] 🔨 Costruzione grafo compatibilità (inclusi recenti disattivati)...")
+        logger.debug(f"[{datetime.now()}] 🔨 Costruzione grafo compatibilità (inclusi recenti disattivati)...")
 
         self.grafo.clear()
 
@@ -1154,7 +1161,7 @@ class CycleFinder:
 
         utenti = User.objects.filter(annuncio__in=annunci_validi).distinct()
 
-        print(f"[{datetime.now()}] 📊 Annunci validi: {annunci_validi.count()} (inclusi disattivati <3 min)")
+        logger.debug(f"[{datetime.now()}] 📊 Annunci validi: {annunci_validi.count()} (inclusi disattivati <3 min)")
 
         for utente_a in utenti:
             if utente_a.id not in self.grafo:
@@ -1169,7 +1176,7 @@ class CycleFinder:
         # Rimuovi nodi senza collegamenti
         self.grafo = {k: v for k, v in self.grafo.items() if v}
 
-        print(f"[{datetime.now()}] ✅ Grafo costruito: {len(self.grafo)} utenti, "
+        logger.debug(f"[{datetime.now()}] ✅ Grafo costruito: {len(self.grafo)} utenti, "
               f"{sum(len(v) for v in self.grafo.values())} collegamenti")
 
     def _c_e_match_tra_utenti(self, utente_a, utente_b):
@@ -1205,33 +1212,33 @@ class CycleFinder:
         """
         Trova tutti i cicli possibili fino a max_length utenti
         """
-        print(f"[{datetime.now()}] 🔍 Ricerca cicli (max lunghezza: {max_length})...")
+        logger.debug(f"[{datetime.now()}] 🔍 Ricerca cicli (max lunghezza: {max_length})...")
 
         self.cicli_trovati.clear()
         self.cicli_hash_set.clear()
 
         if not self.grafo:
-            print(f"[{datetime.now()}] ⚠️ Grafo vuoto, nessun ciclo possibile")
+            logger.debug(f"[{datetime.now()}] ⚠️ Grafo vuoto, nessun ciclo possibile")
             return []
 
         # Per ogni nodo, cerca cicli che iniziano da quel nodo
         for start_node in self.grafo.keys():
             self._trova_cicli_da_nodo(start_node, [start_node], max_length)
 
-        print(f"[{datetime.now()}] ✅ Trovati {len(self.cicli_trovati)} cicli unici")
+        logger.debug(f"[{datetime.now()}] ✅ Trovati {len(self.cicli_trovati)} cicli unici")
         return self.cicli_trovati
 
     def trova_scambi_diretti(self):
         """
         Trova tutti gli scambi diretti (lunghezza 2) usando il grafo
         """
-        print(f"[{datetime.now()}] 🔍 Ricerca scambi diretti...")
+        logger.debug(f"[{datetime.now()}] 🔍 Ricerca scambi diretti...")
 
         scambi_diretti = []
         scambi_hash_set = set()
 
         if not self.grafo:
-            print(f"[{datetime.now()}] ⚠️ Grafo vuoto, nessuno scambio diretto possibile")
+            logger.debug(f"[{datetime.now()}] ⚠️ Grafo vuoto, nessuno scambio diretto possibile")
             return []
 
         # Per ogni coppia di utenti nel grafo
@@ -1256,7 +1263,7 @@ class CycleFinder:
                         }
                         scambi_diretti.append(scambio_completo)
 
-        print(f"[{datetime.now()}] ✅ Trovati {len(scambi_diretti)} scambi diretti unici")
+        logger.debug(f"[{datetime.now()}] ✅ Trovati {len(scambi_diretti)} scambi diretti unici")
         return scambi_diretti
 
     def _trova_cicli_da_nodo(self, current_node, path, max_length):
@@ -1472,14 +1479,14 @@ def get_cicli_precalcolati():
 
     start_time = time.time()
 
-    print("📊 Caricando cicli pre-calcolati dal database...")
+    logger.debug("📊 Caricando cicli pre-calcolati dal database...")
 
     # Carica tutti i cicli validi
     cicli_db = CicloScambio.objects.filter(valido=True).order_by('-calcolato_at')
 
     # ===== OTTIMIZZAZIONE: PRE-CARICAMENTO ANNUNCI =====
     # Estrai tutti gli ID degli annunci coinvolti nei cicli PRIMA di processarli
-    print("🚀 Pre-caricamento annunci...")
+    logger.debug("🚀 Pre-caricamento annunci...")
     annunci_ids = set()
 
     for ciclo_db in cicli_db:
@@ -1494,12 +1501,12 @@ def get_cicli_precalcolati():
                     if 'richiesto' in oggetto and 'id' in oggetto['richiesto']:
                         annunci_ids.add(oggetto['richiesto']['id'])
 
-    print(f"📦 Trovati {len(annunci_ids)} annunci unici coinvolti nei cicli")
+    logger.debug(f"📦 Trovati {len(annunci_ids)} annunci unici coinvolti nei cicli")
 
     # Carica TUTTI gli annunci in UNA SOLA QUERY (inclusi inattivi per il filtro)
     # NOTA: Carichiamo anche inattivi perché il filtro successivo li gestisce
     annunci_dict = {a.id: a for a in Annuncio.objects.filter(id__in=annunci_ids)}
-    print(f"✅ Pre-caricati {len(annunci_dict)} annunci in memoria (attivi + inattivi per filtro)")
+    logger.debug(f"✅ Pre-caricati {len(annunci_dict)} annunci in memoria (attivi + inattivi per filtro)")
     # ===== FINE OTTIMIZZAZIONE =====
 
     scambi_diretti = []
@@ -1516,14 +1523,19 @@ def get_cicli_precalcolati():
                 else:
                     catene_lunghe.append(ciclo_convertito)
 
-        except Exception as e:
-            print(f"⚠️ Errore conversione ciclo {ciclo_db.id}: {e}")
+        except Exception as exc:
+            logger.warning(
+                'Errore conversione ciclo precalcolato ciclo_id=%s '
+                'error_type=%s',
+                ciclo_db.id,
+                type(exc).__name__,
+            )
             continue
 
     elapsed = time.time() - start_time
     totale = len(scambi_diretti) + len(catene_lunghe)
 
-    print(f"✅ Caricati {totale} cicli pre-calcolati in {elapsed:.3f}s ({len(scambi_diretti)} diretti, {len(catene_lunghe)} catene)")
+    logger.debug(f"✅ Caricati {totale} cicli pre-calcolati in {elapsed:.3f}s ({len(scambi_diretti)} diretti, {len(catene_lunghe)} catene)")
 
     return {
         'scambi_diretti': scambi_diretti,
@@ -1553,7 +1565,7 @@ def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
         utenti = User.objects.filter(id__in=user_ids)
 
         if len(utenti) != len(user_ids):
-            print(f"⚠️ Alcuni utenti del ciclo {ciclo_db.id} non esistono più")
+            logger.debug(f"⚠️ Alcuni utenti del ciclo {ciclo_db.id} non esistono più")
             return None
 
         # Crea un dizionario per accesso veloce agli utenti per ID
@@ -1614,7 +1626,7 @@ def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
 
             # Se mancano scambi, questo ciclo è incompleto → non visualizzare
             if scambi_completi < num_scambi_attesi:
-                print(f"⚠️ Ciclo {ciclo_db.id} incompleto: {scambi_completi}/{num_scambi_attesi} scambi validi")
+                logger.debug(f"⚠️ Ciclo {ciclo_db.id} incompleto: {scambi_completi}/{num_scambi_attesi} scambi validi")
                 return None
 
             # Ora costruisci il mapping
@@ -1657,7 +1669,7 @@ def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
         annunci_da_verificare = list(user_offers.values()) + list(user_requests.values())
         for annuncio in annunci_da_verificare:
             if not annuncio.attivo:
-                print(f"⚠️ Ciclo {ciclo_db.id} contiene annuncio disattivato: {annuncio.id}")
+                logger.debug(f"⚠️ Ciclo {ciclo_db.id} contiene annuncio disattivato: {annuncio.id}")
                 return None
 
         # NUOVO: Riordina gli utenti secondo la sequenza di scambio
@@ -1744,8 +1756,12 @@ def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
 
         return ciclo_output
 
-    except Exception as e:
-        print(f"⚠️ Errore conversione ciclo {ciclo_db.id}: {e}")
+    except Exception as exc:
+        logger.warning(
+            'Errore conversione ciclo ciclo_id=%s error_type=%s',
+            ciclo_db.id,
+            type(exc).__name__,
+        )
         return None
 
 
@@ -1903,7 +1919,7 @@ def filtra_catene_per_utente_ottimizzato(scambi_diretti, catene, utente):
         if any(u['user'].id == utente.id for u in catena['utenti']):
             catene_lunghe_utente.append(catena)
 
-    print(f"🎯 Filtrato per user_id={utente.id}: {len(scambi_diretti_utente)} scambi diretti, {len(catene_lunghe_utente)} catene")
+    logger.debug(f"🎯 Filtrato per user_id={utente.id}: {len(scambi_diretti_utente)} scambi diretti, {len(catene_lunghe_utente)} catene")
 
     return scambi_diretti_utente, catene_lunghe_utente
 
@@ -1924,7 +1940,7 @@ def trova_catene_per_annuncio_ottimizzato(annuncio, max_lunghezza=6, includi_gen
     import time
     start_time = time.time()
 
-    print(f"🔍 Ricerca ottimizzata per annuncio_id={annuncio.id}")
+    logger.debug(f"🔍 Ricerca ottimizzata per annuncio_id={annuncio.id}")
 
     # Carica tutti i cicli pre-calcolati
     risultato = get_cicli_precalcolati()
@@ -1948,7 +1964,7 @@ def trova_catene_per_annuncio_ottimizzato(annuncio, max_lunghezza=6, includi_gen
                     cicli_per_annuncio.append(ciclo)
 
     elapsed = time.time() - start_time
-    print(f"✅ Trovati {len(cicli_per_annuncio)} cicli per annuncio in {elapsed:.3f}s")
+    logger.debug(f"✅ Trovati {len(cicli_per_annuncio)} cicli per annuncio in {elapsed:.3f}s")
 
     return cicli_per_annuncio
 
@@ -1982,7 +1998,11 @@ def controlla_annuncio_in_ciclo(annuncio, ciclo):
 
         return False
 
-    except Exception as e:
-        print(f"⚠️ Errore controllo annuncio in ciclo: {e}")
+    except Exception as exc:
+        logger.warning(
+            'Errore controllo annuncio_id=%s nel ciclo error_type=%s',
+            annuncio.id,
+            type(exc).__name__,
+        )
         # In caso di errore, assume che l'annuncio sia coinvolto se l'utente è presente
         return any(u['user'].id == annuncio.utente.id for u in ciclo['utenti'])

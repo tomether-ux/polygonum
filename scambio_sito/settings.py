@@ -94,6 +94,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'scambio_sito.wsgi.application'
 
+# Gli script diagnostici storici nella radice iniziano con "test_" ma non
+# sono TestCase e possono interrogare il database durante l'import. Quando
+# non viene indicata un'etichetta, limita la discovery ai test reali dell'app.
+TEST_RUNNER = 'scambio_sito.test_runner.PolygonumTestRunner'
+
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 DATABASES = {

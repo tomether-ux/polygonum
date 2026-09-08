@@ -235,7 +235,7 @@ class Annuncio(models.Model):
         #             quality=85
         #         )
         #     except Exception as e:
-        #         print(f"Errore nell'ottimizzazione immagine: {e}")
+        #         logger.debug(f"Errore nell'ottimizzazione immagine: {e}")
 
         # Calcola automaticamente fascia di prezzo SOLO se non è già impostata
         # (per annunci esistenti che non hanno ancora la fascia)
@@ -245,7 +245,7 @@ class Annuncio(models.Model):
         # Genera titolo automatico per annunci "cerco per categoria"
         if self.tipo == 'cerco' and self.cerca_per_categoria and self.categoria:
             self.titolo = f"Cerco {self.categoria.nome}"
-            print(f"📝 Titolo auto-generato per annuncio #{self.pk or 'NEW'}")
+            logger.debug(f"📝 Titolo auto-generato per annuncio #{self.pk or 'NEW'}")
 
         # Validazione lunghezza minima titolo (safety check)
         # Se il titolo è troppo corto, non può funzionare nel matching
@@ -279,15 +279,15 @@ class Annuncio(models.Model):
             if not self.immagine:
                 # Nessuna immagine → approva automaticamente
                 self.moderation_status = 'approved'
-                print(f"✓ Annuncio #{self.pk or 'NEW'} - senza immagine, approvato automaticamente")
+                logger.debug(f"✓ Annuncio #{self.pk or 'NEW'} - senza immagine, approvato automaticamente")
             elif image_changed and self.immagine:
                 # Immagine nuova/modificata → metti in moderazione
                 self.moderation_status = 'pending'
                 # NOTA: attivo=True (annuncio VISIBILE), solo l'IMMAGINE è nascosta finché approvata
-                print(f"📋 Annuncio #{self.pk or 'NEW'} - nuova immagine in moderazione (annuncio visibile)")
+                logger.debug(f"📋 Annuncio #{self.pk or 'NEW'} - nuova immagine in moderazione (annuncio visibile)")
         else:
             # L'admin ha appena approvato/rifiutato, preserva lo status
-            print(f"✓ Annuncio #{self.pk} - status '{self.moderation_status}' preservato (moderazione admin)")
+            logger.debug(f"✓ Annuncio #{self.pk} - status '{self.moderation_status}' preservato (moderazione admin)")
 
         super().save(*args, **kwargs)
 
@@ -370,7 +370,7 @@ class Annuncio(models.Model):
             daemon=True
         )
         thread.start()
-        print(f"🔄 Moderazione avviata in background per annuncio #{self.id}")
+        logger.debug(f"🔄 Moderazione avviata in background per annuncio #{self.id}")
 
     @staticmethod
     def _perform_moderation_sync(annuncio_id, public_id):
@@ -396,15 +396,15 @@ class Annuncio(models.Model):
         try:
             # SECURITY: Skip email se ADMIN_MODERATION_EMAIL non configurato (dev/CI)
             if not settings.ADMIN_MODERATION_EMAIL:
-                print(f"⚠️ Email moderazione saltata per annuncio #{annuncio_id}: ADMIN_MODERATION_EMAIL non configurato (dev/CI mode)")
+                logger.debug(f"⚠️ Email moderazione saltata per annuncio #{annuncio_id}: ADMIN_MODERATION_EMAIL non configurato (dev/CI mode)")
                 # Approva automaticamente in dev/CI
                 annuncio = Annuncio.objects.get(id=annuncio_id)
                 annuncio.moderation_status = 'approved'
                 annuncio.save(update_fields=['moderation_status'])
-                print(f"✓ Annuncio #{annuncio_id} approvato automaticamente (dev/CI mode)")
+                logger.debug(f"✓ Annuncio #{annuncio_id} approvato automaticamente (dev/CI mode)")
                 return
 
-            print(f"📧 Invio email moderazione per annuncio #{annuncio_id}")
+            logger.debug(f"📧 Invio email moderazione per annuncio #{annuncio_id}")
 
             # Attendi 2 secondi per evitare race conditions
             time.sleep(2)

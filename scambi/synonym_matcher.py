@@ -3,8 +3,12 @@ Modulo per gestire sinonimi italiani con WordNet e caching intelligente
 Ottimizzato per performance massime nel cycle calculator
 """
 from functools import lru_cache
-import nltk
 from datetime import datetime
+import logging
+
+import nltk
+
+logger = logging.getLogger(__name__)
 
 # Flag per indicare se WordNet è stato inizializzato
 _WORDNET_INITIALIZED = False
@@ -52,7 +56,7 @@ def initialize_wordnet():
     if _WORDNET_INITIALIZED:
         return _WORDNET_AVAILABLE
 
-    print(f"[{datetime.now()}] 📚 Inizializzazione WordNet italiano...")
+    logger.debug(f"[{datetime.now()}] 📚 Inizializzazione WordNet italiano...")
 
     try:
         # Prova a importare wordnet
@@ -62,21 +66,24 @@ def initialize_wordnet():
         try:
             test = wn.synsets('libro', lang='ita')
             _WORDNET_AVAILABLE = True
-            print(f"[{datetime.now()}] ✅ WordNet italiano già disponibile")
+            logger.debug(f"[{datetime.now()}] ✅ WordNet italiano già disponibile")
         except LookupError:
             # Scarica i dati necessari
-            print(f"[{datetime.now()}] 📥 Download WordNet e Open Multilingual WordNet...")
+            logger.debug(f"[{datetime.now()}] 📥 Download WordNet e Open Multilingual WordNet...")
             nltk.download('wordnet', quiet=True)
             nltk.download('omw-1.4', quiet=True)
 
             # Verifica che il download sia andato a buon fine
             test = wn.synsets('libro', lang='ita')
             _WORDNET_AVAILABLE = True
-            print(f"[{datetime.now()}] ✅ WordNet italiano scaricato e pronto")
+            logger.debug(f"[{datetime.now()}] ✅ WordNet italiano scaricato e pronto")
 
-    except Exception as e:
-        print(f"[{datetime.now()}] ⚠️ WordNet non disponibile: {e}")
-        print(f"[{datetime.now()}] ℹ️ Il matching funzionerà solo con parole esatte")
+    except Exception as exc:
+        logger.warning(
+            'WordNet non disponibile; matching limitato alle parole esatte '
+            'error_type=%s',
+            type(exc).__name__,
+        )
         _WORDNET_AVAILABLE = False
 
     _WORDNET_INITIALIZED = True
@@ -137,7 +144,11 @@ def get_synonyms(word):
 
         return synonyms
 
-    except Exception as e:
+    except Exception as exc:
+        logger.warning(
+            'Ricerca sinonimi fallita error_type=%s',
+            type(exc).__name__,
+        )
         # In caso di errore, ritorna solo la parola originale
         return {word}
 
@@ -208,7 +219,7 @@ def clear_cache():
     Utile se WordNet viene aggiornato o per liberare memoria
     """
     get_synonyms.cache_clear()
-    print(f"[{datetime.now()}] 🧹 Cache sinonimi svuotata")
+    logger.debug(f"[{datetime.now()}] 🧹 Cache sinonimi svuotata")
 
 
 # Inizializza WordNet al primo import del modulo
