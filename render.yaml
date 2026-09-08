@@ -15,7 +15,7 @@ services:
       python manage.py collectstatic --noinput
       python manage.py migrate
     startCommand: |
-      gunicorn --bind 0.0.0.0:$PORT scambio_sito.wsgi:application
+      gunicorn --config gunicorn.conf.py scambio_sito.wsgi:application
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -33,6 +33,10 @@ services:
         value: "production"
       - key: POLYGONUM_WEBHOOK_SECRET
         generateValue: true
+      - key: GUNICORN_THREADS
+        value: "4"
+      - key: GUNICORN_TIMEOUT_SECONDS
+        value: "120"
     healthCheckPath: /
     domains:
       - polygonum.io
