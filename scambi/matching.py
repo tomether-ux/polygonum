@@ -1484,6 +1484,8 @@ def get_cicli_precalcolati(
     page=None,
     page_size=None,
     focus_cycle_id=None,
+    cycle_length=None,
+    per_length_limit=None,
 ):
     """
     Funzione ottimizzata che legge i cicli pre-calcolati dal database invece di fare brute-force.
@@ -1495,6 +1497,7 @@ def get_cicli_precalcolati(
             'catene': [],            # Cicli di lunghezza 3+
             'totale': int,
             'totale_disponibili': int,
+            'totali_per_lunghezza': dict,
             'pagina': Page | None,
             'tempo': float,
         }
@@ -1516,6 +1519,12 @@ def get_cicli_precalcolati(
     else:
         cicli_queryset = CicloScambio.find_for_user(user_id, limit=None)
 
+    if cycle_length is not None:
+        cycle_length = int(cycle_length)
+        if cycle_length not in range(2, 7):
+            raise ValueError('La lunghezza del ciclo deve essere tra 2 e 6')
+        cicli_queryset = cicli_queryset.filter(lunghezza=cycle_length)
+
     # Il filtro per annuncio deve precedere la paginazione: in questo modo un
     # annuncio non risulta assente soltanto perché i suoi cicli sono in una
     # pagina successiva. Il confronto resta esatto anche con le alternative.
@@ -1531,9 +1540,73 @@ def get_cicli_precalcolati(
         ]
         cicli_queryset = cicli_queryset.filter(id__in=matching_cycle_ids)
 
+    if per_length_limit is not None and page_size is not None:
+        raise ValueError(
+            'Il limite bilanciato e la paginazione non possono essere usati insieme'
+        )
+
     pagina = None
-    if page_size is not None:
+    totali_per_lunghezza = {length: 0 for length in range(2, 7)}
+
+    if per_length_limit is not None:
+        from django.db.models import Count, F, Window
+        from django.db.models.functions import RowNumber
+
+        per_length_limit = min(max(1, int(per_length_limit)), 100)
+        conteggi = (
+            cicli_queryset.order_by()
+            .values('lunghezza')
+            .annotate(totale=Count('id'))
+        )
+        for row in conteggi:
+            if row['lunghezza'] in totali_per_lunghezza:
+                totali_per_lunghezza[row['lunghezza']] = row['totale']
+
+        # Una window function limita ogni lunghezza separatamente con una sola
+        # query: fino a 20 Line, 20 Triangle, ecc., senza favorire i cicli più
+        # corti soltanto perché vengono ordinati per primi.
+        cicli_db = list(
+            cicli_queryset.annotate(
+                posizione_nel_tipo=Window(
+                    expression=RowNumber(),
+                    partition_by=[F('lunghezza')],
+                    order_by=[F('calcolato_at').desc(), F('id').asc()],
+                )
+            )
+            .filter(posizione_nel_tipo__lte=per_length_limit)
+            .order_by('lunghezza', '-calcolato_at', 'id')
+        )
+
+        # Un ciclo aperto da una notifica resta visibile anche se non rientra
+        # nei primi risultati del suo tipo. Sostituisce l'ultimo elemento del
+        # gruppo, quindi il tetto massimo non viene superato.
+        try:
+            focus_cycle_id = int(focus_cycle_id)
+        except (TypeError, ValueError):
+            focus_cycle_id = None
+
+        if focus_cycle_id is not None:
+            focus_cycle = cicli_queryset.filter(id=focus_cycle_id).first()
+            loaded_ids = {cycle.id for cycle in cicli_db}
+            if (
+                focus_cycle is not None
+                and focus_cycle.id not in loaded_ids
+                and focus_cycle.lunghezza in totali_per_lunghezza
+            ):
+                same_length_indexes = [
+                    index
+                    for index, cycle in enumerate(cicli_db)
+                    if cycle.lunghezza == focus_cycle.lunghezza
+                ]
+                if same_length_indexes:
+                    cicli_db[same_length_indexes[-1]] = focus_cycle
+                else:
+                    cicli_db.append(focus_cycle)
+
+        totale_disponibili = sum(totali_per_lunghezza.values())
+    elif page_size is not None:
         from django.core.paginator import Paginator
+        from django.db.models import Count
 
         page_size = min(max(1, int(page_size)), 200)
         try:
@@ -1560,9 +1633,21 @@ def get_cicli_precalcolati(
         pagina = paginator.get_page(requested_page)
         totale_disponibili = paginator.count
         cicli_db = list(pagina.object_list)
+
+        conteggi = (
+            cicli_queryset.order_by()
+            .values('lunghezza')
+            .annotate(totale=Count('id'))
+        )
+        for row in conteggi:
+            if row['lunghezza'] in totali_per_lunghezza:
+                totali_per_lunghezza[row['lunghezza']] = row['totale']
     else:
         cicli_db = list(cicli_queryset)
         totale_disponibili = len(cicli_db)
+        for ciclo_db in cicli_db:
+            if ciclo_db.lunghezza in totali_per_lunghezza:
+                totali_per_lunghezza[ciclo_db.lunghezza] += 1
 
     # ===== OTTIMIZZAZIONE: PRE-CARICAMENTO ANNUNCI =====
     # Estrai tutti gli ID degli annunci coinvolti nei cicli PRIMA di processarli
@@ -1624,6 +1709,7 @@ def get_cicli_precalcolati(
         'catene': catene_lunghe,
         'totale': totale,
         'totale_disponibili': totale_disponibili,
+        'totali_per_lunghezza': totali_per_lunghezza,
         'pagina': pagina,
         'tempo': elapsed,
     }

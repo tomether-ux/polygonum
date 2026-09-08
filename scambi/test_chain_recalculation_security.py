@@ -49,6 +49,7 @@ class ChainRecalculationSecurityTests(TestCase):
             'catene': [],
             'totale': 0,
             'totale_disponibili': 0,
+            'totali_per_lunghezza': {length: 0 for length in range(2, 7)},
             'pagina': None,
             'tempo': 0,
         }
@@ -64,8 +65,10 @@ class ChainRecalculationSecurityTests(TestCase):
             preferred_announcement_id=None,
             user_id=self.user.id,
             page=None,
-            page_size=100,
+            page_size=None,
             focus_cycle_id=None,
+            cycle_length=None,
+            per_length_limit=20,
         )
         self.cycle.refresh_from_db()
         self.assertTrue(self.cycle.valido)

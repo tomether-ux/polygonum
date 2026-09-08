@@ -314,6 +314,35 @@
                 </div>
                 {% endif %}
 
+                {% if not personalizzato %}
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="tipoCatenaFiltro" class="form-label">
+                            <i class="fas fa-shapes me-1"></i>Tipo di catena
+                        </label>
+                        <select id="tipoCatenaFiltro" class="form-select">
+                            <option value="" {% if not tipo_catena_selezionato %}selected{% endif %}>Tutti i tipi — massimo 20 per tipo</option>
+                            <option value="2" {% if tipo_catena_selezionato == 2 %}selected{% endif %}>Line — 2 persone</option>
+                            <option value="3" {% if tipo_catena_selezionato == 3 %}selected{% endif %}>Triangle — 3 persone</option>
+                            <option value="4" {% if tipo_catena_selezionato == 4 %}selected{% endif %}>Square — 4 persone</option>
+                            <option value="5" {% if tipo_catena_selezionato == 5 %}selected{% endif %}>Pentagon — 5 persone</option>
+                            <option value="6" {% if tipo_catena_selezionato == 6 %}selected{% endif %}>Hexagon — 6 persone</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="catenePerPagina" class="form-label">
+                            <i class="fas fa-list-ol me-1"></i>Risultati per pagina
+                        </label>
+                        <select id="catenePerPagina" class="form-select" {% if not tipo_catena_selezionato %}disabled{% endif %}>
+                            <option value="20" {% if catene_per_pagina == 20 %}selected{% endif %}>20</option>
+                            <option value="50" {% if catene_per_pagina == 50 %}selected{% endif %}>50</option>
+                            <option value="100" {% if catene_per_pagina == 100 %}selected{% endif %}>100</option>
+                        </select>
+                        <div class="form-text">Disponibile quando scegli un tipo specifico.</div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Opzione sinonimi -->
                 <div class="mb-3">
                     <div class="form-check form-switch">
@@ -407,7 +436,7 @@
                         <span class="group-description">2 persone</span>
                     </div>
                     <div class="group-meta">
-                        <span class="group-count-badge">{{ catene_2|length }} catene</span>
+                        <span class="group-count-badge" data-total="{{ totale_catene_2 }}">{{ catene_2|length }}{% if catene_2_limitata %} di {{ totale_catene_2 }}{% endif %} catene</span>
                         <i class="fas fa-chevron-down chevron-icon"></i>
                     </div>
                 </button>
@@ -416,6 +445,13 @@
                     {% include "scambi/partials/chain_card.html" %}
                     {% endfor %}
                 </div>
+                {% if not tipo_catena_selezionato and catene_2_limitata %}
+                <div class="text-center pb-3">
+                    <a class="btn btn-outline-primary btn-sm" href="?load=true&amp;lunghezza=2&amp;per_page=50{% if annuncio_selezionato %}&amp;annuncio_id={{ annuncio_selezionato.id }}{% endif %}#catene-scambio">
+                        Vedi tutte le {{ totale_catene_2 }} catene Line
+                    </a>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
 
@@ -433,7 +469,7 @@
                         <span class="group-description">3 persone</span>
                     </div>
                     <div class="group-meta">
-                        <span class="group-count-badge">{{ catene_3|length }} catene</span>
+                        <span class="group-count-badge" data-total="{{ totale_catene_3 }}">{{ catene_3|length }}{% if catene_3_limitata %} di {{ totale_catene_3 }}{% endif %} catene</span>
                         <i class="fas fa-chevron-down chevron-icon"></i>
                     </div>
                 </button>
@@ -442,6 +478,13 @@
                     {% include "scambi/partials/chain_card.html" %}
                     {% endfor %}
                 </div>
+                {% if not tipo_catena_selezionato and catene_3_limitata %}
+                <div class="text-center pb-3">
+                    <a class="btn btn-outline-primary btn-sm" href="?load=true&amp;lunghezza=3&amp;per_page=50{% if annuncio_selezionato %}&amp;annuncio_id={{ annuncio_selezionato.id }}{% endif %}#catene-scambio">
+                        Vedi tutte le {{ totale_catene_3 }} catene Triangle
+                    </a>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
 
@@ -459,7 +502,7 @@
                         <span class="group-description">4 persone</span>
                     </div>
                     <div class="group-meta">
-                        <span class="group-count-badge">{{ catene_4|length }} catene</span>
+                        <span class="group-count-badge" data-total="{{ totale_catene_4 }}">{{ catene_4|length }}{% if catene_4_limitata %} di {{ totale_catene_4 }}{% endif %} catene</span>
                         <i class="fas fa-chevron-down chevron-icon"></i>
                     </div>
                 </button>
@@ -468,6 +511,13 @@
                     {% include "scambi/partials/chain_card.html" %}
                     {% endfor %}
                 </div>
+                {% if not tipo_catena_selezionato and catene_4_limitata %}
+                <div class="text-center pb-3">
+                    <a class="btn btn-outline-primary btn-sm" href="?load=true&amp;lunghezza=4&amp;per_page=50{% if annuncio_selezionato %}&amp;annuncio_id={{ annuncio_selezionato.id }}{% endif %}#catene-scambio">
+                        Vedi tutte le {{ totale_catene_4 }} catene Square
+                    </a>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
 
@@ -485,7 +535,7 @@
                         <span class="group-description">5 persone</span>
                     </div>
                     <div class="group-meta">
-                        <span class="group-count-badge">{{ catene_5|length }} catene</span>
+                        <span class="group-count-badge" data-total="{{ totale_catene_5 }}">{{ catene_5|length }}{% if catene_5_limitata %} di {{ totale_catene_5 }}{% endif %} catene</span>
                         <i class="fas fa-chevron-down chevron-icon"></i>
                     </div>
                 </button>
@@ -494,6 +544,13 @@
                     {% include "scambi/partials/chain_card.html" %}
                     {% endfor %}
                 </div>
+                {% if not tipo_catena_selezionato and catene_5_limitata %}
+                <div class="text-center pb-3">
+                    <a class="btn btn-outline-primary btn-sm" href="?load=true&amp;lunghezza=5&amp;per_page=50{% if annuncio_selezionato %}&amp;annuncio_id={{ annuncio_selezionato.id }}{% endif %}#catene-scambio">
+                        Vedi tutte le {{ totale_catene_5 }} catene Pentagon
+                    </a>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
 
@@ -511,7 +568,7 @@
                         <span class="group-description">6 persone</span>
                     </div>
                     <div class="group-meta">
-                        <span class="group-count-badge">{{ catene_6|length }} catene</span>
+                        <span class="group-count-badge" data-total="{{ totale_catene_6 }}">{{ catene_6|length }}{% if catene_6_limitata %} di {{ totale_catene_6 }}{% endif %} catene</span>
                         <i class="fas fa-chevron-down chevron-icon"></i>
                     </div>
                 </button>
@@ -520,6 +577,13 @@
                     {% include "scambi/partials/chain_card.html" %}
                     {% endfor %}
                 </div>
+                {% if not tipo_catena_selezionato and catene_6_limitata %}
+                <div class="text-center pb-3">
+                    <a class="btn btn-outline-primary btn-sm" href="?load=true&amp;lunghezza=6&amp;per_page=50{% if annuncio_selezionato %}&amp;annuncio_id={{ annuncio_selezionato.id }}{% endif %}#catene-scambio">
+                        Vedi tutte le {{ totale_catene_6 }} catene Hexagon
+                    </a>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
         </div>
@@ -529,7 +593,7 @@
             <ul class="pagination justify-content-center flex-wrap">
                 {% if pagina_catene.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?load=true&amp;page={{ pagina_catene.previous_page_number }}{% if annuncio_selezionato %}&amp;annuncio_id={{ annuncio_selezionato.id }}{% endif %}#catene-scambio">
+                    <a class="page-link" href="?load=true&amp;lunghezza={{ tipo_catena_selezionato }}&amp;per_page={{ catene_per_pagina }}&amp;page={{ pagina_catene.previous_page_number }}{% if annuncio_selezionato %}&amp;annuncio_id={{ annuncio_selezionato.id }}{% endif %}#catene-scambio">
                         Precedente
                     </a>
                 </li>
@@ -543,7 +607,7 @@
 
                 {% if pagina_catene.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?load=true&amp;page={{ pagina_catene.next_page_number }}{% if annuncio_selezionato %}&amp;annuncio_id={{ annuncio_selezionato.id }}{% endif %}#catene-scambio">
+                    <a class="page-link" href="?load=true&amp;lunghezza={{ tipo_catena_selezionato }}&amp;per_page={{ catene_per_pagina }}&amp;page={{ pagina_catene.next_page_number }}{% if annuncio_selezionato %}&amp;annuncio_id={{ annuncio_selezionato.id }}{% endif %}#catene-scambio">
                         Successiva
                     </a>
                 </li>
@@ -667,12 +731,25 @@ function ricalcolaCatene() {
     currentUrl.searchParams.delete('cerca');
     currentUrl.searchParams.delete('annuncio_id');
     currentUrl.searchParams.delete('page');
+    currentUrl.searchParams.delete('ciclo_id');
+    currentUrl.searchParams.delete('lunghezza');
+    currentUrl.searchParams.delete('per_page');
     currentUrl.searchParams.set('load', 'true');
 
     // Preserva il filtro annuncio se selezionato
     const annuncioFiltro = document.getElementById('annuncioFiltro');
     if (annuncioFiltro && annuncioFiltro.value) {
         currentUrl.searchParams.set('annuncio_id', annuncioFiltro.value);
+    }
+
+    // Il limite per pagina si applica soltanto quando è stato scelto un tipo.
+    const tipoCatenaFiltro = document.getElementById('tipoCatenaFiltro');
+    const catenePerPagina = document.getElementById('catenePerPagina');
+    if (tipoCatenaFiltro && tipoCatenaFiltro.value) {
+        currentUrl.searchParams.set('lunghezza', tipoCatenaFiltro.value);
+        if (catenePerPagina && ['20', '50', '100'].includes(catenePerPagina.value)) {
+            currentUrl.searchParams.set('per_page', catenePerPagina.value);
+        }
     }
 
     // Delay minimo per mostrare l'animazione (1s per caricamento veloce dal DB)
@@ -788,12 +865,19 @@ function aggiornaContatori() {
 
             // Aggiorna il badge del conteggio
             const badge = group.querySelector('.group-count-badge');
+            const loadedCount = group.querySelectorAll('.modern-chain-card').length;
+            let total = loadedCount;
             if (badge) {
-                badge.textContent = `${count} catene`;
+                total = Number.parseInt(badge.dataset.total || loadedCount, 10);
+                badge.textContent = total > count
+                    ? `${count} di ${total} catene`
+                    : `${count} catene`;
             }
 
-            // Nascondi il gruppo se non ha catene visibili
-            if (count === 0) {
+            // Se esistono altri risultati sul server, lascia visibile il
+            // gruppo e il relativo pulsante "Vedi tutte" anche quando i
+            // filtri rapidi nascondono le card del campione corrente.
+            if (count === 0 && total <= loadedCount) {
                 group.style.display = 'none';
             } else {
                 group.style.display = '';
@@ -872,7 +956,17 @@ document.addEventListener('DOMContentLoaded', function() {
             filtraCatenePerAnnuncio();
         }
 
-        annuncioFiltro.addEventListener('change', filtraCatenePerAnnuncio);
+        // Il filtro deve essere applicato all'intero insieme sul server, non
+        // soltanto alle card della pagina corrente.
+        annuncioFiltro.addEventListener('change', ricalcolaCatene);
+    }
+
+    const tipoCatenaFiltro = document.getElementById('tipoCatenaFiltro');
+    const catenePerPagina = document.getElementById('catenePerPagina');
+    if (tipoCatenaFiltro && catenePerPagina) {
+        tipoCatenaFiltro.addEventListener('change', function() {
+            catenePerPagina.disabled = !tipoCatenaFiltro.value;
+        });
     }
 
     // Gestione dei click sulle stelle dei preferiti

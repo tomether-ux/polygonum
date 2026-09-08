@@ -186,6 +186,7 @@ class ChainAnnouncementAlternativesTests(TestCase):
             'catene': [],
             'totale': 0,
             'totale_disponibili': 0,
+            'totali_per_lunghezza': {length: 0 for length in range(2, 7)},
             'pagina': None,
             'tempo': 0,
         }
@@ -201,9 +202,81 @@ class ChainAnnouncementAlternativesTests(TestCase):
             preferred_announcement_id=self.request_a_1.id,
             user_id=self.user_a.id,
             page=None,
+            page_size=None,
+            focus_cycle_id=None,
+            cycle_length=None,
+            per_length_limit=20,
+        )
+
+    @patch('scambi.matching.get_cicli_precalcolati')
+    def test_main_page_applies_closed_length_and_page_size_filters(
+        self,
+        get_cycles,
+    ):
+        get_cycles.return_value = {
+            'scambi_diretti': [],
+            'catene': [],
+            'totale': 0,
+            'totale_disponibili': 0,
+            'totali_per_lunghezza': {length: 0 for length in range(2, 7)},
+            'pagina': None,
+            'tempo': 0,
+        }
+        self.client.force_login(self.user_a)
+
+        response = self.client.get(
+            reverse('catene_scambio'),
+            {
+                'load': 'true',
+                'lunghezza': '6',
+                'per_page': '100',
+                'page': '2',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        get_cycles.assert_called_once_with(
+            preferred_announcement_id=None,
+            user_id=self.user_a.id,
+            page='2',
             page_size=100,
             focus_cycle_id=None,
+            cycle_length=6,
+            per_length_limit=None,
         )
+        self.assertEqual(response.context['tipo_catena_selezionato'], 6)
+        self.assertEqual(response.context['catene_per_pagina'], 100)
+
+    @patch('scambi.matching.get_cicli_precalcolati')
+    def test_main_page_rejects_arbitrary_filter_limits(self, get_cycles):
+        get_cycles.return_value = {
+            'scambi_diretti': [],
+            'catene': [],
+            'totale': 0,
+            'totale_disponibili': 0,
+            'totali_per_lunghezza': {length: 0 for length in range(2, 7)},
+            'pagina': None,
+            'tempo': 0,
+        }
+        self.client.force_login(self.user_a)
+
+        response = self.client.get(
+            reverse('catene_scambio'),
+            {'load': 'true', 'lunghezza': '999', 'per_page': '1000000'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        get_cycles.assert_called_once_with(
+            preferred_announcement_id=None,
+            user_id=self.user_a.id,
+            page=None,
+            page_size=None,
+            focus_cycle_id=None,
+            cycle_length=None,
+            per_length_limit=20,
+        )
+        self.assertIsNone(response.context['tipo_catena_selezionato'])
+        self.assertEqual(response.context['catene_per_pagina'], 50)
 
 
 class PersonalCycleLoadingTests(TestCase):
@@ -346,3 +419,76 @@ class PersonalCycleLoadingTests(TestCase):
         self.assertEqual([item['id_ciclo'] for item in loaded], [
             str(self.first_cycle.id),
         ])
+
+    @patch('scambi.matching.converti_ciclo_db_a_view_format')
+    def test_balanced_loading_limits_each_cycle_length_separately(
+        self,
+        convert_cycle,
+    ):
+        for index in range(23):
+            self._cycle(
+                [self.user.id, 1000 + index],
+                f'balanced-two-{index}',
+                announcement_id=1000 + index,
+            )
+        for index in range(22):
+            self._cycle(
+                [self.user.id, *range(2000 + index * 5, 2005 + index * 5)],
+                f'balanced-six-{index}',
+                announcement_id=2000 + index,
+            )
+
+        convert_cycle.side_effect = lambda cycle, *args, **kwargs: {
+            'id_ciclo': str(cycle.id),
+            'lunghezza': cycle.lunghezza,
+            'utenti': [],
+        }
+
+        result = get_cicli_precalcolati(
+            user_id=self.user.id,
+            per_length_limit=20,
+        )
+        loaded = result['scambi_diretti'] + result['catene']
+        loaded_per_length = {
+            length: sum(item['lunghezza'] == length for item in loaded)
+            for length in range(2, 7)
+        }
+
+        self.assertEqual(result['totale_disponibili'], 47)
+        self.assertEqual(result['totali_per_lunghezza'][2], 25)
+        self.assertEqual(result['totali_per_lunghezza'][6], 22)
+        self.assertEqual(loaded_per_length[2], 20)
+        self.assertEqual(loaded_per_length[6], 20)
+        self.assertEqual(result['totale'], 40)
+        self.assertIsNone(result['pagina'])
+
+    @patch('scambi.matching.converti_ciclo_db_a_view_format')
+    def test_balanced_loading_keeps_a_notification_cycle_visible(
+        self,
+        convert_cycle,
+    ):
+        for index in range(23):
+            self._cycle(
+                [self.user.id, 3000 + index],
+                f'focus-two-{index}',
+                announcement_id=3000 + index,
+            )
+
+        convert_cycle.side_effect = lambda cycle, *args, **kwargs: {
+            'id_ciclo': str(cycle.id),
+            'lunghezza': cycle.lunghezza,
+            'utenti': [],
+        }
+
+        result = get_cicli_precalcolati(
+            user_id=self.user.id,
+            per_length_limit=20,
+            focus_cycle_id=self.first_cycle.id,
+        )
+        loaded = result['scambi_diretti'] + result['catene']
+
+        self.assertEqual(len(loaded), 20)
+        self.assertIn(
+            str(self.first_cycle.id),
+            {item['id_ciclo'] for item in loaded},
+        )

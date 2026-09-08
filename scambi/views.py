@@ -366,7 +366,8 @@ def catene_scambio(request):
     Mostra le catene di scambio pre-calcolate dal job pianificato.
     NUOVA LOGICA (2025):
     - Carica dal DB soltanto le catene dell'utente corrente
-    - Limita la risposta a 100 catene per pagina
+    - Mostra fino a 20 catene per lunghezza nella vista completa
+    - Permette pagine da 20, 50 o 100 quando si seleziona una lunghezza
     - Applica il filtro annuncio prima della paginazione
     - I ricalcoli avvengono solo tramite il job protetto, mai dalla richiesta web
     - CARICAMENTO LAZY: ?load=true → carica catene dal DB, altrimenti pagina vuota
@@ -428,8 +429,20 @@ def catene_scambio(request):
     if annuncio_id:
         try:
             annuncio_selezionato = Annuncio.objects.get(id=annuncio_id, utente=request.user, attivo=True)
-        except Annuncio.DoesNotExist:
+        except (Annuncio.DoesNotExist, TypeError, ValueError):
             pass
+
+    # Filtri server-side con valori chiusi: impediscono richieste arbitrarie
+    # che potrebbero caricare troppe catene in una singola risposta.
+    tipo_catena_selezionato = {
+        str(length): length for length in range(2, 7)
+    }.get(request.GET.get('lunghezza'))
+    try:
+        catene_per_pagina = int(request.GET.get('per_page', 50))
+    except (TypeError, ValueError):
+        catene_per_pagina = 50
+    if catene_per_pagina not in {20, 50, 100}:
+        catene_per_pagina = 50
 
     # Se non richiesto caricamento E non c'è sessione, mostra pagina vuota con solo il bottone
     if not load_chains:
@@ -450,6 +463,8 @@ def catene_scambio(request):
             'totale_catene_lunghe': 0,
             'miei_annunci': miei_annunci,
             'annuncio_selezionato': annuncio_selezionato,
+            'tipo_catena_selezionato': tipo_catena_selezionato,
+            'catene_per_pagina': catene_per_pagina,
             'empty_state': True,  # Flag per mostrare stato vuoto
             'cicli_interessati': set(),  # Set vuoto - nessuna catena
         })
@@ -460,6 +475,7 @@ def catene_scambio(request):
     ricalcola_per_utente = False
     pagina_catene = None
     totale_catene_disponibili = None
+    totali_per_lunghezza = {length: 0 for length in range(2, 7)}
 
     if ricalcola_per_utente and request.user.is_authenticated:
         # RICALCOLO PARZIALE: invalida cicli utente e ricalcola
@@ -708,13 +724,26 @@ def catene_scambio(request):
                             if annuncio_selezionato else None
                         ),
                         user_id=request.user.id,
-                        page=request.GET.get('page'),
-                        page_size=100,
+                        page=(
+                            request.GET.get('page')
+                            if tipo_catena_selezionato else None
+                        ),
+                        page_size=(
+                            catene_per_pagina
+                            if tipo_catena_selezionato else None
+                        ),
                         focus_cycle_id=highlight_ciclo_id,
+                        cycle_length=tipo_catena_selezionato,
+                        per_length_limit=(
+                            20 if tipo_catena_selezionato is None else None
+                        ),
                     )
                     pagina_catene = risultato['pagina']
                     totale_catene_disponibili = risultato[
                         'totale_disponibili'
+                    ]
+                    totali_per_lunghezza = risultato[
+                        'totali_per_lunghezza'
                     ]
                     scambi_diretti = risultato['scambi_diretti']
                     catene_lunghe = risultato['catene']
@@ -842,6 +871,18 @@ def catene_scambio(request):
         'totale_catene_lunghe': len(catene_specifiche) - len(catene_2),
         'miei_annunci': miei_annunci,
         'annuncio_selezionato': annuncio_selezionato,
+        'tipo_catena_selezionato': tipo_catena_selezionato,
+        'catene_per_pagina': catene_per_pagina,
+        'totale_catene_2': totali_per_lunghezza[2],
+        'totale_catene_3': totali_per_lunghezza[3],
+        'totale_catene_4': totali_per_lunghezza[4],
+        'totale_catene_5': totali_per_lunghezza[5],
+        'totale_catene_6': totali_per_lunghezza[6],
+        'catene_2_limitata': totali_per_lunghezza[2] > len(catene_2),
+        'catene_3_limitata': totali_per_lunghezza[3] > len(catene_3),
+        'catene_4_limitata': totali_per_lunghezza[4] > len(catene_4),
+        'catene_5_limitata': totali_per_lunghezza[5] > len(catene_5),
+        'catene_6_limitata': totali_per_lunghezza[6] > len(catene_6),
         'cicli_interessati': cicli_interessati,  # IDs dei cicli per cui l'utente ha già mostrato interesse
         'highlight_ciclo_id': highlight_ciclo_id,  # ID ciclo da evidenziare (per link notifiche)
         'pagina_catene': pagina_catene,
