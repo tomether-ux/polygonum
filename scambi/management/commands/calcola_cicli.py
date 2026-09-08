@@ -125,13 +125,17 @@ class Command(BaseCommand):
             else:
                 cicli = self._calcolo_completo(max_length)
 
-            # Step 4: Salva i cicli nel database
-            if cicli:
-                self._salva_cicli_batch(cicli, batch_size)
-            else:
+            # Step 4: Salva i cicli nel database. Anche una lista vuota deve
+            # completare la sostituzione sicura di un calcolo completo.
+            if not cicli:
                 self.stdout.write(
                     self.style.WARNING(f"[{datetime.now()}] ⚠️ Nessun ciclo trovato")
                 )
+            self._salva_cicli_batch(
+                cicli,
+                batch_size,
+                finalize_full=not usa_incrementale,
+            )
 
             # Step 5: Aggiorna metadata e statistiche finali
             elapsed = time.time() - start_time
@@ -165,14 +169,9 @@ class Command(BaseCommand):
             self.style.HTTP_INFO(f"[{datetime.now()}] 🔄 Calcolo completo di tutti i cicli...")
         )
 
-        # Marca tutti i cicli esistenti come non validi
-        existing_count = CicloScambio.objects.filter(valido=True).count()
-        CicloScambio.objects.filter(valido=True).update(valido=False)
-        self.stdout.write(
-            self.style.WARNING(f"[{datetime.now()}] 🔄 Marcati {existing_count} cicli come non validi")
-        )
-
-        # Calcola nuovi cicli
+        # Calcola prima tutti i nuovi cicli. I risultati correnti rimangono
+        # validi fino al completamento del salvataggio, così un timeout o un
+        # crash non lascia il sito senza catene.
         finder = CycleFinder()
         finder.costruisci_grafo()
         cicli = finder.trova_tutti_cicli(max_length=max_length)
@@ -221,7 +220,7 @@ class Command(BaseCommand):
 
         return cicli
 
-    def _salva_cicli_batch(self, cicli, batch_size):
+    def _salva_cicli_batch(self, cicli, batch_size, *, finalize_full):
         """
         Salva i cicli nel database a batch usando upsert intelligente
         - Se il ciclo esiste già (stesso hash_ciclo), lo riattiva e aggiorna i dettagli
@@ -232,6 +231,7 @@ class Command(BaseCommand):
         creati = 0
         aggiornati = 0
         errori = 0
+        new_hashes = set()
 
         self.stdout.write(
             self.style.HTTP_INFO(f"[{datetime.now()}] 💾 Inizio salvataggio/aggiornamento {total_cicli} cicli...")
@@ -245,6 +245,7 @@ class Command(BaseCommand):
                     for ciclo_data in batch:
                         try:
                             hash_ciclo = ciclo_data['hash_ciclo']
+                            new_hashes.add(hash_ciclo)
 
                             # Cerca se esiste già un ciclo con questo hash
                             ciclo_esistente = CicloScambio.objects.filter(hash_ciclo=hash_ciclo).first()
@@ -291,6 +292,13 @@ class Command(BaseCommand):
                 )
                 errori += len(batch)
 
+        if errori:
+            # I batch riusciti possono contenere nuovi risultati, ma i vecchi
+            # restano validi. Non finalizzare una fotografia incompleta.
+            raise CommandError(
+                f'Salvataggio cicli incompleto: {errori} errore/i'
+            )
+
         self.stdout.write(
             self.style.SUCCESS(
                 f"[{datetime.now()}] 💾 Salvataggio completato: "
@@ -298,19 +306,41 @@ class Command(BaseCommand):
             )
         )
 
-        # Cleanup cicli che non sono più validi (non trovati nel nuovo calcolo)
-        # Ma SOLO se non hanno proposte attive!
-        cicli_da_rimuovere = CicloScambio.objects.filter(
-            valido=False
-        ).exclude(
-            proposte__stato='in_attesa'  # Non eliminare cicli con proposte in attesa
-        )
-        rimossi_count = cicli_da_rimuovere.count()
+        # La fase finale è atomica: per un calcolo completo rende non validi
+        # soltanto i cicli assenti dalla nuova fotografia. Per l'incrementale,
+        # l'invalidazione mirata è già stata eseguita dal CycleFinder.
+        with transaction.atomic():
+            if finalize_full:
+                stale_cycles = CicloScambio.objects.filter(valido=True)
+                if new_hashes:
+                    stale_cycles = stale_cycles.exclude(
+                        hash_ciclo__in=new_hashes
+                    )
+                invalidati_count = stale_cycles.update(valido=False)
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"[{datetime.now()}] 🔄 Marcati {invalidati_count} "
+                        "cicli non più attuali come non validi"
+                    )
+                )
+
+            # Mantiene il comportamento esistente: elimina esclusivamente i
+            # risultati di calcolo non validi e senza proposte in attesa.
+            # Annunci, utenti e proposte non vengono mai eliminati qui.
+            cicli_da_rimuovere = CicloScambio.objects.filter(
+                valido=False
+            ).exclude(
+                proposte__stato='in_attesa'
+            )
+            rimossi_count = cicli_da_rimuovere.count()
+            if rimossi_count > 0:
+                cicli_da_rimuovere.delete()
+
         if rimossi_count > 0:
-            cicli_da_rimuovere.delete()
             self.stdout.write(
                 self.style.WARNING(
-                    f"[{datetime.now()}] 🗑️ Rimossi {rimossi_count} cicli non più validi (senza proposte attive)"
+                    f"[{datetime.now()}] 🗑️ Rimossi {rimossi_count} cicli "
+                    "non più validi (senza proposte attive)"
                 )
             )
 

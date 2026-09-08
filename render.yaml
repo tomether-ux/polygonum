@@ -23,8 +23,10 @@ services:
           property: connectionString
       - key: DJANGO_SETTINGS_MODULE
         value: scambio_sito.settings
-      - key: DJANGO_SECRET_KEY
-        generateValue: true
+      # Usa la SECRET_KEY già presente in produzione. Non generarne una nuova:
+      # web e cron devono firmare/verificare gli stessi link di moderazione.
+      - key: SECRET_KEY
+        sync: false
       - key: DJANGO_DEBUG
         value: "False"
       - key: ALLOWED_HOSTS
@@ -37,9 +39,52 @@ services:
         value: "4"
       - key: GUNICORN_TIMEOUT_SECONDS
         value: "120"
+      # Rollout in due fasi: sarà portato a True solo dopo avere verificato
+      # manualmente il cron. Fino ad allora resta attivo il thread storico.
+      - key: MODERATION_QUEUE_ENABLED
+        value: "False"
     healthCheckPath: /health/
     domains:
       - polygonum.io
+
+  # Un solo processo pianificato gestisce email persistenti e calcolo catene.
+  # Il piano minimo e il timeout impediscono consumo compute incontrollato.
+  - type: cron
+    name: polygonum-background-tasks
+    env: python
+    plan: starter
+    schedule: "*/5 * * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py run_scheduled_tasks_guarded
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: polygonum-database
+          property: connectionString
+      - key: DJANGO_SETTINGS_MODULE
+        value: scambio_sito.settings
+      # Incolla esattamente la SECRET_KEY già usata dal servizio web.
+      - key: SECRET_KEY
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: ADMIN_MODERATION_EMAIL
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        value: noreply@polygonum.io
+      - key: SITE_URL
+        value: https://polygonum.io
+      - key: BACKGROUND_EMAIL_LIMIT
+        value: "10"
+      - key: BACKGROUND_EMAIL_MAX_ATTEMPTS
+        value: "8"
+      - key: BACKGROUND_CYCLE_INTERVAL_MINUTES
+        value: "30"
+      # 210s cooperativi, seguiti dal limite assoluto del processo a 240s.
+      - key: BACKGROUND_TIME_BUDGET_SECONDS
+        value: "210"
+      - key: BACKGROUND_HARD_TIMEOUT_SECONDS
+        value: "240"
 
 
 # Configurazioni globali

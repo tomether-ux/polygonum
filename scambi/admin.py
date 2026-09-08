@@ -1,15 +1,60 @@
 import logging
 
 from django.contrib import admin
+from django.utils import timezone
 from django.utils.html import escape
 from .models import (
     Categoria, Annuncio, UserProfile, Notifica, Preferiti,
     PropostaScambio, CicloScambio, Provincia,
-    ConfermaCompletamento, ValutazioneScambio
+    ConfermaCompletamento, ValutazioneScambio, ModerationEmailJob
 )
 from .moderation import approve_announcement, reject_announcement
 
 logger = logging.getLogger(__name__)
+
+
+@admin.register(ModerationEmailJob)
+class ModerationEmailJobAdmin(admin.ModelAdmin):
+    list_display = [
+        'annuncio',
+        'status',
+        'attempts',
+        'next_attempt_at',
+        'sent_at',
+    ]
+    list_filter = ['status']
+    search_fields = ['annuncio__titolo', 'annuncio__utente__username']
+    readonly_fields = [
+        'annuncio',
+        'image_reference',
+        'image_url',
+        'attempts',
+        'next_attempt_at',
+        'locked_at',
+        'sent_at',
+        'last_error_type',
+        'created_at',
+        'updated_at',
+    ]
+    actions = ['retry_selected_jobs']
+
+    @admin.action(description='Riprova le email selezionate')
+    def retry_selected_jobs(self, request, queryset):
+        updated = queryset.filter(
+            status__in=[
+                ModerationEmailJob.STATUS_FAILED,
+                ModerationEmailJob.STATUS_CANCELLED,
+            ]
+        ).update(
+            status=ModerationEmailJob.STATUS_PENDING,
+            attempts=0,
+            next_attempt_at=timezone.now(),
+            locked_at=None,
+            sent_at=None,
+            last_error_type='',
+            updated_at=timezone.now(),
+        )
+        self.message_user(request, f'{updated} email rimesse in coda.')
 
 
 @admin.register(Provincia)

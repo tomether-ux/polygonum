@@ -21,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# Legge DJANGO_SECRET_KEY da render.yaml (non SECRET_KEY!)
+# Accetta entrambi i nomi per compatibilita con Render e ambienti esistenti.
 # SECURITY: nessun fallback hardcoded — fail-fast in produzione, random in dev/CI
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or os.environ.get('SECRET_KEY')
 if not SECRET_KEY:
@@ -212,6 +212,14 @@ EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT_SECONDS', '30'))
 
 # Admin email per moderazione contenuti (SECURITY: obbligatorio in produzione)
 ADMIN_MODERATION_EMAIL = os.environ.get('ADMIN_MODERATION_EMAIL')
+
+# La coda persistente viene attivata sul servizio web solo dopo avere
+# verificato il cron in produzione. Fino ad allora resta attivo il thread
+# storico, così il deploy di questa batch non cambia il flusso degli utenti.
+MODERATION_QUEUE_ENABLED = (
+    os.environ.get('MODERATION_QUEUE_ENABLED', 'False').strip().lower()
+    in {'1', 'true', 'yes', 'on'}
+)
 # Fail only in production (Render), allow missing in dev/CI (GitHub Actions)
 # GitHub Actions sets GITHUB_ACTIONS=true, skip check for CI
 is_github_actions = os.environ.get('GITHUB_ACTIONS') == 'true'

@@ -362,18 +362,63 @@ class Annuncio(models.Model):
             self.save(update_fields=['moderation_status'])
             return
 
-        # Avvia moderazione in thread separato per non bloccare la pubblicazione
-        # (sia per Cloudinary che per email manuale)
+        image_reference = str(self.immagine)
+
+        if settings.MODERATION_QUEUE_ENABLED:
+            # Registra il lavoro solo dopo il commit dell'annuncio. Se la coda
+            # non fosse disponibile durante il rollout, il thread storico
+            # rimane un fallback e l'email non viene persa.
+            from django.db import transaction
+            from .background_tasks import enqueue_moderation_email
+
+            image_url = self.get_image_url()
+
+            def enqueue_after_commit():
+                try:
+                    enqueue_moderation_email(
+                        self.id,
+                        image_reference=image_reference,
+                        image_url=image_url,
+                    )
+                    logger.info(
+                        "Moderation email queued annuncio_id=%s",
+                        self.id,
+                    )
+                except Exception:
+                    logger.exception(
+                        "Moderation queue unavailable; using thread fallback "
+                        "annuncio_id=%s",
+                        self.id,
+                    )
+                    fallback_thread = threading.Thread(
+                        target=self._perform_moderation_sync,
+                        args=(self.id, image_reference),
+                        daemon=True,
+                    )
+                    fallback_thread.start()
+
+            transaction.on_commit(enqueue_after_commit)
+            return
+
+        # Flusso storico mantenuto durante la prima fase del rollout.
         thread = threading.Thread(
             target=self._perform_moderation_sync,
-            args=(self.id, str(self.immagine)),
-            daemon=True
+            args=(self.id, image_reference),
+            daemon=True,
         )
         thread.start()
-        logger.debug(f"🔄 Moderazione avviata in background per annuncio #{self.id}")
+        logger.debug("Moderation thread started annuncio_id=%s", self.id)
 
     @staticmethod
-    def _perform_moderation_sync(annuncio_id, public_id):
+    def _perform_moderation_sync(
+        annuncio_id,
+        public_id,
+        *,
+        delay_seconds=2,
+        image_url_override=None,
+        validate_image=False,
+        raise_on_error=False,
+    ):
         """
         MODERAZIONE MANUALE VIA EMAIL
 
@@ -391,7 +436,6 @@ class Annuncio(models.Model):
         from django.urls import reverse
         from django.core.signing import TimestampSigner
         import time
-        import os
 
         try:
             # SECURITY: Skip email se ADMIN_MODERATION_EMAIL non configurato (dev/CI)
@@ -406,11 +450,20 @@ class Annuncio(models.Model):
 
             logger.debug(f"📧 Invio email moderazione per annuncio #{annuncio_id}")
 
-            # Attendi 2 secondi per evitare race conditions
-            time.sleep(2)
+            # Il thread storico attende per evitare race condition. Il cron
+            # lavora invece su dati già committati e passa delay_seconds=0.
+            if delay_seconds:
+                time.sleep(delay_seconds)
 
             # Recupera annuncio
             annuncio = Annuncio.objects.get(id=annuncio_id)
+
+            if validate_image and str(annuncio.immagine or '') != public_id:
+                logger.info(
+                    "Stale moderation email skipped annuncio_id=%s",
+                    annuncio_id,
+                )
+                return False
 
             # Crea token firmato per link sicuri con scadenza 24h
             approve_signer = TimestampSigner(salt='moderation-approve')
@@ -418,8 +471,9 @@ class Annuncio(models.Model):
             approve_token = approve_signer.sign(f'approve_{annuncio_id}')
             reject_token = reject_signer.sign(f'reject_{annuncio_id}')
 
-            # URL base (usa RENDER_EXTERNAL_URL in produzione, localhost in dev)
-            base_url = os.environ.get('RENDER_EXTERNAL_URL', 'http://localhost:8000')
+            # Usa un'origine canonica: un cron job non dispone di un proprio
+            # URL web e non deve costruire link da variabili della richiesta.
+            base_url = settings.SITE_URL.rstrip('/')
 
             # Link per approve/reject
             approve_url = f"{base_url}/moderazione/approve/{approve_token}/"
@@ -435,7 +489,8 @@ class Annuncio(models.Model):
             html_category = escape(annuncio.categoria.nome)
             html_type = escape(annuncio.get_tipo_display())
             html_description = escape(annuncio.descrizione).replace('\n', '<br>')
-            html_image_url = escape(annuncio.get_image_url())
+            image_url = image_url_override or annuncio.get_image_url()
+            html_image_url = escape(image_url)
             html_approve_url = escape(approve_url)
             html_reject_url = escape(reject_url)
 
@@ -451,7 +506,7 @@ Tipo: {annuncio.get_tipo_display()}
 Descrizione:
 {annuncio.descrizione}
 
-Immagine: {annuncio.get_image_url()}
+Immagine: {image_url}
 
 ---
 Per aprire la conferma di approvazione: {approve_url}
@@ -523,6 +578,7 @@ Per aprire la conferma di rifiuto: {reject_url}
             email.send(fail_silently=False)
 
             logger.info("Moderation email sent annuncio_id=%s", annuncio_id)
+            return True
 
         except Exception as exc:
             logger.error(
@@ -533,6 +589,9 @@ Per aprire la conferma di rifiuto: {reject_url}
             # Fail closed: se l'email non parte, l'immagine resta in attesa.
             # Un errore SMTP non deve rendere automaticamente pubblico un
             # contenuto che non è ancora stato revisionato.
+            if raise_on_error:
+                raise
+            return False
 
         finally:
             # CRITICO: Chiudi connessioni DB aperte dal thread per evitare esaurimento pool
@@ -610,6 +669,58 @@ Per aprire la conferma di rifiuto: {reject_url}
     class Meta:
         verbose_name_plural = "Annunci"
         ordering = ['-data_creazione']
+
+
+class ModerationEmailJob(models.Model):
+    """Coda persistente per le email di moderazione delle immagini."""
+
+    STATUS_PENDING = 'pending'
+    STATUS_PROCESSING = 'processing'
+    STATUS_SENT = 'sent'
+    STATUS_FAILED = 'failed'
+    STATUS_CANCELLED = 'cancelled'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'In attesa'),
+        (STATUS_PROCESSING, 'In elaborazione'),
+        (STATUS_SENT, 'Inviata'),
+        (STATUS_FAILED, 'Fallita'),
+        (STATUS_CANCELLED, 'Annullata'),
+    ]
+
+    annuncio = models.OneToOneField(
+        Annuncio,
+        on_delete=models.CASCADE,
+        related_name='moderation_email_job',
+    )
+    image_reference = models.CharField(max_length=500)
+    image_url = models.URLField(max_length=2000)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+        db_index=True,
+    )
+    attempts = models.PositiveSmallIntegerField(default=0)
+    next_attempt_at = models.DateTimeField(default=timezone.now, db_index=True)
+    locked_at = models.DateTimeField(null=True, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    last_error_type = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['next_attempt_at', 'created_at']
+        indexes = [
+            models.Index(
+                fields=['status', 'next_attempt_at'],
+                name='moderation_queue_due_idx',
+            ),
+        ]
+        verbose_name = 'Email di moderazione in coda'
+        verbose_name_plural = 'Email di moderazione in coda'
+
+    def __str__(self):
+        return f'Annuncio {self.annuncio_id}: {self.status}'
 
 
 class Provincia(models.Model):
