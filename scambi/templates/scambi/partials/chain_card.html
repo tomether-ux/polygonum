@@ -1,4 +1,4 @@
-<div class="modern-chain-card high-quality mb-4" id="ciclo-{{ catena.id_ciclo }}" data-ciclo-id="{{ catena.id_ciclo }}" data-usa-sinonimi="{{ catena.usa_sinonimi|default:'false'|lower }}" data-ha-match-parziali="{{ catena.ha_match_parziali|default:'false'|lower }}" data-fasce-pari="{{ catena.fasce_pari|default:'false'|lower }}" data-annunci-ids="{% for utente in catena.utenti %}{% if utente.richiede %}{{ utente.richiede.id }}{% endif %}{% if utente.offerta %}{% if utente.richiede %},{% endif %}{{ utente.offerta.id }}{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}">
+<div class="modern-chain-card high-quality mb-4" id="ciclo-{{ catena.id_ciclo }}" data-ciclo-id="{{ catena.id_ciclo }}" data-usa-sinonimi="{{ catena.usa_sinonimi|default:'false'|lower }}" data-ha-match-parziali="{{ catena.ha_match_parziali|default:'false'|lower }}" data-fasce-pari="{{ catena.fasce_pari|default:'false'|lower }}" data-annunci-ids="{% if catena.annunci_ids %}{{ catena.annunci_ids|join:',' }}{% else %}{% for utente in catena.utenti %}{% if utente.richiede %}{{ utente.richiede.id }}{% endif %}{% if utente.offerta %}{% if utente.richiede %},{% endif %}{{ utente.offerta.id }}{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}{% endif %}">
     <div class="chain-card-header" onclick="toggleCard(this, event)" style="cursor: pointer;">
         <div class="d-flex justify-content-between align-items-start flex-column flex-md-row">
             <div class="chain-title">
@@ -96,12 +96,50 @@
                                     <i class="fas fa-search"></i>
                                     <span>Cerca: {{ utente.richiede.titolo|truncatechars:30 }}</span>
                                 </a>
+                                {% if utente.richiede_opzioni|length > 1 %}
+                                <details class="chain-alternatives mt-1 mb-2">
+                                    <summary class="small fw-semibold text-primary py-1" style="cursor: pointer;">
+                                        Vedi altre richieste compatibili ({{ utente.richiede_opzioni|length|add:"-1" }})
+                                    </summary>
+                                    <div class="list-group list-group-flush mt-1">
+                                        {% for opzione in utente.richiede_opzioni %}
+                                            {% if opzione.id != utente.richiede.id %}
+                                            <a href="{% url 'dettaglio_annuncio' opzione.id %}"
+                                               class="list-group-item list-group-item-action py-2 small"
+                                               data-annuncio-option-id="{{ opzione.id }}">
+                                                <i class="fas fa-search me-1 text-primary"></i>
+                                                {{ opzione.titolo|truncatechars:42 }}
+                                            </a>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </details>
+                                {% endif %}
                             {% endif %}
                             {% if utente.offerta %}
                                 <a href="{% url 'dettaglio_annuncio' utente.offerta.id %}" class="exchange-detail offer exchange-detail-link">
                                     <i class="fas fa-hand-holding"></i>
                                     <span>Offre: {{ utente.offerta.titolo|truncatechars:30 }}</span>
                                 </a>
+                                {% if utente.offerta_opzioni|length > 1 %}
+                                <details class="chain-alternatives mt-1 mb-2">
+                                    <summary class="small fw-semibold text-success py-1" style="cursor: pointer;">
+                                        Vedi altre offerte compatibili ({{ utente.offerta_opzioni|length|add:"-1" }})
+                                    </summary>
+                                    <div class="list-group list-group-flush mt-1">
+                                        {% for opzione in utente.offerta_opzioni %}
+                                            {% if opzione.id != utente.offerta.id %}
+                                            <a href="{% url 'dettaglio_annuncio' opzione.id %}"
+                                               class="list-group-item list-group-item-action py-2 small"
+                                               data-annuncio-option-id="{{ opzione.id }}">
+                                                <i class="fas fa-gift me-1 text-success"></i>
+                                                {{ opzione.titolo|truncatechars:42 }}
+                                            </a>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </details>
+                                {% endif %}
                             {% endif %}
                         </div>
                     </div>

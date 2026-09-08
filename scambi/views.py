@@ -700,7 +700,12 @@ def catene_scambio(request):
                         calcola_qualita_ciclo
                     )
 
-                    risultato = get_cicli_precalcolati()
+                    if annuncio_selezionato:
+                        risultato = get_cicli_precalcolati(
+                            preferred_announcement_id=annuncio_selezionato.id,
+                        )
+                    else:
+                        risultato = get_cicli_precalcolati()
                     scambi_diretti = risultato['scambi_diretti']
                     catene_lunghe = risultato['catene']
 
@@ -1413,27 +1418,46 @@ def le_mie_catene(request):
         logger.debug(f"📦 CARICAMENTO CATENE DAL DB per user_id={request.user.id}")
 
         # Carica cicli dal DB che contengono questo utente
-        cicli_db = CicloScambio.find_for_user(request.user.id, limit=200)
+        cicli_db = list(CicloScambio.find_for_user(request.user.id, limit=200))
+
+        from .matching import (
+            converti_ciclo_db_a_view_format,
+            estrai_annunci_ids_dettagli,
+        )
 
         # Filtra per annuncio specifico se richiesto
         if annuncio_selezionato:
-            # Filtra cicli che contengono l'annuncio selezionato
-            cicli_filtrati = []
-            for ciclo in cicli_db:
-                if 'utenti' in ciclo.dettagli:
-                    for utente_info in ciclo.dettagli['utenti']:
-                        annunci_ids = []
-                        if utente_info.get('richiede'):
-                            annunci_ids.append(utente_info['richiede'].get('id'))
-                        if utente_info.get('offerta'):
-                            annunci_ids.append(utente_info['offerta'].get('id'))
-                        if annuncio_selezionato.id in annunci_ids:
-                            cicli_filtrati.append(ciclo)
-                            break
-            cicli_db = cicli_filtrati
+            # Cerca anche nelle alternative del ciclo, non soltanto nella coppia
+            # che era stata scelta come anteprima durante il calcolo.
+            cicli_db = [
+                ciclo for ciclo in cicli_db
+                if annuncio_selezionato.id in estrai_annunci_ids_dettagli(ciclo.dettagli)
+            ]
 
         # Converti cicli DB in formato template
-        catene_uniche = [converti_ciclo_a_catena(ciclo) for ciclo in cicli_db]
+        annunci_ids = set()
+        utenti_ids = set()
+        for ciclo in cicli_db:
+            annunci_ids.update(estrai_annunci_ids_dettagli(ciclo.dettagli))
+            utenti_ids.update(ciclo.users)
+
+        annunci_dict = Annuncio.objects.filter(
+            id__in=annunci_ids,
+        ).select_related('categoria').in_bulk()
+        utenti_dict = User.objects.in_bulk(utenti_ids)
+        preferred_announcement_id = (
+            annuncio_selezionato.id if annuncio_selezionato else None
+        )
+        catene_uniche = [
+            catena
+            for ciclo in cicli_db
+            if (catena := converti_ciclo_db_a_view_format(
+                ciclo,
+                annunci_dict,
+                utenti_dict=utenti_dict,
+                preferred_announcement_id=preferred_announcement_id,
+            ))
+        ]
 
         logger.debug(f"✅ Caricate {len(catene_uniche)} catene dal DB")
 

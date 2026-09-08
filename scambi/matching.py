@@ -1461,7 +1461,23 @@ def get_dettagli_ciclo(user_ids):
 
 # ===== FUNZIONI OTTIMIZZATE CHE USANO CICLI PRE-CALCOLATI =====
 
-def get_cicli_precalcolati():
+def estrai_annunci_ids_dettagli(dettagli):
+    """Restituisce tutti gli ID annuncio salvati nelle alternative di un ciclo."""
+    annunci_ids = []
+    visti = set()
+
+    for scambio in dettagli.get('scambi', []):
+        for oggetto in scambio.get('oggetti', []):
+            for ruolo in ('offerto', 'richiesto'):
+                annuncio_id = oggetto.get(ruolo, {}).get('id')
+                if annuncio_id and annuncio_id not in visti:
+                    visti.add(annuncio_id)
+                    annunci_ids.append(annuncio_id)
+
+    return annunci_ids
+
+
+def get_cicli_precalcolati(preferred_announcement_id=None):
     """
     Funzione ottimizzata che legge i cicli pre-calcolati dal database invece di fare brute-force.
     Sostituisce le vecchie funzioni trova_scambi_diretti() e trova_catene_scambio().
@@ -1475,6 +1491,7 @@ def get_cicli_precalcolati():
         }
     """
     import time
+    from django.contrib.auth.models import User
     from .models import CicloScambio, Annuncio
 
     start_time = time.time()
@@ -1488,24 +1505,21 @@ def get_cicli_precalcolati():
     # Estrai tutti gli ID degli annunci coinvolti nei cicli PRIMA di processarli
     logger.debug("🚀 Pre-caricamento annunci...")
     annunci_ids = set()
+    utenti_ids = set()
 
     for ciclo_db in cicli_db:
-        dettagli = ciclo_db.dettagli
-        if 'scambi' in dettagli:
-            for scambio in dettagli['scambi']:
-                oggetti = scambio.get('oggetti', [])
-                for oggetto in oggetti:
-                    # Estrai ID da 'offerto' e 'richiesto'
-                    if 'offerto' in oggetto and 'id' in oggetto['offerto']:
-                        annunci_ids.add(oggetto['offerto']['id'])
-                    if 'richiesto' in oggetto and 'id' in oggetto['richiesto']:
-                        annunci_ids.add(oggetto['richiesto']['id'])
+        annunci_ids.update(estrai_annunci_ids_dettagli(ciclo_db.dettagli))
+        utenti_ids.update(ciclo_db.users)
 
     logger.debug(f"📦 Trovati {len(annunci_ids)} annunci unici coinvolti nei cicli")
 
     # Carica TUTTI gli annunci in UNA SOLA QUERY (inclusi inattivi per il filtro)
     # NOTA: Carichiamo anche inattivi perché il filtro successivo li gestisce
-    annunci_dict = {a.id: a for a in Annuncio.objects.filter(id__in=annunci_ids)}
+    annunci_dict = {
+        a.id: a
+        for a in Annuncio.objects.filter(id__in=annunci_ids).select_related('categoria')
+    }
+    utenti_dict = User.objects.in_bulk(utenti_ids)
     logger.debug(f"✅ Pre-caricati {len(annunci_dict)} annunci in memoria (attivi + inattivi per filtro)")
     # ===== FINE OTTIMIZZAZIONE =====
 
@@ -1515,7 +1529,12 @@ def get_cicli_precalcolati():
     for ciclo_db in cicli_db:
         try:
             # Passa il dizionario annunci pre-caricati alla funzione di conversione
-            ciclo_convertito = converti_ciclo_db_a_view_format(ciclo_db, annunci_dict)
+            ciclo_convertito = converti_ciclo_db_a_view_format(
+                ciclo_db,
+                annunci_dict,
+                utenti_dict=utenti_dict,
+                preferred_announcement_id=preferred_announcement_id,
+            )
 
             if ciclo_convertito:
                 if ciclo_db.lunghezza == 2:
@@ -1545,13 +1564,21 @@ def get_cicli_precalcolati():
     }
 
 
-def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
+def converti_ciclo_db_a_view_format(
+    ciclo_db,
+    annunci_dict=None,
+    utenti_dict=None,
+    preferred_announcement_id=None,
+):
     """
     Converte un CicloScambio dal database al formato richiesto dalle views.
 
     Args:
         ciclo_db: Istanza CicloScambio dal database
         annunci_dict: Dizionario {annuncio_id: Annuncio} pre-caricato (ottimizzazione)
+        utenti_dict: Dizionario {user_id: User} pre-caricato (ottimizzazione)
+        preferred_announcement_id: Annuncio da usare come anteprima, se presente
+            tra le alternative del ciclo.
 
     Returns:
         dict: Ciclo nel formato compatibile con le views esistenti
@@ -1562,14 +1589,22 @@ def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
     try:
         # Carica gli utenti del ciclo
         user_ids = ciclo_db.users
-        utenti = User.objects.filter(id__in=user_ids)
+        if utenti_dict is None:
+            utenti = User.objects.filter(id__in=user_ids)
+            utenti_del_ciclo = {u.id: u for u in utenti}
+        else:
+            utenti_del_ciclo = {
+                user_id: utenti_dict[user_id]
+                for user_id in user_ids
+                if user_id in utenti_dict
+            }
 
-        if len(utenti) != len(user_ids):
+        if len(utenti_del_ciclo) != len(user_ids):
             logger.debug(f"⚠️ Alcuni utenti del ciclo {ciclo_db.id} non esistono più")
             return None
 
         # Crea un dizionario per accesso veloce agli utenti per ID
-        utenti_dict = {u.id: u for u in utenti}
+        utenti_dict_ciclo = utenti_del_ciclo
 
         # Usa i dettagli già processati dal database
         dettagli = ciclo_db.dettagli
@@ -1591,7 +1626,7 @@ def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
 
                         if offerto_id and richiesto_id:
                             # OTTIMIZZAZIONE: Usa dizionario pre-caricato invece di query DB
-                            if annunci_dict:
+                            if annunci_dict is not None:
                                 offerta_ann = annunci_dict.get(offerto_id)
                                 richiesta_ann = annunci_dict.get(richiesto_id)
                             else:
@@ -1609,67 +1644,75 @@ def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
                 if usa_sinonimi and ha_match_parziali:
                     break
 
-        # Costruisci il mapping utente -> offerte/richieste dai dettagli scambi
-        # FILTRO: Verifica che TUTTI gli scambi siano completi (nessun None)
+        # Costruisci il mapping utente -> offerte/richieste. Ogni lato del ciclo
+        # può avere più coppie compatibili: una viene usata come anteprima e le
+        # altre restano disponibili per il menu della card.
         user_offers = {}
         user_requests = {}
+        user_offer_options = {}
+        user_request_options = {}
+        annunci_ids = []
+        annunci_ids_visti = set()
+
+        def aggiungi_opzione(mapping, user_id, annuncio):
+            opzioni = mapping.setdefault(user_id, {})
+            opzioni.setdefault(annuncio.id, annuncio)
+
+        def aggiungi_annuncio_id(annuncio_id):
+            if annuncio_id not in annunci_ids_visti:
+                annunci_ids_visti.add(annuncio_id)
+                annunci_ids.append(annuncio_id)
 
         if 'scambi' in dettagli:
-            # Prima verifica che tutti gli scambi abbiano oggetti validi
             num_scambi_attesi = len(user_ids)
             scambi_completi = 0
 
             for scambio in dettagli['scambi']:
-                # Se lo scambio non ha oggetti, significa che ha fallito i controlli metodo/distanza
-                if scambio and scambio.get('oggetti'):
-                    scambi_completi += 1
-
-            # Se mancano scambi, questo ciclo è incompleto → non visualizzare
-            if scambi_completi < num_scambi_attesi:
-                logger.debug(f"⚠️ Ciclo {ciclo_db.id} incompleto: {scambi_completi}/{num_scambi_attesi} scambi validi")
-                return None
-
-            # Ora costruisci il mapping
-            for scambio in dettagli['scambi']:
                 da_user = scambio.get('da_user')
                 a_user = scambio.get('a_user')
-                oggetti = scambio.get('oggetti', [])
+                coppie_valide = []
 
-                for oggetto in oggetti:
-                    # L'utente da_user offre 'offerto' e l'utente a_user cerca 'richiesto'
-                    if 'offerto' in oggetto and da_user:
-                        try:
-                            offerto_id = oggetto['offerto']['id']
-                            # OTTIMIZZAZIONE: Usa dizionario pre-caricato invece di query DB
-                            if annunci_dict:
-                                offerta = annunci_dict.get(offerto_id)
-                            else:
-                                offerta = Annuncio.objects.get(id=offerto_id)
+                for oggetto in scambio.get('oggetti', []):
+                    try:
+                        offerto_id = oggetto['offerto']['id']
+                        richiesto_id = oggetto['richiesto']['id']
 
-                            if offerta:
-                                user_offers[da_user] = offerta
-                        except (Annuncio.DoesNotExist, KeyError):
-                            pass
+                        if annunci_dict is not None:
+                            offerta = annunci_dict.get(offerto_id)
+                            richiesta = annunci_dict.get(richiesto_id)
+                        else:
+                            offerta = Annuncio.objects.select_related('categoria').get(id=offerto_id)
+                            richiesta = Annuncio.objects.select_related('categoria').get(id=richiesto_id)
 
-                    if 'richiesto' in oggetto and a_user:
-                        try:
-                            richiesto_id = oggetto['richiesto']['id']
-                            # OTTIMIZZAZIONE: Usa dizionario pre-caricato invece di query DB
-                            if annunci_dict:
-                                richiesta = annunci_dict.get(richiesto_id)
-                            else:
-                                richiesta = Annuncio.objects.get(id=richiesto_id)
+                        if not offerta or not richiesta or not offerta.attivo or not richiesta.attivo:
+                            continue
 
-                            if richiesta:
-                                user_requests[a_user] = richiesta
-                        except (Annuncio.DoesNotExist, KeyError):
-                            pass
+                        coppie_valide.append((offerta, richiesta))
+                        aggiungi_opzione(user_offer_options, da_user, offerta)
+                        aggiungi_opzione(user_request_options, a_user, richiesta)
+                        aggiungi_annuncio_id(offerta.id)
+                        aggiungi_annuncio_id(richiesta.id)
+                    except (Annuncio.DoesNotExist, KeyError, TypeError):
+                        continue
 
-        # FILTRO: Verifica che tutti gli annunci coinvolti siano ancora attivi
-        annunci_da_verificare = list(user_offers.values()) + list(user_requests.values())
-        for annuncio in annunci_da_verificare:
-            if not annuncio.attivo:
-                logger.debug(f"⚠️ Ciclo {ciclo_db.id} contiene annuncio disattivato: {annuncio.id}")
+                if coppie_valide:
+                    scambi_completi += 1
+                    # Mantiene come default l'ultima coppia, cioè il comportamento
+                    # precedente. Se l'utente filtra per un annuncio, mostra invece
+                    # la coppia esatta che lo contiene.
+                    coppia_selezionata = coppie_valide[-1]
+                    if preferred_announcement_id:
+                        for coppia in coppie_valide:
+                            if preferred_announcement_id in (coppia[0].id, coppia[1].id):
+                                coppia_selezionata = coppia
+                                break
+
+                    user_offers[da_user] = coppia_selezionata[0]
+                    user_requests[a_user] = coppia_selezionata[1]
+
+            # Se un lato non ha più alcuna coppia attiva, il ciclo è incompleto.
+            if scambi_completi < num_scambi_attesi:
+                logger.debug(f"⚠️ Ciclo {ciclo_db.id} incompleto: {scambi_completi}/{num_scambi_attesi} scambi validi")
                 return None
 
         # NUOVO: Riordina gli utenti secondo la sequenza di scambio
@@ -1690,12 +1733,14 @@ def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
                 utente_corrente = list(scambi_map.keys())[0]
                 visitati = set()
 
-                while utente_corrente not in visitati and utente_corrente in utenti_dict:
+                while utente_corrente not in visitati and utente_corrente in utenti_dict_ciclo:
                     visitati.add(utente_corrente)
                     utenti_ordinati.append({
-                        'user': utenti_dict[utente_corrente],
+                        'user': utenti_dict_ciclo[utente_corrente],
                         'offerta': user_offers.get(utente_corrente),
-                        'richiede': user_requests.get(utente_corrente)
+                        'richiede': user_requests.get(utente_corrente),
+                        'offerta_opzioni': list(user_offer_options.get(utente_corrente, {}).values()),
+                        'richiede_opzioni': list(user_request_options.get(utente_corrente, {}).values()),
                     })
 
                     # Vai all'utente successivo
@@ -1708,11 +1753,13 @@ def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
         if not utenti_ordinati:
             utenti_ordinati = []
             for user_id in user_ids:
-                if user_id in utenti_dict:
+                if user_id in utenti_dict_ciclo:
                     utenti_ordinati.append({
-                        'user': utenti_dict[user_id],
+                        'user': utenti_dict_ciclo[user_id],
                         'offerta': user_offers.get(user_id),
-                        'richiede': user_requests.get(user_id)
+                        'richiede': user_requests.get(user_id),
+                        'offerta_opzioni': list(user_offer_options.get(user_id, {}).values()),
+                        'richiede_opzioni': list(user_request_options.get(user_id, {}).values()),
                     })
 
         # Costruisci annunci_coinvolti nell'ordine della sequenza di scambio
@@ -1749,6 +1796,7 @@ def converti_ciclo_db_a_view_format(ciclo_db, annunci_dict=None):
             'id_ciclo': str(ciclo_db.id),
             'calcolato_at': ciclo_db.calcolato_at,
             'annunci_coinvolti': annunci_coinvolti,
+            'annunci_ids': annunci_ids,
             'usa_sinonimi': usa_sinonimi,  # Flag per filtraggio UI
             'ha_match_parziali': ha_match_parziali,  # Flag per filtraggio match esatti
             'da_database': True  # Flag per identificare cicli pre-calcolati
