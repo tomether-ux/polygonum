@@ -523,6 +523,34 @@
             </div>
             {% endif %}
         </div>
+
+        {% if pagina_catene and pagina_catene.has_other_pages %}
+        <nav class="mt-4" aria-label="Pagine delle catene di scambio">
+            <ul class="pagination justify-content-center flex-wrap">
+                {% if pagina_catene.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?load=true&amp;page={{ pagina_catene.previous_page_number }}{% if annuncio_selezionato %}&amp;annuncio_id={{ annuncio_selezionato.id }}{% endif %}#catene-scambio">
+                        Precedente
+                    </a>
+                </li>
+                {% endif %}
+
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        Pagina {{ pagina_catene.number }} di {{ pagina_catene.paginator.num_pages }}
+                    </span>
+                </li>
+
+                {% if pagina_catene.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?load=true&amp;page={{ pagina_catene.next_page_number }}{% if annuncio_selezionato %}&amp;annuncio_id={{ annuncio_selezionato.id }}{% endif %}#catene-scambio">
+                        Successiva
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
     {% endif %}
 
 
@@ -638,6 +666,7 @@ function ricalcolaCatene() {
     currentUrl.searchParams.delete('ricalcola');
     currentUrl.searchParams.delete('cerca');
     currentUrl.searchParams.delete('annuncio_id');
+    currentUrl.searchParams.delete('page');
     currentUrl.searchParams.set('load', 'true');
 
     // Preserva il filtro annuncio se selezionato

@@ -1466,7 +1466,7 @@ def estrai_annunci_ids_dettagli(dettagli):
     annunci_ids = []
     visti = set()
 
-    for scambio in dettagli.get('scambi', []):
+    for scambio in (dettagli or {}).get('scambi', []):
         for oggetto in scambio.get('oggetti', []):
             for ruolo in ('offerto', 'richiesto'):
                 annuncio_id = oggetto.get(ruolo, {}).get('id')
@@ -1477,7 +1477,14 @@ def estrai_annunci_ids_dettagli(dettagli):
     return annunci_ids
 
 
-def get_cicli_precalcolati(preferred_announcement_id=None):
+def get_cicli_precalcolati(
+    preferred_announcement_id=None,
+    *,
+    user_id=None,
+    page=None,
+    page_size=None,
+    focus_cycle_id=None,
+):
     """
     Funzione ottimizzata che legge i cicli pre-calcolati dal database invece di fare brute-force.
     Sostituisce le vecchie funzioni trova_scambi_diretti() e trova_catene_scambio().
@@ -1487,7 +1494,9 @@ def get_cicli_precalcolati(preferred_announcement_id=None):
             'scambi_diretti': [],     # Cicli di lunghezza 2
             'catene': [],            # Cicli di lunghezza 3+
             'totale': int,
-            'tempo': float
+            'totale_disponibili': int,
+            'pagina': Page | None,
+            'tempo': float,
         }
     """
     import time
@@ -1498,8 +1507,62 @@ def get_cicli_precalcolati(preferred_announcement_id=None):
 
     logger.debug("📊 Caricando cicli pre-calcolati dal database...")
 
-    # Carica tutti i cicli validi
-    cicli_db = CicloScambio.objects.filter(valido=True).order_by('-calcolato_at')
+    # Le pagine personali interrogano soltanto i cicli dell'utente. Le altre
+    # chiamate interne mantengono il comportamento globale precedente.
+    if user_id is None:
+        cicli_queryset = CicloScambio.objects.filter(valido=True).order_by(
+            '-calcolato_at', 'id'
+        )
+    else:
+        cicli_queryset = CicloScambio.find_for_user(user_id, limit=None)
+
+    # Il filtro per annuncio deve precedere la paginazione: in questo modo un
+    # annuncio non risulta assente soltanto perché i suoi cicli sono in una
+    # pagina successiva. Il confronto resta esatto anche con le alternative.
+    if preferred_announcement_id is not None:
+        preferred_announcement_id = int(preferred_announcement_id)
+        matching_cycle_ids = [
+            row['id']
+            for row in cicli_queryset.values('id', 'dettagli').iterator(
+                chunk_size=500
+            )
+            if preferred_announcement_id
+            in estrai_annunci_ids_dettagli(row['dettagli'])
+        ]
+        cicli_queryset = cicli_queryset.filter(id__in=matching_cycle_ids)
+
+    pagina = None
+    if page_size is not None:
+        from django.core.paginator import Paginator
+
+        page_size = min(max(1, int(page_size)), 200)
+        try:
+            requested_page = max(1, int(page or 1))
+        except (TypeError, ValueError):
+            requested_page = 1
+
+        # I link provenienti dalle notifiche possono indicare un ciclo da
+        # evidenziare. Se non è stata richiesta una pagina esplicita, apri
+        # direttamente quella che contiene il ciclo.
+        if focus_cycle_id is not None and page in (None, ''):
+            try:
+                focus_cycle_id = int(focus_cycle_id)
+                ordered_cycle_ids = list(
+                    cicli_queryset.values_list('id', flat=True)
+                )
+                requested_page = (
+                    ordered_cycle_ids.index(focus_cycle_id) // page_size
+                ) + 1
+            except (TypeError, ValueError):
+                requested_page = 1
+
+        paginator = Paginator(cicli_queryset, page_size)
+        pagina = paginator.get_page(requested_page)
+        totale_disponibili = paginator.count
+        cicli_db = list(pagina.object_list)
+    else:
+        cicli_db = list(cicli_queryset)
+        totale_disponibili = len(cicli_db)
 
     # ===== OTTIMIZZAZIONE: PRE-CARICAMENTO ANNUNCI =====
     # Estrai tutti gli ID degli annunci coinvolti nei cicli PRIMA di processarli
@@ -1560,7 +1623,9 @@ def get_cicli_precalcolati(preferred_announcement_id=None):
         'scambi_diretti': scambi_diretti,
         'catene': catene_lunghe,
         'totale': totale,
-        'tempo': elapsed
+        'totale_disponibili': totale_disponibili,
+        'pagina': pagina,
+        'tempo': elapsed,
     }
 
 

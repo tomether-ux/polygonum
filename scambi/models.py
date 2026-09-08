@@ -1284,23 +1284,34 @@ class CicloScambio(models.Model):
     @classmethod
     def find_for_user(cls, user_id, limit=50):
         """
-        Query ottimizzata per trovare cicli contenenti un utente specifico
-        """
-        from django.db.models import Q
+        Trova in modo esatto i cicli validi contenenti un utente specifico.
 
-        # Costruisce query JSON per PostgreSQL o fallback per SQLite
-        if 'postgresql' in settings.DATABASES['default']['ENGINE']:
-            # PostgreSQL: usa operatori JSON nativi
-            return cls.objects.filter(
-                valido=True,
-                users__contains=user_id
-            ).order_by('lunghezza', '-calcolato_at')[:limit]
+        PostgreSQL esegue il filtro direttamente sul JSON. SQLite, usato in
+        locale e nei test, non supporta lo stesso lookup sugli array JSON:
+        in quel caso vengono letti soltanto ID e lista utenti, evitando il
+        precedente confronto testuale che poteva confondere ID simili.
+        """
+        from django.db import connections
+
+        user_id = int(user_id)
+        queryset = cls.objects.filter(valido=True).order_by(
+            'lunghezza', '-calcolato_at', 'id'
+        )
+
+        if connections[queryset.db].vendor == 'postgresql':
+            queryset = queryset.filter(users__contains=[user_id])
         else:
-            # SQLite: usa icontains come fallback (meno efficiente ma funziona)
-            return cls.objects.filter(
-                valido=True,
-                users__icontains=f'"{user_id}"'
-            ).order_by('lunghezza', '-calcolato_at')[:limit]
+            matching_ids = [
+                row['id']
+                for row in queryset.values('id', 'users')
+                if user_id in (row['users'] or [])
+            ]
+            queryset = queryset.filter(id__in=matching_ids)
+
+        if limit is None:
+            return queryset
+
+        return queryset[:max(0, int(limit))]
 
     @classmethod
     def invalidate_all(cls):

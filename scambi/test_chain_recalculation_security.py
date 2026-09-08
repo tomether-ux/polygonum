@@ -48,6 +48,8 @@ class ChainRecalculationSecurityTests(TestCase):
             'scambi_diretti': [],
             'catene': [],
             'totale': 0,
+            'totale_disponibili': 0,
+            'pagina': None,
             'tempo': 0,
         }
 
@@ -58,7 +60,13 @@ class ChainRecalculationSecurityTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         cycle_finder.assert_not_called()
-        get_precalculated.assert_called_once_with()
+        get_precalculated.assert_called_once_with(
+            preferred_announcement_id=None,
+            user_id=self.user.id,
+            page=None,
+            page_size=100,
+            focus_cycle_id=None,
+        )
         self.cycle.refresh_from_db()
         self.assertTrue(self.cycle.valido)
         self.assertEqual(CicloScambio.objects.count(), 1)

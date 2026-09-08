@@ -363,11 +363,11 @@ def disattiva_annuncio(request, annuncio_id):
 
 def catene_scambio(request):
     """
-    Mostra le catene di scambio pre-calcolate dalla GitHub Action.
+    Mostra le catene di scambio pre-calcolate dal job pianificato.
     NUOVA LOGICA (2025):
-    - Carica TUTTE le catene dal DB (inclusi sinonimi, annunci disattivati <3min)
-    - NO filtri server-side (troppo lenti, causavano timeout)
-    - Filtri applicati lato client in JavaScript (istantanei)
+    - Carica dal DB soltanto le catene dell'utente corrente
+    - Limita la risposta a 100 catene per pagina
+    - Applica il filtro annuncio prima della paginazione
     - I ricalcoli avvengono solo tramite il job protetto, mai dalla richiesta web
     - CARICAMENTO LAZY: ?load=true → carica catene dal DB, altrimenti pagina vuota
     - SOLO UTENTI AUTENTICATI: utenti non loggati vedono solo avviso di login
@@ -456,8 +456,10 @@ def catene_scambio(request):
 
     # SECURITY/STABILITY: questo ramo legacy resta temporaneamente nel file
     # per ridurre il rischio di regressioni, ma non è più raggiungibile da una
-    # richiesta HTTP. Il calcolo autorizzato passa dal webhook protetto.
+    # richiesta HTTP. Il calcolo autorizzato passa dal job pianificato.
     ricalcola_per_utente = False
+    pagina_catene = None
+    totale_catene_disponibili = None
 
     if ricalcola_per_utente and request.user.is_authenticated:
         # RICALCOLO PARZIALE: invalida cicli utente e ricalcola
@@ -687,25 +689,33 @@ def catene_scambio(request):
             messages.error(request, 'Errore durante la ricerca delle catene. Riprova più tardi.')
             tutte_catene = []
     else:
-        # Carica TUTTE le catene pre-calcolate dal DB (nessun filtro server-side)
+        # Carica soltanto le catene pre-calcolate dell'utente corrente.
         if request.user.is_authenticated:
             # Controlla se l'utente ha annunci attivi
             annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
             if annunci_utente.exists():
                 try:
-                    # Carica TUTTI i cicli pre-calcolati (inclusi sinonimi, recenti disattivati)
+                    # Filtra prima nel DB e converte soltanto la pagina richiesta.
                     from .matching import (
                         get_cicli_precalcolati,
                         filtra_catene_per_utente_ottimizzato,
                         calcola_qualita_ciclo
                     )
 
-                    if annuncio_selezionato:
-                        risultato = get_cicli_precalcolati(
-                            preferred_announcement_id=annuncio_selezionato.id,
-                        )
-                    else:
-                        risultato = get_cicli_precalcolati()
+                    risultato = get_cicli_precalcolati(
+                        preferred_announcement_id=(
+                            annuncio_selezionato.id
+                            if annuncio_selezionato else None
+                        ),
+                        user_id=request.user.id,
+                        page=request.GET.get('page'),
+                        page_size=100,
+                        focus_cycle_id=highlight_ciclo_id,
+                    )
+                    pagina_catene = risultato['pagina']
+                    totale_catene_disponibili = risultato[
+                        'totale_disponibili'
+                    ]
                     scambi_diretti = risultato['scambi_diretti']
                     catene_lunghe = risultato['catene']
 
@@ -715,7 +725,8 @@ def catene_scambio(request):
                     for c in catene_lunghe:
                         c['punteggio_qualita'] = calcola_qualita_ciclo(c)
 
-                    # FILTRO: Solo catene che coinvolgono l'utente corrente
+                    # Controllo difensivo: la query è già personale, ma non
+                    # mostrare comunque un ciclo incoerente all'utente.
                     scambi_diretti_utente, catene_lunghe_utente = filtra_catene_per_utente_ottimizzato(
                         scambi_diretti, catene_lunghe, request.user
                     )
@@ -752,7 +763,7 @@ def catene_scambio(request):
     catene_specifiche = catene_uniche
 
 
-    # Filtro per annuncio specifico: ORA fatto in JavaScript (lato client)
+    # Il filtro per annuncio è già stato applicato prima della paginazione.
 
     # Ordina per lunghezza e punteggio
     catene_specifiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
@@ -822,13 +833,18 @@ def catene_scambio(request):
         'catene_4': catene_4,
         'catene_5': catene_5,
         'catene_6': catene_6,
-        'totale_catene': len(catene_specifiche),
+        'totale_catene': (
+            totale_catene_disponibili
+            if totale_catene_disponibili is not None and catene_specifiche
+            else len(catene_specifiche)
+        ),
         'totale_scambi_diretti': len(catene_2),
         'totale_catene_lunghe': len(catene_specifiche) - len(catene_2),
         'miei_annunci': miei_annunci,
         'annuncio_selezionato': annuncio_selezionato,
         'cicli_interessati': cicli_interessati,  # IDs dei cicli per cui l'utente ha già mostrato interesse
         'highlight_ciclo_id': highlight_ciclo_id,  # ID ciclo da evidenziare (per link notifiche)
+        'pagina_catene': pagina_catene,
         'from_session': has_session and not request.GET.get('load'),  # Flag per indicare caricamento da sessione
     })
 
@@ -872,7 +888,7 @@ def catene_community(request):
     totale_catene = 0
 
     if annunci_utente.exists():
-        risultato = get_cicli_precalcolati()
+        risultato = get_cicli_precalcolati(user_id=request.user.id)
         scambi_diretti = risultato['scambi_diretti']
         catene_lunghe = risultato['catene']
 

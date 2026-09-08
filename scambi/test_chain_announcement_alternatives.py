@@ -8,6 +8,7 @@ from django.urls import reverse
 from .matching import (
     converti_ciclo_db_a_view_format,
     estrai_annunci_ids_dettagli,
+    get_cicli_precalcolati,
 )
 from .models import Annuncio, Categoria, CicloScambio
 
@@ -184,6 +185,8 @@ class ChainAnnouncementAlternativesTests(TestCase):
             'scambi_diretti': [],
             'catene': [],
             'totale': 0,
+            'totale_disponibili': 0,
+            'pagina': None,
             'tempo': 0,
         }
         self.client.force_login(self.user_a)
@@ -196,4 +199,150 @@ class ChainAnnouncementAlternativesTests(TestCase):
         self.assertEqual(response.status_code, 200)
         get_cycles.assert_called_once_with(
             preferred_announcement_id=self.request_a_1.id,
+            user_id=self.user_a.id,
+            page=None,
+            page_size=100,
+            focus_cycle_id=None,
         )
+
+
+class PersonalCycleLoadingTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='cycle_owner',
+            email='cycle-owner@example.com',
+            password='Password-sicura-2026!',
+        )
+        self.user_b = User.objects.create_user(
+            username='cycle_b',
+            email='cycle-b@example.com',
+            password='Password-sicura-2026!',
+        )
+        self.user_c = User.objects.create_user(
+            username='cycle_c',
+            email='cycle-c@example.com',
+            password='Password-sicura-2026!',
+        )
+        self.unrelated_a = User.objects.create_user(
+            username='cycle_unrelated_a',
+            email='cycle-unrelated-a@example.com',
+            password='Password-sicura-2026!',
+        )
+        self.unrelated_b = User.objects.create_user(
+            username='cycle_unrelated_b',
+            email='cycle-unrelated-b@example.com',
+            password='Password-sicura-2026!',
+        )
+
+        self.first_cycle = self._cycle(
+            [self.user.id, self.user_b.id],
+            'd' * 32,
+            announcement_id=101,
+        )
+        self.second_cycle = self._cycle(
+            [self.user.id, self.user_c.id],
+            'e' * 32,
+            announcement_id=202,
+        )
+        self._cycle(
+            [self.unrelated_a.id, self.unrelated_b.id],
+            'f' * 32,
+            announcement_id=303,
+        )
+
+    @staticmethod
+    def _details(announcement_id):
+        return {
+            'scambi': [
+                {
+                    'oggetti': [
+                        {
+                            'offerto': {'id': announcement_id},
+                            'richiesto': {'id': announcement_id + 1},
+                        }
+                    ]
+                }
+            ]
+        }
+
+    def _cycle(self, users, cycle_hash, announcement_id):
+        return CicloScambio.objects.create(
+            users=users,
+            lunghezza=len(users),
+            dettagli=self._details(announcement_id),
+            valido=True,
+            hash_ciclo=cycle_hash,
+        )
+
+    def test_find_for_user_matches_integer_json_ids_exactly(self):
+        cycles = list(CicloScambio.find_for_user(self.user.id, limit=None))
+
+        self.assertEqual(
+            {cycle.id for cycle in cycles},
+            {self.first_cycle.id, self.second_cycle.id},
+        )
+
+    @patch('scambi.matching.converti_ciclo_db_a_view_format')
+    def test_personal_cycles_are_filtered_and_paginated_before_conversion(
+        self,
+        convert_cycle,
+    ):
+        convert_cycle.side_effect = lambda cycle, *args, **kwargs: {
+            'id_ciclo': str(cycle.id),
+            'lunghezza': cycle.lunghezza,
+            'utenti': [],
+        }
+
+        result = get_cicli_precalcolati(
+            user_id=self.user.id,
+            page=1,
+            page_size=1,
+        )
+
+        self.assertEqual(result['totale_disponibili'], 2)
+        self.assertEqual(result['pagina'].paginator.num_pages, 2)
+        self.assertEqual(result['totale'], 1)
+        self.assertEqual(convert_cycle.call_count, 1)
+
+    @patch('scambi.matching.converti_ciclo_db_a_view_format')
+    def test_announcement_filter_runs_before_pagination(self, convert_cycle):
+        convert_cycle.side_effect = lambda cycle, *args, **kwargs: {
+            'id_ciclo': str(cycle.id),
+            'lunghezza': cycle.lunghezza,
+            'utenti': [],
+        }
+
+        result = get_cicli_precalcolati(
+            preferred_announcement_id=202,
+            user_id=self.user.id,
+            page=1,
+            page_size=1,
+        )
+
+        loaded = result['scambi_diretti'] + result['catene']
+        self.assertEqual(result['totale_disponibili'], 1)
+        self.assertEqual([item['id_ciclo'] for item in loaded], [
+            str(self.second_cycle.id),
+        ])
+
+    @patch('scambi.matching.converti_ciclo_db_a_view_format')
+    def test_notification_focus_opens_the_page_containing_the_cycle(
+        self,
+        convert_cycle,
+    ):
+        convert_cycle.side_effect = lambda cycle, *args, **kwargs: {
+            'id_ciclo': str(cycle.id),
+            'lunghezza': cycle.lunghezza,
+            'utenti': [],
+        }
+
+        result = get_cicli_precalcolati(
+            user_id=self.user.id,
+            page_size=1,
+            focus_cycle_id=self.first_cycle.id,
+        )
+
+        loaded = result['scambi_diretti'] + result['catene']
+        self.assertEqual([item['id_ciclo'] for item in loaded], [
+            str(self.first_cycle.id),
+        ])
