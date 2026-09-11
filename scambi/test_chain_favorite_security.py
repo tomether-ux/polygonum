@@ -6,7 +6,11 @@ from django.test import TestCase
 from django.urls import reverse
 
 from .models import CatenaPreferita, CicloScambio
-from .views import _canonical_chain_favorite, processa_catene_preferite
+from .views import (
+    _canonical_chain_favorite,
+    get_hash_catene_preferite,
+    processa_catene_preferite,
+)
 
 
 class ChainFavoriteSecurityTests(TestCase):
@@ -180,3 +184,24 @@ class ChainFavoriteSecurityTests(TestCase):
 
         self.assertEqual(processed, [])
         self.assertTrue(CatenaPreferita.objects.filter(pk=favorite.pk).exists())
+
+    def test_favorite_hashes_are_loaded_with_one_query(self):
+        CatenaPreferita.objects.create(
+            utente=self.user,
+            catena_hash='3' * 32,
+            catena_data={'id_ciclo': 'first'},
+            tipo_catena='catena_lunga',
+            categoria_qualita='generica',
+        )
+        CatenaPreferita.objects.create(
+            utente=self.user,
+            catena_hash='4' * 32,
+            catena_data={'id_ciclo': 'second'},
+            tipo_catena='catena_lunga',
+            categoria_qualita='generica',
+        )
+
+        with self.assertNumQueries(1):
+            favorite_hashes = get_hash_catene_preferite(self.user)
+
+        self.assertEqual(favorite_hashes, {'3' * 32, '4' * 32})

@@ -1,8 +1,10 @@
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
+from django.db import connection
 from django.template.loader import render_to_string
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from .matching import (
@@ -10,7 +12,8 @@ from .matching import (
     estrai_annunci_ids_dettagli,
     get_cicli_precalcolati,
 )
-from .models import Annuncio, Categoria, CicloScambio
+from .models import Annuncio, Categoria, CatenaPreferita, CicloScambio
+from .views import genera_hash_catena
 
 
 class ChainAnnouncementAlternativesTests(TestCase):
@@ -207,6 +210,61 @@ class ChainAnnouncementAlternativesTests(TestCase):
             cycle_length=None,
             per_length_limit=20,
         )
+
+    @patch('scambi.matching.get_cicli_precalcolati')
+    def test_main_page_marks_favorites_without_per_chain_queries(self, get_cycles):
+        chain = self._convert()
+        chain_hash = genera_hash_catena(chain)
+        user_c = User.objects.create_user(
+            username='alternative_c',
+            email='alternative-c@example.com',
+            password='Password-sicura-2026!',
+        )
+        second_chain = self._convert()
+        second_chain['utenti'] = [
+            dict(user_data) for user_data in second_chain['utenti']
+        ]
+        second_chain['utenti'][1]['user'] = user_c
+        CatenaPreferita.objects.create(
+            utente=self.user_a,
+            catena_hash=chain_hash,
+            catena_data={'id_ciclo': str(self.cycle.id)},
+            tipo_catena='scambio_diretto',
+            categoria_qualita='generica',
+        )
+        get_cycles.return_value = {
+            'scambi_diretti': [chain, second_chain],
+            'catene': [],
+            'totale': 2,
+            'totale_disponibili': 2,
+            'totali_per_lunghezza': {
+                length: 2 * int(length == 2) for length in range(2, 7)
+            },
+            'pagina': None,
+            'tempo': 0,
+        }
+        self.client.force_login(self.user_a)
+
+        with CaptureQueriesContext(connection) as captured_queries:
+            response = self.client.get(
+                reverse('catene_scambio'),
+                {'load': 'true'},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        favorite_queries = [
+            query for query in captured_queries
+            if 'scambi_catenapreferita' in query['sql'].lower()
+        ]
+        self.assertEqual(len(favorite_queries), 1)
+
+        displayed_chains = response.context['catene_specifiche']
+        self.assertEqual(len(displayed_chains), 2)
+        favorite_chain = next(
+            item for item in displayed_chains
+            if item['hash_catena'] == chain_hash
+        )
+        self.assertTrue(favorite_chain['is_favorita'])
 
     @patch('scambi.matching.get_cicli_precalcolati')
     def test_main_page_applies_closed_length_and_page_size_filters(

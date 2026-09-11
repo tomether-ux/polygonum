@@ -797,6 +797,13 @@ def catene_scambio(request):
     # Ordina per lunghezza e punteggio
     catene_specifiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
 
+    # Carica una sola volta i preferiti: evita una query per ogni catena.
+    hash_catene_preferite = (
+        get_hash_catene_preferite(request.user)
+        if request.user.is_authenticated and catene_specifiche
+        else set()
+    )
+
     # Aggiungi flag per i preferiti, hash e fasce pari
     for catena in catene_specifiche:
         # Calcola se tutti gli annunci hanno la stessa fascia di prezzo
@@ -817,8 +824,9 @@ def catene_scambio(request):
             # Riordina la catena in modo che l'utente loggato sia sempre il primo
             riordina_catena_per_utente(catena, request.user)
 
-            catena['is_favorita'] = is_catena_preferita(request.user, catena)
-            catena['hash_catena'] = genera_hash_catena(catena)
+            catena_hash = genera_hash_catena(catena)
+            catena['is_favorita'] = catena_hash in hash_catene_preferite
+            catena['hash_catena'] = catena_hash
             # Converti la catena in JSON string per il template
             catena['json_data'] = json.dumps(catena, default=str)
 
@@ -953,6 +961,12 @@ def catene_community(request):
                 viste.add(uid)
                 catene_uniche.append(catena)
 
+        # Carica una sola volta i preferiti: evita una query per ogni catena.
+        hash_catene_preferite = (
+            get_hash_catene_preferite(request.user)
+            if catene_uniche else set()
+        )
+
         # Tieni solo le catene mono-categoria e raggruppale per categoria
         gruppi = {}  # categoria_id -> {'categoria': obj, 'catene': [...]}
         for catena in catene_uniche:
@@ -985,8 +999,9 @@ def catene_community(request):
             catena['fasce_pari'] = len(fasce) <= 1
 
             riordina_catena_per_utente(catena, request.user)
-            catena['is_favorita'] = is_catena_preferita(request.user, catena)
-            catena['hash_catena'] = genera_hash_catena(catena)
+            catena_hash = genera_hash_catena(catena)
+            catena['is_favorita'] = catena_hash in hash_catene_preferite
+            catena['hash_catena'] = catena_hash
             catena['json_data'] = _json.dumps(catena, default=str)
 
             gruppo = gruppi.setdefault(categoria_obj.id, {'categoria': categoria_obj, 'catene': []})
@@ -1526,6 +1541,12 @@ def le_mie_catene(request):
         catene_alta_qualita.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
         catene_generiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
 
+        # Carica una sola volta i preferiti: evita una query per ogni catena.
+        hash_catene_preferite = (
+            get_hash_catene_preferite(request.user)
+            if catene_alta_qualita or catene_generiche else set()
+        )
+
         # Aggiungi flag per preferiti e fasce pari
         for catena in catene_alta_qualita + catene_generiche:
             # Calcola se tutti gli annunci hanno la stessa fascia di prezzo
@@ -1542,7 +1563,9 @@ def le_mie_catene(request):
             # Se c'è una sola fascia (o nessuna), gli scambi sono alla pari
             catena['fasce_pari'] = len(fasce) <= 1
 
-            catena['is_favorita'] = is_catena_preferita(request.user, catena)
+            catena_hash = genera_hash_catena(catena)
+            catena['is_favorita'] = catena_hash in hash_catene_preferite
+            catena['hash_catena'] = catena_hash
             catena['json_data'] = json.dumps(catena, default=str)
 
         # Ottieni catene preferite
@@ -1683,6 +1706,12 @@ def le_mie_catene(request):
         catene_alta_qualita.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
         catene_generiche.sort(key=lambda x: (len(x.get('utenti', [])), -x.get('punteggio_qualita', 0)))
 
+        # Carica una sola volta i preferiti: evita una query per ogni catena.
+        hash_catene_preferite = (
+            get_hash_catene_preferite(request.user)
+            if catene_alta_qualita or catene_generiche else set()
+        )
+
         # Aggiungi flag per i preferiti, hash e fasce pari
         for catena in catene_alta_qualita + catene_generiche:
             # Calcola se tutti gli annunci hanno la stessa fascia di prezzo
@@ -1700,8 +1729,9 @@ def le_mie_catene(request):
             catena['fasce_pari'] = len(fasce) <= 1
 
             if request.user.is_authenticated:
-                catena['is_favorita'] = is_catena_preferita(request.user, catena)
-                catena['hash_catena'] = genera_hash_catena(catena)
+                catena_hash = genera_hash_catena(catena)
+                catena['is_favorita'] = catena_hash in hash_catene_preferite
+                catena['hash_catena'] = catena_hash
                 # Converti la catena in JSON string per il template
                 catena['json_data'] = json.dumps(catena, default=str)
 
@@ -1932,6 +1962,18 @@ def is_catena_preferita(user, catena_data):
         return False
     catena_hash = genera_hash_catena(catena_data)
     return CatenaPreferita.objects.filter(utente=user, catena_hash=catena_hash).exists()
+
+
+def get_hash_catene_preferite(user):
+    """Carica con una sola query gli hash delle catene preferite dell'utente."""
+    if not user.is_authenticated:
+        return set()
+    return set(
+        CatenaPreferita.objects.filter(utente=user).values_list(
+            'catena_hash',
+            flat=True,
+        )
+    )
 
 
 MAX_CHAIN_FAVORITE_REQUEST_BYTES = 64 * 1024
