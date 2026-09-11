@@ -142,14 +142,9 @@ Mappa completa di tutte le pagine e funzionalità del sito.
 
 ---
 
-## 🔧 API & WEBHOOK (Backend)
-
-### API
-- `/api/cicli/<user_id>/` - API cicli utente
-- `/api/cicli/stats/` - API statistiche cicli
+## 🔧 WEBHOOK (Backend)
 
 ### Webhook
-- `/webhook/calcola-cicli/` - Webhook calcolo cicli
 - `/webhook/cloudinary-moderation/` - Webhook moderazione Cloudinary
 
 ### Moderazione

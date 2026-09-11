@@ -89,8 +89,3 @@ python manage.py gestisci_scadenze_proposte
 - GitHub Actions è gratuito per repository pubblici
 - Per repository privati: 2000 minuti gratuiti/mese, poi a pagamento
 - Questo workflow usa circa 2-3 minuti per esecuzione = ~60-90 minuti/mese
-
-## Cycle Calculator
-
-Il workflow `cycle-calculator.yml` gestisce il calcolo automatico dei cicli di scambio.
-(Documentazione da aggiornare se necessario)

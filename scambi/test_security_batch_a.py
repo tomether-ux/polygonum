@@ -5,13 +5,12 @@ from unittest.mock import MagicMock, patch
 
 from django.core.exceptions import ValidationError
 from django.core.management.base import CommandError
-from django.test import RequestFactory, SimpleTestCase, override_settings
+from django.test import SimpleTestCase, override_settings
 
 from . import email_utils
 from .management.commands import create_superuser, setup
 from .models import Annuncio
 from .validators import valida_contenuto_testuale
-from .views import webhook_calcola_cicli
 
 
 class SuperuserCommandSafetyTests(SimpleTestCase):
@@ -118,14 +117,15 @@ class ModerationEmailEscapingTests(SimpleTestCase):
         self.assertIn('&quot; onerror=&quot;alert(1)', html_content)
 
 
-class WebhookSecretComparisonTests(SimpleTestCase):
-    def test_cycle_webhook_rejects_invalid_bearer_token(self):
-        request = RequestFactory().post(
-            '/webhook/calcola-cicli/',
-            HTTP_AUTHORIZATION='Bearer wrong-token',
+class RetiredCycleEndpointsTests(SimpleTestCase):
+    def test_unused_cycle_endpoints_are_not_exposed(self):
+        requests = (
+            ('get', '/api/cicli/1/'),
+            ('get', '/api/cicli/stats/'),
+            ('post', '/webhook/calcola-cicli/'),
         )
 
-        with patch.dict(os.environ, {'POLYGONUM_WEBHOOK_SECRET': 'expected-token'}):
-            response = webhook_calcola_cicli(request)
-
-        self.assertEqual(response.status_code, 401)
+        for method, path in requests:
+            with self.subTest(method=method, path=path):
+                response = getattr(self.client, method)(path)
+                self.assertEqual(response.status_code, 404)

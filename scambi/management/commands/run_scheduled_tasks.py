@@ -134,8 +134,8 @@ class Command(BaseCommand):
                 )
             elif cycle_due:
                 with cycle_calculation_lock() as lock_acquired:
-                    # Ricontrolla dopo il lock: il webhook storico potrebbe
-                    # avere completato il calcolo mentre aspettavamo.
+                    # Ricontrolla dopo il lock: un'altra esecuzione del Cron
+                    # potrebbe avere completato il calcolo nel frattempo.
                     still_due = (
                         options['force_cycles']
                         or self._cycles_are_due(cycle_interval)

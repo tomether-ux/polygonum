@@ -4,7 +4,6 @@ import subprocess
 import sys
 
 from django.contrib.auth.models import User
-from django.core.cache import cache
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
@@ -219,54 +218,6 @@ class ChainCompletionIdempotencyTests(TestCase):
 
         self.assertTrue(first_transition)
         self.assertFalse(repeated_check)
-
-
-class CycleApiHardeningTests(TestCase):
-    def setUp(self):
-        cache.clear()
-        self.user = User.objects.create_user(
-            username='api_cicli_utente',
-            email='api-cicli-utente@example.com',
-            password='Password-sicura-2026!',
-        )
-        self.client.force_login(self.user)
-        self.user_url = reverse(
-            'api_cicli_utente',
-            kwargs={'user_id': self.user.id},
-        )
-
-    def test_invalid_pagination_returns_bad_request(self):
-        invalid_queries = (
-            {'limit': 'non-un-numero'},
-            {'limit': '0'},
-            {'limit': '101'},
-            {'offset': '-1'},
-        )
-
-        for query in invalid_queries:
-            with self.subTest(query=query):
-                response = self.client.get(self.user_url, query)
-                self.assertEqual(response.status_code, 400)
-
-    def test_user_cycle_api_is_rate_limited(self):
-        for _ in range(60):
-            response = self.client.get(self.user_url)
-            self.assertEqual(response.status_code, 200)
-
-        blocked = self.client.get(self.user_url)
-
-        self.assertEqual(blocked.status_code, 429)
-
-    def test_public_stats_api_is_rate_limited_by_ip(self):
-        stats_url = reverse('api_cicli_stats')
-
-        for _ in range(60):
-            response = self.client.get(stats_url)
-            self.assertEqual(response.status_code, 200)
-
-        blocked = self.client.get(stats_url)
-
-        self.assertEqual(blocked.status_code, 429)
 
 
 class ProductionDatabaseConnectionTests(SimpleTestCase):

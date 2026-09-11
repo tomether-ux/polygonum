@@ -1,16 +1,13 @@
-import sys
-from contextlib import contextmanager
 from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.core.management.base import CommandError
-from django.test import RequestFactory, SimpleTestCase, override_settings
+from django.test import SimpleTestCase, override_settings
 
 from . import email_utils
 from .locks import cycle_calculation_lock
 from .management.commands.calcola_cicli import Command as CalculateCyclesCommand
-from .views import webhook_calcola_cicli
 
 
 class EmailTimeoutTests(SimpleTestCase):
@@ -58,51 +55,7 @@ class EmailTimeoutTests(SimpleTestCase):
         self.assertNotIn('private network detail', str(result))
 
 
-class CycleWebhookConcurrencyTests(SimpleTestCase):
-    def request(self):
-        return RequestFactory().post(
-            '/webhook/calcola-cicli/',
-            HTTP_AUTHORIZATION='Bearer expected-token',
-        )
-
-    @staticmethod
-    @contextmanager
-    def lock_result(acquired):
-        yield acquired
-
-    def test_second_cycle_calculation_is_rejected_without_running_command(self):
-        with (
-            patch.dict('os.environ', {'POLYGONUM_WEBHOOK_SECRET': 'expected-token'}),
-            patch('scambi.locks.cycle_calculation_lock', return_value=self.lock_result(False)),
-            patch('django.core.management.call_command') as call_command,
-        ):
-            response = webhook_calcola_cicli(self.request())
-
-        self.assertEqual(response.status_code, 409)
-        call_command.assert_not_called()
-
-    def test_command_output_is_captured_without_replacing_global_stdout(self):
-        original_stdout = sys.stdout
-
-        def fake_call_command(*args, **kwargs):
-            kwargs['stdout'].write('calcolo completato')
-
-        with (
-            patch.dict('os.environ', {'POLYGONUM_WEBHOOK_SECRET': 'expected-token'}),
-            patch('scambi.locks.cycle_calculation_lock', return_value=self.lock_result(True)),
-            patch('django.core.management.call_command', side_effect=fake_call_command) as call_command,
-            patch('scambi.models.CicloScambio.objects.count', return_value=2),
-            patch('scambi.models.CicloScambio.objects.filter') as filter_cycles,
-        ):
-            filter_cycles.return_value.count.return_value = 2
-            response = webhook_calcola_cicli(self.request())
-
-        self.assertEqual(response.status_code, 200)
-        self.assertIs(sys.stdout, original_stdout)
-        kwargs = call_command.call_args.kwargs
-        self.assertIsInstance(kwargs['stdout'], StringIO)
-        self.assertIs(kwargs['stdout'], kwargs['stderr'])
-
+class CycleCalculationLockTests(SimpleTestCase):
     def test_local_lock_is_released_after_use(self):
         with cycle_calculation_lock() as first_acquired:
             with cycle_calculation_lock() as second_acquired:

@@ -94,13 +94,6 @@ urlpatterns = [
     path('catene/conferma-completamento/<int:ciclo_id>/', views.conferma_completamento_catena, name='conferma_completamento_catena'),
     path('catene/valuta/<int:proposta_id>/<int:valutato_id>/', views.valuta_scambio, name='valuta_scambio'),
 
-    # API Sistema calcolo cicli separato
-    path('api/cicli/<int:user_id>/', views.api_cicli_utente, name='api_cicli_utente'),
-    path('api/cicli/stats/', views.api_cicli_stats, name='api_cicli_stats'),
-
-    # Webhook per calcolo cicli (alternativa gratuita al cron job)
-    path('webhook/calcola-cicli/', views.webhook_calcola_cicli, name='webhook_calcola_cicli'),
-
     # Webhook per moderazione contenuti Cloudinary
     path('webhook/cloudinary-moderation/', views.cloudinary_moderation_webhook, name='cloudinary_moderation_webhook'),
 
