@@ -1396,6 +1396,36 @@ class CicloScambio(models.Model):
         }
 
 
+class CatenaNascosta(models.Model):
+    """Preferenza personale per non mostrare un ciclo nei risultati."""
+
+    utente = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='catene_nascoste',
+    )
+    ciclo = models.ForeignKey(
+        CicloScambio,
+        on_delete=models.CASCADE,
+        related_name='nascosta_da',
+    )
+    data_nascosta = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['utente', 'ciclo'],
+                name='unique_hidden_cycle_per_user',
+            ),
+        ]
+        ordering = ['-data_nascosta']
+        verbose_name = 'Catena nascosta'
+        verbose_name_plural = 'Catene nascoste'
+
+    def __str__(self):
+        return f'Catena {self.ciclo_id} nascosta da {self.utente.username}'
+
+
 # === SISTEMA PROPOSTE CATENE MVP ===
 
 class PropostaCatena(models.Model):
@@ -1441,8 +1471,8 @@ class PropostaCatena(models.Model):
         verbose_name = "Proposta Catena"
         verbose_name_plural = "Proposte Catene"
         ordering = ['-data_creazione']
-        # Una catena può avere una sola proposta attiva
-        unique_together = ('ciclo', 'iniziatore')
+        # Le proposte concluse o scadute restano nello storico. La view
+        # serializza sul ciclo la creazione di una nuova proposta attiva.
 
     def __str__(self):
         return f"Proposta di {self.iniziatore.username} per ciclo {self.ciclo.id} ({self.get_stato_display()})"

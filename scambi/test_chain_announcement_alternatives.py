@@ -167,10 +167,13 @@ class ChainAnnouncementAlternativesTests(TestCase):
             f'data-annunci-ids="{",".join(map(str, chain["annunci_ids"]))}"',
             html,
         )
+        self.assertIn(f'nascondiCatena({self.cycle.id}, event)', html)
 
     @patch('scambi.views.CicloScambio.find_for_user')
     def test_personal_page_finds_an_announcement_stored_as_alternative(self, find_for_user):
-        find_for_user.return_value = [self.cycle]
+        find_for_user.return_value = CicloScambio.objects.filter(
+            pk=self.cycle.pk,
+        )
         self.client.force_login(self.user_a)
 
         response = self.client.get(

@@ -1,8 +1,10 @@
 import json
+from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from .models import (
     Annuncio,
@@ -179,6 +181,32 @@ class CycleProposalIdempotencyTests(TestCase):
             1,
         )
         self.assertEqual(PropostaCatena.objects.filter(ciclo=self.cycle).count(), 1)
+
+    def test_expired_proposal_does_not_block_a_new_proposal(self):
+        expired_proposal = self._create_pending_proposal()
+        PropostaCatena.objects.filter(pk=expired_proposal.pk).update(
+            data_scadenza=timezone.now() - timedelta(minutes=1),
+        )
+        self.client.force_login(self.initiator)
+
+        response = self.client.post(reverse(
+            'proponi_catena',
+            kwargs={'ciclo_id': self.cycle.id},
+        ))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['action'], 'added')
+        self.assertEqual(
+            PropostaCatena.objects.filter(ciclo=self.cycle).count(),
+            2,
+        )
+        expired_proposal.refresh_from_db()
+        self.assertLess(expired_proposal.data_scadenza, timezone.now())
+        new_proposal = PropostaCatena.objects.exclude(
+            pk=expired_proposal.pk,
+        ).get(ciclo=self.cycle)
+        self.assertEqual(new_proposal.iniziatore, self.initiator)
+        self.assertGreater(new_proposal.data_scadenza, timezone.now())
 
     def test_group_with_colliding_legacy_id_is_not_reused(self):
         unrelated_group = Conversazione.objects.create(

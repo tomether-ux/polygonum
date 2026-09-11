@@ -1504,7 +1504,7 @@ def get_cicli_precalcolati(
     """
     import time
     from django.contrib.auth.models import User
-    from .models import CicloScambio, Annuncio
+    from .models import Annuncio, CicloScambio
 
     start_time = time.time()
 
@@ -1518,6 +1518,11 @@ def get_cicli_precalcolati(
         )
     else:
         cicli_queryset = CicloScambio.find_for_user(user_id, limit=None)
+        # Le catene nascoste sono una preferenza personale: escludile prima
+        # di conteggi, limiti e paginazione, senza alterare il calcolo globale.
+        cicli_queryset = cicli_queryset.exclude(
+            nascosta_da__utente_id=int(user_id),
+        )
 
     if cycle_length is not None:
         cycle_length = int(cycle_length)

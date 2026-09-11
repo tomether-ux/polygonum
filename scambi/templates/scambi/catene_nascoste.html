@@ -1,0 +1,101 @@
+{% extends 'scambi/base.html' %}
+
+{% block title %}Catene nascoste - Polygonum{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">
+                <i class="fas fa-eye-slash me-2"></i>Catene nascoste
+            </h1>
+            <p class="text-muted mb-0">
+                Queste preferenze riguardano soltanto il tuo account e non modificano le catene degli altri utenti.
+            </p>
+        </div>
+        <a href="{% url 'modifica_profilo' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Impostazioni profilo
+        </a>
+    </div>
+
+    {% if catene_info %}
+        <div class="alert alert-light border">
+            Catene nascoste: <strong>{{ totale_catene_nascoste }}</strong>
+        </div>
+
+        <div class="row g-3">
+            {% for elemento in catene_info %}
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                            <div>
+                                <h2 class="h5 mb-2">
+                                    Catena con {{ elemento.ciclo.lunghezza }} partecipanti
+                                    {% if not elemento.ciclo.valido %}
+                                        <span class="badge bg-secondary ms-1">Non più disponibile</span>
+                                    {% endif %}
+                                </h2>
+                                {% if elemento.nomi_utenti %}
+                                <div class="text-muted mb-2">
+                                    <i class="fas fa-users me-1"></i>
+                                    {{ elemento.nomi_utenti|join:" → " }}
+                                </div>
+                                {% endif %}
+                                {% if elemento.titoli %}
+                                <div class="d-flex flex-wrap gap-1 mb-2">
+                                    {% for titolo in elemento.titoli %}
+                                        <span class="badge bg-light text-dark border">{{ titolo|truncatechars:45 }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                <small class="text-muted">
+                                    Nascosta {{ elemento.nascosta.data_nascosta|timesince }} fa
+                                </small>
+                            </div>
+                            <form method="post" action="{% url 'ripristina_catena' elemento.ciclo.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-undo me-1"></i>Ripristina
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if pagina.paginator.num_pages > 1 %}
+        <nav aria-label="Pagine catene nascoste" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if pagina.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ pagina.previous_page_number }}">Precedente</a>
+                </li>
+                {% endif %}
+                <li class="page-item disabled">
+                    <span class="page-link">Pagina {{ pagina.number }} di {{ pagina.paginator.num_pages }}</span>
+                </li>
+                {% if pagina.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ pagina.next_page_number }}">Successiva</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    {% else %}
+        <div class="card text-center shadow-sm">
+            <div class="card-body py-5">
+                <i class="fas fa-eye fa-3x text-muted mb-3"></i>
+                <h2 class="h4">Nessuna catena nascosta</h2>
+                <p class="text-muted">Le catene che nasconderai potranno essere recuperate da questa pagina.</p>
+                <a href="{% url 'catene_scambio' %}?load=true" class="btn btn-primary">
+                    Esplora le catene
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

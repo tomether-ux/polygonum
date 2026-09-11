@@ -6,6 +6,7 @@ from django.core.exceptions import RequestDataTooBig
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.http import Http404, HttpResponse, JsonResponse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST, require_http_methods
@@ -21,7 +22,13 @@ from .conversation_services import (
     get_or_create_private_conversation,
 )
 from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente, trova_catene_per_annuncio, trova_scambi_diretti_ottimizzato, trova_catene_scambio_ottimizzato, filtra_catene_per_utente_ottimizzato, trova_catene_per_annuncio_ottimizzato
-from .models import Annuncio, PropostaCatena, RispostaProposta, CicloScambio
+from .models import (
+    Annuncio,
+    CatenaNascosta,
+    CicloScambio,
+    PropostaCatena,
+    RispostaProposta,
+)
 import hashlib
 import hmac
 import logging
@@ -29,6 +36,8 @@ import os
 import re
 
 logger = logging.getLogger(__name__)
+
+ACTIVE_CHAIN_PROPOSAL_STATES = ('in_attesa', 'tutti_interessati')
 
 # ============================================================
 # UTILITY FUNCTIONS
@@ -853,6 +862,7 @@ def catene_scambio(request):
             str(cid) for cid in RispostaProposta.objects.filter(
                 utente=request.user,
                 risposta='interessato',
+                proposta__stato__in=ACTIVE_CHAIN_PROPOSAL_STATES,
                 proposta__data_scadenza__gt=timezone.now()  # Solo proposte non scadute
             ).values_list('proposta__ciclo_id', flat=True)
         )
@@ -1018,6 +1028,7 @@ def catene_community(request):
         str(cid) for cid in RispostaProposta.objects.filter(
             utente=request.user,
             risposta='interessato',
+            proposta__stato__in=ACTIVE_CHAIN_PROPOSAL_STATES,
             proposta__data_scadenza__gt=timezone.now()
         ).values_list('proposta__ciclo_id', flat=True)
     )
@@ -1366,6 +1377,150 @@ def modifica_profilo(request):
         'profilo': profilo,
     })
 
+
+def _clear_hidden_chain_cache(user_id):
+    """Invalida la sezione Community personale dopo hide/restore."""
+    from django.core.cache import cache
+
+    cache.delete_many([
+        f'community_sections_{user_id}',
+        f'community_updated_{user_id}',
+    ])
+
+
+def _redirect_after_hiding_chain(request):
+    """Accetta soltanto redirect interni provenienti dal form della card."""
+    next_url = request.POST.get('next', '')
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect(f"{reverse('catene_scambio')}?load=true")
+
+
+@login_required
+@require_POST
+def nascondi_catena(request, ciclo_id):
+    """Nasconde un ciclo soltanto per l'utente autenticato."""
+    ciclo = get_object_or_404(CicloScambio, id=ciclo_id, valido=True)
+    ciclo_utenti = ciclo.users if isinstance(ciclo.users, list) else []
+    if str(request.user.id) not in {
+        str(user_id) for user_id in ciclo_utenti
+    }:
+        raise Http404
+
+    _, created = CatenaNascosta.objects.get_or_create(
+        utente=request.user,
+        ciclo=ciclo,
+    )
+    _clear_hidden_chain_cache(request.user.id)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'created': created,
+            'message': 'Catena nascosta',
+        })
+
+    if created:
+        messages.success(
+            request,
+            'Catena nascosta. Puoi ripristinarla dalle impostazioni.',
+        )
+    else:
+        messages.info(request, 'Questa catena era già nascosta.')
+    return _redirect_after_hiding_chain(request)
+
+
+@login_required
+@require_POST
+def ripristina_catena(request, ciclo_id):
+    """Rende nuovamente visibile una catena nascosta dall'utente."""
+    nascosta = get_object_or_404(
+        CatenaNascosta,
+        utente=request.user,
+        ciclo_id=ciclo_id,
+    )
+    # Viene rimosso soltanto il marcatore personale, mai il ciclo.
+    nascosta.delete()
+    _clear_hidden_chain_cache(request.user.id)
+    messages.success(request, 'Catena ripristinata nei risultati.')
+    return redirect('catene_nascoste')
+
+
+@login_required
+@require_http_methods(['GET'])
+def catene_nascoste(request):
+    """Elenca le catene nascoste dall'utente e permette di recuperarle."""
+    from django.contrib.auth.models import User
+    from django.core.paginator import Paginator
+
+    queryset = CatenaNascosta.objects.filter(
+        utente=request.user,
+    ).select_related('ciclo')
+    pagina = Paginator(queryset, 30).get_page(request.GET.get('page'))
+    nascoste = list(pagina.object_list)
+
+    utenti_per_ciclo = {}
+    utenti_ids = set()
+    for nascosta in nascoste:
+        ciclo_utenti = []
+        raw_ciclo_utenti = (
+            nascosta.ciclo.users
+            if isinstance(nascosta.ciclo.users, list)
+            else []
+        )
+        for raw_user_id in raw_ciclo_utenti:
+            try:
+                user_id = int(raw_user_id)
+            except (TypeError, ValueError):
+                continue
+            ciclo_utenti.append(user_id)
+            utenti_ids.add(user_id)
+        utenti_per_ciclo[nascosta.ciclo_id] = ciclo_utenti
+
+    utenti = User.objects.in_bulk(utenti_ids)
+    catene_info = []
+    for nascosta in nascoste:
+        ciclo = nascosta.ciclo
+        nomi_utenti = [
+            utenti[user_id].username
+            for user_id in utenti_per_ciclo[ciclo.id]
+            if user_id in utenti
+        ]
+
+        titoli = []
+        titoli_visti = set()
+        dettagli = ciclo.dettagli if isinstance(ciclo.dettagli, dict) else {}
+        for scambio in dettagli.get('scambi', []):
+            if not isinstance(scambio, dict):
+                continue
+            for oggetto in scambio.get('oggetti', []):
+                if not isinstance(oggetto, dict):
+                    continue
+                for ruolo in ('offerto', 'richiesto'):
+                    dati_annuncio = oggetto.get(ruolo) or {}
+                    if not isinstance(dati_annuncio, dict):
+                        continue
+                    titolo = dati_annuncio.get('titolo')
+                    if titolo and titolo not in titoli_visti:
+                        titoli_visti.add(titolo)
+                        titoli.append(titolo)
+
+        catene_info.append({
+            'nascosta': nascosta,
+            'ciclo': ciclo,
+            'nomi_utenti': nomi_utenti,
+            'titoli': titoli[:8],
+        })
+
+    return render(request, 'scambi/catene_nascoste.html', {
+        'catene_info': catene_info,
+        'pagina': pagina,
+        'totale_catene_nascoste': pagina.paginator.count,
+    })
+
 def custom_logout(request):
     """View personalizzata per il logout"""
     logout(request)
@@ -1490,7 +1645,10 @@ def le_mie_catene(request):
         logger.debug(f"📦 CARICAMENTO CATENE DAL DB per user_id={request.user.id}")
 
         # Carica cicli dal DB che contengono questo utente
-        cicli_db = list(CicloScambio.find_for_user(request.user.id, limit=200))
+        cicli_db = list(
+            CicloScambio.find_for_user(request.user.id, limit=None)
+            .exclude(nascosta_da__utente=request.user)[:200]
+        )
 
         from .matching import (
             converti_ciclo_db_a_view_format,
@@ -1587,6 +1745,7 @@ def le_mie_catene(request):
             str(cid) for cid in RispostaProposta.objects.filter(
                 utente=request.user,
                 risposta='interessato',
+                proposta__stato__in=ACTIVE_CHAIN_PROPOSAL_STATES,
                 proposta__data_scadenza__gt=timezone.now()  # Solo proposte non scadute
             ).values_list('proposta__ciclo_id', flat=True)
         )
@@ -1756,6 +1915,7 @@ def le_mie_catene(request):
             str(cid) for cid in RispostaProposta.objects.filter(
                 utente=request.user,
                 risposta='interessato',
+                proposta__stato__in=ACTIVE_CHAIN_PROPOSAL_STATES,
                 proposta__data_scadenza__gt=timezone.now()  # Solo proposte non scadute
             ).values_list('proposta__ciclo_id', flat=True)
         )
@@ -3390,7 +3550,11 @@ def proponi_catena(request, ciclo_id):
 
             proposta = (
                 PropostaCatena.objects.select_for_update()
-                .filter(ciclo=ciclo, data_scadenza__gt=timezone.now())
+                .filter(
+                    ciclo=ciclo,
+                    stato__in=ACTIVE_CHAIN_PROPOSAL_STATES,
+                    data_scadenza__gt=timezone.now(),
+                )
                 .first()
             )
 
@@ -3789,7 +3953,7 @@ def stato_proposta_catena(request, ciclo_id):
         # Cerca proposta per questa catena (solo NON scadute)
         proposta = PropostaCatena.objects.filter(
             ciclo=ciclo,
-            stato__in=['in_attesa', 'tutti_interessati', 'annullata', 'rifiutata'],
+            stato__in=ACTIVE_CHAIN_PROPOSAL_STATES,
             data_scadenza__gt=timezone.now()  # Solo proposte non scadute
         ).first()
 

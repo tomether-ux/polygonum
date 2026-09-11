@@ -46,6 +46,9 @@ urlpatterns = [
          name='password_reset_complete'),
     path('profilo/<str:username>/', profilo_utente, name='profilo_utente'),
     path('modifica-profilo/', modifica_profilo, name='modifica_profilo'),
+    path('impostazioni/catene-nascoste/', views.catene_nascoste, name='catene_nascoste'),
+    path('catene/nascondi/<int:ciclo_id>/', views.nascondi_catena, name='nascondi_catena'),
+    path('catene/ripristina/<int:ciclo_id>/', views.ripristina_catena, name='ripristina_catena'),
 
     # Sistema notifiche e preferiti
     path('preferiti/', views.lista_preferiti, name='lista_preferiti'),
