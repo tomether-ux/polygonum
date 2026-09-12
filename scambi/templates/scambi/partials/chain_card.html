@@ -1,4 +1,4 @@
-<div class="modern-chain-card high-quality mb-4" id="ciclo-{{ catena.id_ciclo }}" data-ciclo-id="{{ catena.id_ciclo }}" data-usa-sinonimi="{{ catena.usa_sinonimi|default:'false'|lower }}" data-ha-match-parziali="{{ catena.ha_match_parziali|default:'false'|lower }}" data-fasce-pari="{{ catena.fasce_pari|default:'false'|lower }}" data-annunci-ids="{% if catena.annunci_ids %}{{ catena.annunci_ids|join:',' }}{% else %}{% for utente in catena.utenti %}{% if utente.richiede %}{{ utente.richiede.id }}{% endif %}{% if utente.offerta %}{% if utente.richiede %},{% endif %}{{ utente.offerta.id }}{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}{% endif %}">
+<div class="modern-chain-card high-quality mb-4" id="ciclo-{{ catena.id_ciclo }}" data-ciclo-id="{{ catena.id_ciclo }}" data-requires-selection="{{ catena.richiede_scelta_annunci|yesno:'true,false' }}" data-has-active-proposal="unknown" data-usa-sinonimi="{{ catena.usa_sinonimi|default:'false'|lower }}" data-ha-match-parziali="{{ catena.ha_match_parziali|default:'false'|lower }}" data-fasce-pari="{{ catena.fasce_pari|default:'false'|lower }}" data-annunci-ids="{% if catena.annunci_ids %}{{ catena.annunci_ids|join:',' }}{% else %}{% for utente in catena.utenti %}{% if utente.richiede %}{{ utente.richiede.id }}{% endif %}{% if utente.offerta %}{% if utente.richiede %},{% endif %}{{ utente.offerta.id }}{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}{% endif %}">
     <div class="chain-card-header" onclick="toggleCard(this, event)" style="cursor: pointer;">
         <div class="d-flex justify-content-between align-items-start flex-column flex-md-row">
             <div class="chain-title">
@@ -76,7 +76,15 @@
         </div>
     </div>
 
-    <div class="chain-card-body">
+	    <div class="chain-card-body">
+	        <div class="active-chain-selection mb-3" hidden>
+	            <div class="active-chain-selection-title">
+	                <i class="fas fa-check-circle me-1"></i>
+	                Combinazione proposta
+	            </div>
+	            <div class="active-chain-selection-lines"></div>
+	        </div>
+
         <div class="participants-section mb-3">
             <h6 class="section-label">
                 <i class="fas fa-users me-2"></i>Partecipanti
@@ -155,9 +163,10 @@
                                 </details>
                                 {% endif %}
                             {% endif %}
-                        </div>
-                    </div>
-                </div>
+	        </div>
+	    </div>
+
+</div>
 
                 <div class="announcements-column">
                     {% if utente.richiede %}
@@ -204,4 +213,67 @@
             {% endfor %}
         </div>
     </div>
+
+    {% if catena.richiede_scelta_annunci %}
+    <div class="chain-selection-modal"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="chain-selection-title-{{ catena.id_ciclo }}"
+         hidden
+         onclick="chiudiSelezioneCatena({{ catena.id_ciclo }}, event, true)">
+        <div class="chain-selection-panel" onclick="event.stopPropagation()">
+            <div class="chain-selection-header">
+                <div>
+                    <h5 id="chain-selection-title-{{ catena.id_ciclo }}" class="mb-1">
+                        Scegli cosa scambiare
+                    </h5>
+                    <p class="text-muted small mb-0">
+                        Seleziona una coppia compatibile per ogni passaggio.
+                        La combinazione verrà mostrata a tutti i partecipanti.
+                    </p>
+                </div>
+                <button type="button"
+                        class="btn-close"
+                        aria-label="Chiudi"
+                        onclick="chiudiSelezioneCatena({{ catena.id_ciclo }}, event)"></button>
+            </div>
+
+            <div class="chain-selection-exchanges">
+                {% for scambio in catena.scambi_opzioni %}
+                <div class="chain-selection-exchange">
+                    <label for="chain-option-{{ catena.id_ciclo }}-{{ forloop.counter }}" class="form-label fw-semibold">
+                        {{ scambio.da_username }} <i class="fas fa-arrow-right mx-1"></i> {{ scambio.a_username }}
+                    </label>
+                    <select id="chain-option-{{ catena.id_ciclo }}-{{ forloop.counter }}"
+                            class="form-select exchange-option-select"
+                            data-da-user="{{ scambio.da_user }}"
+                            data-a-user="{{ scambio.a_user }}">
+                        {% for opzione in scambio.opzioni %}
+                        <option value="{{ opzione.offerta.id }}:{{ opzione.richiesta.id }}"
+                                data-offerto-id="{{ opzione.offerta.id }}"
+                                data-richiesto-id="{{ opzione.richiesta.id }}"
+                                {% if opzione.selezionata %}selected{% endif %}>
+                            {{ scambio.da_username }} offre “{{ opzione.offerta.titolo|truncatechars:48 }}” · {{ scambio.a_username }} cerca “{{ opzione.richiesta.titolo|truncatechars:48 }}”
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="chain-selection-actions">
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        onclick="chiudiSelezioneCatena({{ catena.id_ciclo }}, event)">
+                    Annulla
+                </button>
+                <button type="button"
+                        class="btn btn-primary"
+                        onclick="confermaSelezioneCatena({{ catena.id_ciclo }}, event)">
+                    <i class="fas fa-heart me-1"></i>Conferma interesse
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>

@@ -4,8 +4,10 @@
 {% block title %}Community - Catene per categoria - Polygonum{% endblock %}
 
 {% block content %}
+<meta name="polygonum-csrf-token" content="{{ csrf_token }}">
 <!-- CSS condiviso delle card catena -->
 <link rel="stylesheet" href="{% static 'css/chains.css' %}">
+<link rel="stylesheet" href="{% static 'css/chain-proposals.css' %}">
 
 <div class="row">
     <div class="col-12">
@@ -169,6 +171,8 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(`/catene/stato/${cicloId}/`)
         .then(response => response.json())
         .then(data => {
+            card.dataset.hasActiveProposal = data.has_proposta ? 'true' : 'false';
+            renderChainSelection(card, data.selezione_annunci);
             if (!data.has_proposta) return;
             const badges = card.querySelectorAll('.badge-interessati');
             const buttons = card.querySelectorAll('.btn-mi-interessa');
@@ -188,4 +192,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+<script src="{% static 'js/chain-proposals.js' %}"></script>
 {% endblock %}

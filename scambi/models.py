@@ -1503,6 +1503,16 @@ class PropostaCatena(models.Model):
     # Chi ha iniziato la proposta
     iniziatore = models.ForeignKey(User, on_delete=models.CASCADE, related_name='proposte_catena_iniziate')
 
+    # Combinazione esatta scelta dall'iniziatore. Il default vuoto mantiene
+    # compatibili le proposte create prima dell'introduzione del selettore.
+    selezione_annunci = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text=(
+            "Una coppia offerta/richiesta per ogni passaggio della catena"
+        ),
+    )
+
     # Stato della proposta
     stato = models.CharField(max_length=20, choices=STATO_CHOICES, default='in_attesa')
 

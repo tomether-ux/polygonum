@@ -1,3 +1,5 @@
+import json
+
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
@@ -23,6 +25,11 @@ from .conversation_services import (
     get_conversation_display,
     get_or_create_cycle_group_conversation,
     get_or_create_private_conversation,
+)
+from .chain_proposals import (
+    ChainSelectionError,
+    normalize_chain_selection,
+    proposal_exchange_rows,
 )
 from .matching import trova_catene_scambio, trova_scambi_diretti, filtra_catene_per_utente, trova_catene_per_annuncio, trova_scambi_diretti_ottimizzato, trova_catene_scambio_ottimizzato, filtra_catene_per_utente_ottimizzato, trova_catene_per_annuncio_ottimizzato
 from .models import (
@@ -3526,6 +3533,22 @@ def invia_messaggio_da_annuncio(request):
 @require_POST
 def proponi_catena(request, ciclo_id):
     """Vista AJAX per proporre/annullare interesse a una catena di scambio (toggle)"""
+    raw_selection = None
+    if request.content_type == 'application/json' and request.body:
+        try:
+            payload = json.loads(request.body)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return JsonResponse({
+                'success': False,
+                'error': 'Dati della proposta non validi.',
+            }, status=400)
+        if not isinstance(payload, dict):
+            return JsonResponse({
+                'success': False,
+                'error': 'Dati della proposta non validi.',
+            }, status=400)
+        raw_selection = payload.get('selezione_annunci')
+
     try:
         with transaction.atomic():
             # Tutte le modifiche a una proposta vengono serializzate sul ciclo.
@@ -3552,9 +3575,22 @@ def proponi_catena(request, ciclo_id):
             )
 
             if not proposta:
+                try:
+                    selection = normalize_chain_selection(
+                        ciclo,
+                        raw_selection=raw_selection,
+                    )
+                except ChainSelectionError as exc:
+                    return JsonResponse({
+                        'success': False,
+                        'error': str(exc),
+                        'requires_selection': exc.requires_selection,
+                    }, status=409 if exc.requires_selection else 400)
+
                 proposta = PropostaCatena.objects.create(
                     ciclo=ciclo,
                     iniziatore=request.user,
+                    selezione_annunci=selection,
                 )
                 utenti_coinvolti = list(
                     User.objects.filter(id__in=ciclo.users).order_by('id')
@@ -3585,6 +3621,8 @@ def proponi_catena(request, ciclo_id):
                     'proposta_id': proposta.id,
                     'count_interessati': 1,
                     'count_totale': len(ciclo.users),
+                    'selezione_annunci': proposta.selezione_annunci,
+                    'proposal_active': True,
                 })
 
             risposta_obj = (
@@ -3611,7 +3649,34 @@ def proponi_catena(request, ciclo_id):
                     'message': 'Interesse rimosso',
                     'count_interessati': proposta.get_count_interessati(),
                     'count_totale': proposta.get_count_totale(),
+                    'selezione_annunci': proposta.selezione_annunci,
+                    'proposal_active': proposta.stato in ACTIVE_CHAIN_PROPOSAL_STATES,
                 })
+
+            # Prima di accettare una proposta già esistente, ricontrolla che
+            # la combinazione scelta sia ancora presente nel ciclo e che gli
+            # annunci siano attivi/non scaduti. Le proposte legacy senza una
+            # selezione salvata mantengono il vecchio comportamento.
+            if proposta.selezione_annunci:
+                try:
+                    normalize_chain_selection(
+                        ciclo,
+                        raw_selection=proposta.selezione_annunci,
+                    )
+                except ChainSelectionError:
+                    proposta.stato = 'annullata'
+                    proposta.save(update_fields=[
+                        'stato',
+                        'data_ultimo_aggiornamento',
+                    ])
+                    return JsonResponse({
+                        'success': False,
+                        'error': (
+                            'La combinazione proposta non è più disponibile. '
+                            'La proposta è stata annullata; aggiorna le catene.'
+                        ),
+                        'proposal_active': False,
+                    }, status=409)
 
             if risposta_obj:
                 risposta_obj.risposta = 'interessato'
@@ -3654,6 +3719,8 @@ def proponi_catena(request, ciclo_id):
                 'count_interessati': count_interessati,
                 'count_totale': count_totale,
                 'tutti_interessati': tutti_interessati,
+                'selezione_annunci': proposta.selezione_annunci,
+                'proposal_active': True,
             }
             if conversazione:
                 response_data.update({
@@ -3975,7 +4042,8 @@ def stato_proposta_catena(request, ciclo_id):
             'count_totale': proposta.get_count_totale(),
             'mia_risposta': mia_risposta,
             'giorni_scadenza': proposta.giorni_alla_scadenza() if proposta.data_scadenza else None,
-            'data_scadenza': proposta.data_scadenza.isoformat() if proposta.data_scadenza else None
+            'data_scadenza': proposta.data_scadenza.isoformat() if proposta.data_scadenza else None,
+            'selezione_annunci': proposta.selezione_annunci,
         })
 
     except Exception:
@@ -4036,8 +4104,10 @@ def mie_proposte_catene(request):
             stato_class = 'secondary'
 
         # Ottieni gli scambi dal campo dettagli del ciclo e costruisci il formato atteso dal template
-        exchanges = []
-        if ciclo and ciclo.dettagli and 'scambi' in ciclo.dettagli:
+        exchanges = proposal_exchange_rows(proposta)
+        if exchanges is None:
+            exchanges = []
+        if not proposta.selezione_annunci and ciclo and ciclo.dettagli and 'scambi' in ciclo.dettagli:
             from django.contrib.auth.models import User
 
             for scambio in ciclo.dettagli['scambi']:

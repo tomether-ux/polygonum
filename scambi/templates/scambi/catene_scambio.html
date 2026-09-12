@@ -1,8 +1,11 @@
 {% extends 'scambi/base.html' %}
+{% load static %}
 
 {% block title %}Catene di Scambio - Sito di Scambi{% endblock %}
 
 {% block content %}
+<meta name="polygonum-csrf-token" content="{{ csrf_token }}">
+<link rel="stylesheet" href="{% static 'css/chain-proposals.css' %}">
 <div class="row">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
@@ -1194,6 +1197,8 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(`/catene/stato/${cicloId}/`)
         .then(response => response.json())
         .then(data => {
+            card.dataset.hasActiveProposal = data.has_proposta ? 'true' : 'false';
+            renderChainSelection(card, data.selezione_annunci);
             if (data.has_proposta) {
                 // Aggiorna tutti i badge e bottoni nella card (desktop e mobile)
                 const badges = card.querySelectorAll('.badge-interessati');
@@ -2494,4 +2499,5 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
 });
 </script>
+<script src="{% static 'js/chain-proposals.js' %}"></script>
 {% endblock %}

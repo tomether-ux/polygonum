@@ -1891,6 +1891,7 @@ def converti_ciclo_db_a_view_format(
         user_requests = {}
         user_offer_options = {}
         user_request_options = {}
+        scambi_opzioni = []
         annunci_ids = []
         annunci_ids_visti = set()
 
@@ -1962,6 +1963,23 @@ def converti_ciclo_db_a_view_format(
 
                     user_offers[da_user] = coppia_selezionata[0]
                     user_requests[a_user] = coppia_selezionata[1]
+                    scambi_opzioni.append({
+                        'da_user': da_user,
+                        'a_user': a_user,
+                        'da_username': utenti_dict_ciclo[da_user].username,
+                        'a_username': utenti_dict_ciclo[a_user].username,
+                        'opzioni': [
+                            {
+                                'offerta': offerta,
+                                'richiesta': richiesta,
+                                'selezionata': (
+                                    offerta.id == coppia_selezionata[0].id
+                                    and richiesta.id == coppia_selezionata[1].id
+                                ),
+                            }
+                            for offerta, richiesta in coppie_valide
+                        ],
+                    })
 
             # Se un lato non ha più alcuna coppia attiva, il ciclo è incompleto.
             if scambi_completi < num_scambi_attesi:
@@ -2050,6 +2068,11 @@ def converti_ciclo_db_a_view_format(
             'calcolato_at': ciclo_db.calcolato_at,
             'annunci_coinvolti': annunci_coinvolti,
             'annunci_ids': annunci_ids,
+            'scambi_opzioni': scambi_opzioni,
+            'richiede_scelta_annunci': any(
+                len(scambio['opzioni']) > 1
+                for scambio in scambi_opzioni
+            ),
             'usa_sinonimi': usa_sinonimi,  # Flag per filtraggio UI
             'ha_match_parziali': ha_match_parziali,  # Flag per filtraggio match esatti
             'da_database': True  # Flag per identificare cicli pre-calcolati
