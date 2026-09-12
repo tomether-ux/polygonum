@@ -1078,8 +1078,8 @@ function getCookie(name) {
 }
 
 // Funzione per proporre una catena (toggle)
-function proponiCatena(cicloId) {
-    const button = event.target.closest('.btn-mi-interessa');
+function proponiCatena(cicloId, clickEvent) {
+    const button = clickEvent.currentTarget;
     const card = document.querySelector(`[data-ciclo-id="${cicloId}"]`);
 
     if (!button || !card) return;

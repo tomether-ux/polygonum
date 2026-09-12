@@ -30,11 +30,11 @@
                         <span class="count-text">0/{{ catena.utenti|length }}</span>
                     </span>
                     {% if catena.id_ciclo in cicli_interessati %}
-                    <button class="btn-mi-interessa interested" onclick="proponiCatena({{ catena.id_ciclo }})">
+                    <button class="btn-mi-interessa interested" onclick="proponiCatena({{ catena.id_ciclo }}, event)">
                         <i class="fas fa-check me-1"></i>Interessato
                     </button>
                     {% else %}
-                    <button class="btn-mi-interessa" onclick="proponiCatena({{ catena.id_ciclo }})">
+                    <button class="btn-mi-interessa" onclick="proponiCatena({{ catena.id_ciclo }}, event)">
                         <i class="fas fa-heart me-1"></i>Mi interessa
                     </button>
                     {% endif %}
@@ -56,11 +56,11 @@
                     <span class="count-text">0/{{ catena.utenti|length }}</span>
                 </span>
                 {% if catena.id_ciclo in cicli_interessati %}
-                <button class="btn-mi-interessa interested" onclick="proponiCatena({{ catena.id_ciclo }})">
+                <button class="btn-mi-interessa interested" onclick="proponiCatena({{ catena.id_ciclo }}, event)">
                     <i class="fas fa-check me-1"></i>Interessato
                 </button>
                 {% else %}
-                <button class="btn-mi-interessa" onclick="proponiCatena({{ catena.id_ciclo }})">
+                <button class="btn-mi-interessa" onclick="proponiCatena({{ catena.id_ciclo }}, event)">
                     <i class="fas fa-heart me-1"></i>Mi interessa
                 </button>
                 {% endif %}

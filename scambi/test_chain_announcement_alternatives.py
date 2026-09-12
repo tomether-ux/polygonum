@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.db import connection
 from django.template.loader import render_to_string
 from django.test import TestCase
@@ -338,6 +339,191 @@ class ChainAnnouncementAlternativesTests(TestCase):
         )
         self.assertIsNone(response.context['tipo_catena_selezionato'])
         self.assertEqual(response.context['catene_per_pagina'], 50)
+
+
+class CommunitySingleCategoryCycleTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.user_a = User.objects.create_user(username='community_a')
+        self.user_b = User.objects.create_user(username='community_b')
+        self.music = Categoria.objects.create(nome='Strumenti musicali')
+        self.furniture = Categoria.objects.create(nome='Arredamento')
+
+        self.offer_a_music = self._announcement(
+            self.user_a,
+            'offro',
+            'Synth analogico',
+            self.music,
+        )
+        self.request_b_music = self._announcement(
+            self.user_b,
+            'cerco',
+            'Synth analogico',
+            self.music,
+        )
+        self.offer_a_furniture = self._announcement(
+            self.user_a,
+            'offro',
+            'Sedia moderna',
+            self.furniture,
+        )
+        self.request_b_furniture = self._announcement(
+            self.user_b,
+            'cerco',
+            'Sedia moderna',
+            self.furniture,
+        )
+        self.offer_b_music = self._announcement(
+            self.user_b,
+            'offro',
+            'Chitarra elettrica',
+            self.music,
+        )
+        self.request_a_music = self._announcement(
+            self.user_a,
+            'cerco',
+            'Chitarra elettrica',
+            self.music,
+        )
+        self.offer_b_furniture = self._announcement(
+            self.user_b,
+            'offro',
+            'Tavolo rotondo',
+            self.furniture,
+        )
+        self.request_a_furniture = self._announcement(
+            self.user_a,
+            'cerco',
+            'Tavolo rotondo',
+            self.furniture,
+        )
+
+        self.cycle = CicloScambio.objects.create(
+            users=[self.user_a.id, self.user_b.id],
+            lunghezza=2,
+            dettagli={
+                'scambi': [
+                    {
+                        'da_user': self.user_a.id,
+                        'a_user': self.user_b.id,
+                        'oggetti': [
+                            self._pair(
+                                self.offer_a_music,
+                                self.request_b_music,
+                            ),
+                            self._pair(
+                                self.offer_a_furniture,
+                                self.request_b_furniture,
+                            ),
+                        ],
+                    },
+                    {
+                        'da_user': self.user_b.id,
+                        'a_user': self.user_a.id,
+                        'oggetti': [
+                            self._pair(
+                                self.offer_b_music,
+                                self.request_a_music,
+                            ),
+                        ],
+                    },
+                ],
+            },
+            valido=True,
+            hash_ciclo='7' * 32,
+        )
+
+    @staticmethod
+    def _announcement(user, tipo, title, category):
+        return Annuncio.objects.create(
+            utente=user,
+            titolo=title,
+            descrizione='Descrizione valida per il test Community',
+            categoria=category,
+            tipo=tipo,
+            attivo=True,
+        )
+
+    @staticmethod
+    def _pair(offer, request):
+        return {
+            'offerto': {'id': offer.id},
+            'richiesto': {'id': request.id},
+            'tipo_match': 'specifico',
+        }
+
+    def test_community_mode_selects_common_category_from_alternatives(self):
+        result = get_cicli_precalcolati(
+            user_id=self.user_a.id,
+            single_category=True,
+        )
+
+        self.assertEqual(result['totale'], 1)
+        chain = result['scambi_diretti'][0]
+        self.assertEqual(chain['community_category'], self.music)
+        self.assertEqual(
+            set(chain['annunci_ids']),
+            {
+                self.offer_a_music.id,
+                self.request_b_music.id,
+                self.offer_b_music.id,
+                self.request_a_music.id,
+            },
+        )
+        selected_categories = {
+            announcement.categoria_id
+            for participant in chain['utenti']
+            for announcement in (
+                participant['offerta'],
+                participant['richiede'],
+            )
+        }
+        self.assertEqual(selected_categories, {self.music.id})
+
+    def test_community_mode_excludes_cycle_without_one_common_category(self):
+        self.cycle.dettagli = {
+            'scambi': [
+                {
+                    'da_user': self.user_a.id,
+                    'a_user': self.user_b.id,
+                    'oggetti': [
+                        self._pair(
+                            self.offer_a_music,
+                            self.request_b_music,
+                        ),
+                    ],
+                },
+                {
+                    'da_user': self.user_b.id,
+                    'a_user': self.user_a.id,
+                    'oggetti': [
+                        self._pair(
+                            self.offer_b_furniture,
+                            self.request_a_furniture,
+                        ),
+                    ],
+                },
+            ],
+        }
+        self.cycle.save(update_fields=['dettagli'])
+
+        result = get_cicli_precalcolati(
+            user_id=self.user_a.id,
+            single_category=True,
+        )
+
+        self.assertEqual(result['totale'], 0)
+        self.assertEqual(result['totale_disponibili'], 0)
+
+    def test_community_page_renders_the_category_specific_projection(self):
+        self.client.force_login(self.user_a)
+
+        response = self.client.get(reverse('catene_community'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Strumenti musicali', response.context['sections_html'])
+        self.assertIn('Synth analogico', response.context['sections_html'])
+        self.assertNotIn('Sedia moderna', response.context['sections_html'])
 
 
 class PersonalCycleLoadingTests(TestCase):

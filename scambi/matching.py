@@ -1468,6 +1468,54 @@ def estrai_annunci_ids_dettagli(dettagli):
     return annunci_ids
 
 
+def _categorie_comuni_del_ciclo(ciclo_db, annunci_dict):
+    """Categorie che dispongono di una coppia valida su ogni lato del ciclo."""
+    categorie_comuni = None
+    categorie = {}
+    scambi = (ciclo_db.dettagli or {}).get('scambi', [])
+
+    if len(scambi) != ciclo_db.lunghezza:
+        return {}
+
+    for scambio in scambi:
+        categorie_lato = {}
+        for oggetto in scambio.get('oggetti', []):
+            try:
+                offerta = annunci_dict.get(oggetto['offerto']['id'])
+                richiesta = annunci_dict.get(oggetto['richiesto']['id'])
+            except (KeyError, TypeError):
+                continue
+
+            if (
+                not offerta
+                or not richiesta
+                or not offerta.attivo
+                or not richiesta.attivo
+                or offerta.is_scaduto
+                or richiesta.is_scaduto
+                or offerta.categoria_id != richiesta.categoria_id
+            ):
+                continue
+
+            categorie_lato[offerta.categoria_id] = offerta.categoria
+
+        if not categorie_lato:
+            return {}
+
+        if categorie_comuni is None:
+            categorie_comuni = set(categorie_lato)
+            categorie.update(categorie_lato)
+        else:
+            categorie_comuni.intersection_update(categorie_lato)
+            if not categorie_comuni:
+                return {}
+
+    return {
+        categoria_id: categorie[categoria_id]
+        for categoria_id in categorie_comuni or set()
+    }
+
+
 def get_cicli_precalcolati(
     preferred_announcement_id=None,
     *,
@@ -1477,6 +1525,7 @@ def get_cicli_precalcolati(
     focus_cycle_id=None,
     cycle_length=None,
     per_length_limit=None,
+    single_category=False,
 ):
     """
     Funzione ottimizzata che legge i cicli pre-calcolati dal database invece di fare brute-force.
@@ -1535,6 +1584,13 @@ def get_cicli_precalcolati(
             in estrai_annunci_ids_dettagli(row['dettagli'])
         ]
         cicli_queryset = cicli_queryset.filter(id__in=matching_cycle_ids)
+
+    if single_category and (
+        page_size is not None or per_length_limit is not None
+    ):
+        raise ValueError(
+            'La modalità mono-categoria non supporta paginazione o limiti'
+        )
 
     if per_length_limit is not None and page_size is not None:
         raise ValueError(
@@ -1672,15 +1728,38 @@ def get_cicli_precalcolati(
 
     for ciclo_db in cicli_db:
         try:
+            categoria_community = None
+            required_category_id = None
+            if single_category:
+                categorie_possibili = _categorie_comuni_del_ciclo(
+                    ciclo_db,
+                    annunci_dict,
+                )
+                if not categorie_possibili:
+                    continue
+                categoria_community = min(
+                    categorie_possibili.values(),
+                    key=lambda categoria: (
+                        categoria.nome.casefold(),
+                        categoria.pk,
+                    ),
+                )
+                required_category_id = categoria_community.pk
+
             # Passa il dizionario annunci pre-caricati alla funzione di conversione
             ciclo_convertito = converti_ciclo_db_a_view_format(
                 ciclo_db,
                 annunci_dict,
                 utenti_dict=utenti_dict,
                 preferred_announcement_id=preferred_announcement_id,
+                required_category_id=required_category_id,
             )
 
             if ciclo_convertito:
+                if categoria_community is not None:
+                    ciclo_convertito['community_category'] = (
+                        categoria_community
+                    )
                 if ciclo_db.lunghezza == 2:
                     scambi_diretti.append(ciclo_convertito)
                 else:
@@ -1697,6 +1776,17 @@ def get_cicli_precalcolati(
 
     elapsed = time.time() - start_time
     totale = len(scambi_diretti) + len(catene_lunghe)
+
+    if single_category:
+        totale_disponibili = totale
+        cicli_convertiti = scambi_diretti + catene_lunghe
+        totali_per_lunghezza = {
+            length: sum(
+                ciclo['lunghezza'] == length
+                for ciclo in cicli_convertiti
+            )
+            for length in range(2, 7)
+        }
 
     logger.debug(f"✅ Caricati {totale} cicli pre-calcolati in {elapsed:.3f}s ({len(scambi_diretti)} diretti, {len(catene_lunghe)} catene)")
 
@@ -1716,6 +1806,7 @@ def converti_ciclo_db_a_view_format(
     annunci_dict=None,
     utenti_dict=None,
     preferred_announcement_id=None,
+    required_category_id=None,
 ):
     """
     Converte un CicloScambio dal database al formato richiesto dalle views.
@@ -1726,6 +1817,8 @@ def converti_ciclo_db_a_view_format(
         utenti_dict: Dizionario {user_id: User} pre-caricato (ottimizzazione)
         preferred_announcement_id: Annuncio da usare come anteprima, se presente
             tra le alternative del ciclo.
+        required_category_id: se valorizzato, usa soltanto coppie in cui
+            offerta e richiesta appartengono a questa categoria.
 
     Returns:
         dict: Ciclo nel formato compatibile con le views esistenti
@@ -1838,6 +1931,12 @@ def converti_ciclo_db_a_view_format(
                             or not richiesta.attivo
                             or offerta.is_scaduto
                             or richiesta.is_scaduto
+                        ):
+                            continue
+
+                        if required_category_id is not None and (
+                            offerta.categoria_id != required_category_id
+                            or richiesta.categoria_id != required_category_id
                         ):
                             continue
 

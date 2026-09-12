@@ -1119,15 +1119,21 @@ def catene_community(request):
         filtra_catene_per_utente_ottimizzato,
         calcola_qualita_ciclo,
     )
-    from .models import RispostaProposta
+    from .models import CalcoloMetadata, RispostaProposta
 
     cache_key = f'community_sections_{request.user.id}'
     ts_key = f'community_updated_{request.user.id}'
+    version_key = f'community_cycle_version_{request.user.id}'
     aggiorna = request.GET.get('aggiorna') == 'true'
+    ultimo_calcolo = CalcoloMetadata.objects.filter(
+        singleton_id=1,
+    ).values_list('ultimo_calcolo_completo', flat=True).first()
+    cycle_version = ultimo_calcolo.isoformat() if ultimo_calcolo else 'none'
 
-    # Riusa i risultati cachati, a meno che non sia richiesto un aggiornamento esplicito.
+    # La cache personale resta valida soltanto fino al successivo ricalcolo.
     cached_html = None if aggiorna else cache.get(cache_key)
-    if cached_html is not None:
+    cached_version = cache.get(version_key)
+    if cached_html is not None and cached_version == cycle_version:
         return render(request, 'scambi/catene_community.html', {
             'sections_html': cached_html,
             'updated_at': cache.get(ts_key),
@@ -1143,7 +1149,10 @@ def catene_community(request):
     totale_catene = 0
 
     if annunci_utente.exists():
-        risultato = get_cicli_precalcolati(user_id=request.user.id)
+        risultato = get_cicli_precalcolati(
+            user_id=request.user.id,
+            single_category=True,
+        )
         scambi_diretti = risultato['scambi_diretti']
         catene_lunghe = risultato['catene']
 
@@ -1176,24 +1185,9 @@ def catene_community(request):
         # Tieni solo le catene mono-categoria e raggruppale per categoria
         gruppi = {}  # categoria_id -> {'categoria': obj, 'catene': [...]}
         for catena in catene_uniche:
-            categorie_ids = set()
-            categoria_obj = None
-            valida = True
-            for u in catena.get('utenti', []):
-                for chiave in ('richiede', 'offerta'):
-                    ann = u.get(chiave)
-                    if ann is not None:
-                        cat = getattr(ann, 'categoria', None)
-                        if cat is None:
-                            valida = False
-                            break
-                        categorie_ids.add(cat.id)
-                        categoria_obj = cat
-                if not valida:
-                    break
-
-            if not valida or len(categorie_ids) != 1:
-                continue  # catena non mono-categoria → scartata
+            categoria_obj = catena.get('community_category')
+            if categoria_obj is None:
+                continue
 
             # Arricchimento identico alla pagina tradizionale (per chain_card.html)
             fasce = set()
@@ -1239,6 +1233,7 @@ def catene_community(request):
     updated_at = timezone.now()
     cache.set(cache_key, sections_html, 60 * 60 * 24)  # TTL 24h
     cache.set(ts_key, updated_at, 60 * 60 * 24)
+    cache.set(version_key, cycle_version, 60 * 60 * 24)
 
     # PRG: dopo un "Aggiorna" esplicito torna all'URL pulito (evita ricalcolo su F5)
     if aggiorna:
@@ -1588,6 +1583,7 @@ def _clear_hidden_chain_cache(user_id):
     cache.delete_many([
         f'community_sections_{user_id}',
         f'community_updated_{user_id}',
+        f'community_cycle_version_{user_id}',
     ])
 
 
