@@ -124,9 +124,15 @@
 
                         <!-- Pulsanti Azioni -->
                         <div class="card-actions">
-                            <a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-sm btn-outline-primary" title="Modifica">
-                                <i class="fas fa-edit"></i>
-                            </a>
+                            {% if annuncio.puo_essere_modificato %}
+                                <a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-sm btn-outline-primary" title="Modifica ({{ annuncio.modifiche_rimanenti }} rimaste)">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            {% else %}
+                                <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Limite di 3 modifiche raggiunto">
+                                    <i class="fas fa-lock"></i>
+                                </button>
+                            {% endif %}
                             {% if annuncio.attivo %}
                             <form method="post" action="{% url 'disattiva_annuncio' annuncio.id %}" style="display:inline;" onsubmit="return confirm('Sei sicuro di voler disattivare questo annuncio?')">
                                 {% csrf_token %}

@@ -336,9 +336,15 @@
                         {% if is_own_profile %}
                         <div class="card-footer bg-white border-0 pt-0">
                             <div class="btn-group w-100" role="group">
-                                <a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-outline-primary btn-sm" title="Modifica" onclick="event.stopPropagation();">
-                                    <i class="fas fa-edit"></i>
-                                </a>
+                                {% if annuncio.puo_essere_modificato %}
+                                    <a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-outline-primary btn-sm" title="Modifica ({{ annuncio.modifiche_rimanenti }} rimaste)" onclick="event.stopPropagation();">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                {% else %}
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" disabled title="Limite di 3 modifiche raggiunto">
+                                        <i class="fas fa-lock"></i>
+                                    </button>
+                                {% endif %}
                                 {% if annuncio.attivo %}
                                 <form method="post" action="{% url 'disattiva_annuncio' annuncio.id %}" style="display:inline;">
                                     {% csrf_token %}
@@ -437,9 +443,15 @@
                         {% if is_own_profile %}
                         <div class="card-footer bg-white border-0 pt-0">
                             <div class="btn-group w-100" role="group">
-                                <a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-outline-primary btn-sm" title="Modifica" onclick="event.stopPropagation();">
-                                    <i class="fas fa-edit"></i>
-                                </a>
+                                {% if annuncio.puo_essere_modificato %}
+                                    <a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-outline-primary btn-sm" title="Modifica ({{ annuncio.modifiche_rimanenti }} rimaste)" onclick="event.stopPropagation();">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                {% else %}
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" disabled title="Limite di 3 modifiche raggiunto">
+                                        <i class="fas fa-lock"></i>
+                                    </button>
+                                {% endif %}
                                 {% if annuncio.attivo %}
                                 <form method="post" action="{% url 'disattiva_annuncio' annuncio.id %}" style="display:inline;">
                                     {% csrf_token %}

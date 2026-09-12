@@ -23,6 +23,8 @@ class Categoria(models.Model):
         verbose_name_plural = "Categorie"
 
 class Annuncio(models.Model):
+    MAX_MODIFICHE = 3
+
     TIPO_CHOICES = [
         ('offro', 'Offro'),
         ('cerco', 'Cerco'),
@@ -144,9 +146,22 @@ class Annuncio(models.Model):
 
     data_creazione = models.DateTimeField(auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True, verbose_name="Ultima modifica")
+    modifiche_effettuate = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Modifiche effettuate",
+        help_text="Numero di modifiche effettuate dall'utente dopo la pubblicazione",
+    )
 
     def __str__(self):
         return f"{self.utente.username} - {self.tipo}: {self.titolo}"
+
+    @property
+    def puo_essere_modificato(self):
+        return self.modifiche_effettuate < self.MAX_MODIFICHE
+
+    @property
+    def modifiche_rimanenti(self):
+        return max(0, self.MAX_MODIFICHE - self.modifiche_effettuate)
 
     def get_condizione_icon(self):
         """Restituisce l'icona corrispondente alla condizione dell'oggetto"""
@@ -743,6 +758,8 @@ class Provincia(models.Model):
 
 
 class UserProfile(models.Model):
+    MAX_ANNUNCI_ATTIVI_PER_TIPO = 3
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
 
     # Sistema località: provincia obbligatoria + città campo libero
@@ -843,12 +860,12 @@ class UserProfile(models.Model):
     def get_limite_annunci(self, tipo):
         """
         Restituisce il limite di annunci per tipo (offro/cerco)
-        - Free: 5 annunci per tipo
+        - Free: 3 annunci attivi per tipo
         - Premium: illimitato
         """
         if self.is_premium:
             return None  # Nessun limite
-        return 5  # Limite per utenti free
+        return self.MAX_ANNUNCI_ATTIVI_PER_TIPO
 
     def get_count_annunci(self, tipo):
         """Conta gli annunci attivi dell'utente per tipo"""

@@ -107,7 +107,14 @@
                             <div class="mb-3">
                                 <label class="form-label">{{ form.titolo.label_tag }}</label>
                                 {{ form.titolo }}
-                                <small class="form-text text-muted">Es: "Chitarra elettrica Fender" o "Bicicletta da corsa"</small>
+                                {% if form.titolo.errors %}
+                                    <div class="text-danger mt-1 small">
+                                        {% for error in form.titolo.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Massimo 60 caratteri e 8 parole. Usa la descrizione per gli altri dettagli.
+                                </small>
 
                                 <!-- Checkbox cerca per categoria (solo per annunci "cerco") -->
                                 <div class="form-check mt-2" id="cerca-per-categoria-container" style="display: none;">
@@ -244,11 +251,10 @@
                 </div>
                 <div class="card-body">
                     <ul class="mb-0">
-                        <li>Usa titoli chiari e descrittivi</li>
-                        <li>Includi parole chiave che altri potrebbero cercare</li>
-                        <li>Specifica marca, modello, condizioni</li>
-                        <li>Indica un prezzo realistico per facilitare scambi equi</li>
-                        <li>Più annunci aumentano le possibilità di scambio</li>
+                        <li>Usa un titolo sintetico: oggetto, marca e modello</li>
+                        <li>Inserisci condizioni e altri dettagli nella descrizione</li>
+                        <li>Seleziona una fascia di valore realistica</li>
+                        <li>Puoi avere fino a 3 annunci “Offro” e 3 “Cerco” attivi</li>
                     </ul>
                 </div>
             </div>

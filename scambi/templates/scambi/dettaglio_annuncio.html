@@ -255,9 +255,15 @@
                     <div class="d-grid gap-2">
                         {% if user.is_authenticated and user == annuncio.utente %}
                             <!-- Pulsanti per il proprietario dell'annuncio -->
-                            <a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-primary btn-lg">
-                                <i class="fas fa-edit me-2"></i>Modifica Annuncio
-                            </a>
+                            {% if annuncio.puo_essere_modificato %}
+                                <a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-edit me-2"></i>Modifica Annuncio
+                                </a>
+                            {% else %}
+                                <button type="button" class="btn btn-secondary btn-lg" disabled title="Limite di 3 modifiche raggiunto">
+                                    <i class="fas fa-lock me-2"></i>Non più modificabile
+                                </button>
+                            {% endif %}
                             {% if annuncio.attivo %}
                             <form method="post" action="{% url 'disattiva_annuncio' annuncio.id %}">
                                 {% csrf_token %}

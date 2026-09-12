@@ -24,6 +24,11 @@
             <div class="col-lg-8">
                 <div class="card border-0 shadow-lg">
                     <div class="card-body p-5">
+                        <div class="alert alert-warning" role="status">
+                            <i class="fas fa-edit me-2"></i>
+                            Hai usato <strong>{{ annuncio.modifiche_effettuate }}/3</strong> modifiche.
+                            Questo salvataggio ne utilizzerà una; dopo la terza l'annuncio non sarà più modificabile.
+                        </div>
                         <form method="post" enctype="multipart/form-data">
                             {% csrf_token %}
 
@@ -86,7 +91,9 @@
                                             {% endfor %}
                                         </div>
                                     {% endif %}
-                                    <small class="form-text text-muted">Es: "Chitarra elettrica Fender" o "Bicicletta da corsa"</small>
+                                    <small class="form-text text-muted">
+                                        Massimo 60 caratteri e 8 parole. Usa la descrizione per gli altri dettagli.
+                                    </small>
 
                                     <!-- Checkbox cerca per categoria (solo per annunci "cerco") -->
                                     <div class="form-check mt-2" id="cerca-per-categoria-container" style="display: none;">

@@ -99,12 +99,19 @@ class CustomUserCreationForm(UserCreationForm):
             raise
 
 class AnnuncioForm(forms.ModelForm):
+    MAX_TITOLO_CARATTERI = 60
+    MAX_TITOLO_PAROLE = 8
+
     class Meta:
         model = Annuncio
         fields = ['titolo', 'descrizione', 'categoria', 'tipo', 'cerca_per_categoria', 'immagine',
                  'fascia_prezzo', 'condizione', 'metodo_scambio', 'distanza_massima_km']
         widgets = {
-            'titolo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Es: Chitarra elettrica Fender'}),
+            'titolo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Es: Chitarra elettrica Fender',
+                'maxlength': 60,
+            }),
             'descrizione': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Descrivi il tuo annuncio...'}),
             'categoria': forms.Select(attrs={'class': 'form-control'}),
             'tipo': forms.Select(attrs={'class': 'form-control'}),
@@ -136,6 +143,20 @@ class AnnuncioForm(forms.ModelForm):
             'metodo_scambio': 'Come preferisci scambiare?',
             'distanza_massima_km': 'Distanza massima per incontro (km)'
         }
+
+    def clean_titolo(self):
+        """Mantiene il titolo sintetico per evitare match troppo generici."""
+        titolo = ' '.join((self.cleaned_data.get('titolo') or '').split())
+        if len(titolo) > self.MAX_TITOLO_CARATTERI:
+            raise forms.ValidationError(
+                f'Il titolo può contenere al massimo {self.MAX_TITOLO_CARATTERI} caratteri.'
+            )
+        if len(titolo.split()) > self.MAX_TITOLO_PAROLE:
+            raise forms.ValidationError(
+                f'Il titolo può contenere al massimo {self.MAX_TITOLO_PAROLE} parole. '
+                'Usa la descrizione per gli altri dettagli.'
+            )
+        return titolo
 
     def clean(self):
         """Validazione personalizzata del form"""

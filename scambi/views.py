@@ -1,4 +1,5 @@
 from django.contrib.auth import login
+from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.forms import UserCreationForm  # Se usi il form base
@@ -233,18 +234,21 @@ def crea_annuncio(request):
             annuncio = form.save(commit=False)
             annuncio.utente = request.user
 
-            # Controlla i limiti prima di salvare
-            tipo = annuncio.tipo
-            puo_creare, messaggio_errore = profilo.puo_creare_annuncio(tipo)
-
-            if not puo_creare:
-                messages.error(request, messaggio_errore)
-                return render(request, 'scambi/crea_annuncio.html', {
-                    'form': form,
-                    'profilo': profilo
-                })
-
-            annuncio.save()
+            # Serializza le creazioni dello stesso utente: due POST simultanei
+            # non possono superare il limite di annunci attivi.
+            with transaction.atomic():
+                User.objects.select_for_update().only('pk').get(pk=request.user.pk)
+                puo_creare, messaggio_errore = profilo.puo_creare_annuncio(
+                    annuncio.tipo
+                )
+                if not puo_creare:
+                    messages.error(request, messaggio_errore)
+                    return render(
+                        request,
+                        'scambi/crea_annuncio.html',
+                        _crea_annuncio_context(form, profilo),
+                    )
+                annuncio.save()
 
             # Messaggio diverso se l'annuncio ha immagine in moderazione
             if annuncio.immagine and annuncio.moderation_status == 'pending':
@@ -257,7 +261,14 @@ def crea_annuncio(request):
         form = AnnuncioForm()
 
     # Calcola statistiche per il template
-    context = {
+    context = _crea_annuncio_context(form, profilo)
+
+    return render(request, 'scambi/crea_annuncio.html', context)
+
+
+def _crea_annuncio_context(form, profilo):
+    """Contesto coerente anche quando il limite viene raggiunto via POST."""
+    return {
         'form': form,
         'profilo': profilo,
         'count_offro': profilo.get_count_annunci('offro'),
@@ -268,41 +279,97 @@ def crea_annuncio(request):
         'rimanenti_cerco': profilo.get_annunci_rimanenti('cerco'),
     }
 
-    return render(request, 'scambi/crea_annuncio.html', context)
-
 @login_required
 def modifica_annuncio(request, annuncio_id):
     """Modifica un annuncio esistente"""
     annuncio = get_object_or_404(Annuncio, id=annuncio_id, utente=request.user)
 
+    if not annuncio.puo_essere_modificato:
+        messages.warning(
+            request,
+            'Hai già utilizzato le 3 modifiche disponibili per questo annuncio. '
+            'Per cambiare ancora i contenuti devi creare un nuovo annuncio.',
+        )
+        return redirect('profilo_utente', username=request.user.username)
+
     if request.method == 'POST':
-        logger.debug(f"📝 Modifica annuncio #{annuncio.id} - POST ricevuto")
-        logger.debug(f"   request.FILES: {list(request.FILES.keys())}")
-        logger.debug(f"   'immagine' in FILES: {'immagine' in request.FILES}")
+        with transaction.atomic():
+            User.objects.select_for_update().only('pk').get(pk=request.user.pk)
+            annuncio = get_object_or_404(
+                Annuncio.objects.select_for_update(),
+                id=annuncio_id,
+                utente=request.user,
+            )
+            if not annuncio.puo_essere_modificato:
+                messages.warning(
+                    request,
+                    'Hai già utilizzato le 3 modifiche disponibili per questo annuncio.',
+                )
+                return redirect('profilo_utente', username=request.user.username)
 
-        form = AnnuncioForm(request.POST, request.FILES, instance=annuncio)
+            tipo_originale = annuncio.tipo
+            form = AnnuncioForm(request.POST, request.FILES, instance=annuncio)
 
-        if form.is_valid():
-            logger.debug(f"✅ Form valido - procedendo al salvataggio")
+            if form.is_valid():
+                if not form.has_changed():
+                    messages.info(request, 'Nessuna modifica da salvare.')
+                    return redirect(
+                        'profilo_utente',
+                        username=request.user.username,
+                    )
 
-            # Salva direttamente - il metodo save() del modello gestirà la moderazione automaticamente
-            annuncio_aggiornato = form.save()
+                nuovo_tipo = form.cleaned_data['tipo']
+                profilo = UserProfile.objects.filter(user=request.user).first()
+                if (
+                    annuncio.attivo
+                    and nuovo_tipo != tipo_originale
+                    and not (profilo and profilo.is_premium)
+                ):
+                    limite = (
+                        profilo.get_limite_annunci(nuovo_tipo)
+                        if profilo
+                        else UserProfile.MAX_ANNUNCI_ATTIVI_PER_TIPO
+                    )
+                    count_destinazione = Annuncio.objects.filter(
+                        utente=request.user,
+                        tipo=nuovo_tipo,
+                        attivo=True,
+                    ).exclude(pk=annuncio.pk).count()
+                    if count_destinazione >= limite:
+                        form.add_error(
+                            'tipo',
+                            f'Hai già {limite} annunci attivi di questo tipo.',
+                        )
 
-            logger.debug(f"💾 Annuncio salvato - ID: {annuncio_aggiornato.id}")
-            logger.debug(f"   Immagine dopo save: {annuncio_aggiornato.immagine}")
-            logger.debug(f"   Moderation status: {annuncio_aggiornato.moderation_status}")
+                if not form.errors:
+                    annuncio.modifiche_effettuate += 1
+                    annuncio_aggiornato = form.save()
 
-            # Messaggio diverso se l'annuncio ha immagine in moderazione
-            if 'immagine' in request.FILES and annuncio_aggiornato.moderation_status == 'pending':
-                messages.warning(request, '⏳ Nuova immagine caricata. L\'annuncio è in moderazione. Riceverai una notifica quando sarà approvato.')
-            else:
-                messages.success(request, 'Annuncio modificato con successo!')
+                    if (
+                        'immagine' in request.FILES
+                        and annuncio_aggiornato.moderation_status == 'pending'
+                    ):
+                        messages.warning(
+                            request,
+                            '⏳ Nuova immagine caricata. L\'annuncio è in '
+                            'moderazione. Riceverai una notifica quando sarà approvato.',
+                        )
+                    else:
+                        messages.success(
+                            request,
+                            'Annuncio modificato con successo! '
+                            f'Restano {annuncio_aggiornato.modifiche_rimanenti} modifiche.',
+                        )
 
-            return redirect('profilo_utente', username=request.user.username)
-        else:
-            logger.debug(f"❌ Form NON valido - Errori:")
-            logger.debug(f"   {form.errors}")
-            messages.error(request, 'Errore nel salvataggio. Controlla i campi del form.')
+                    return redirect(
+                        'profilo_utente',
+                        username=request.user.username,
+                    )
+
+            messages.error(
+                request,
+                'Errore nel salvataggio. Controlla i campi del form.',
+            )
     else:
         form = AnnuncioForm(instance=annuncio)
 
@@ -327,37 +394,47 @@ def elimina_annuncio(request, annuncio_id):
 @require_POST
 def attiva_annuncio(request, annuncio_id):
     """Attiva un annuncio disattivato (SECURITY: POST-only per CSRF protection)"""
-    annuncio = get_object_or_404(Annuncio, id=annuncio_id, utente=request.user)
-
-    # Un account incompleto non deve generare automaticamente un profilo privo
-    # della provincia obbligatoria.
-    try:
-        profilo = request.user.userprofile
-    except UserProfile.DoesNotExist:
-        messages.warning(
-            request,
-            'Completa il profilo e seleziona la provincia prima di riattivare un annuncio.',
+    with transaction.atomic():
+        User.objects.select_for_update().only('pk').get(pk=request.user.pk)
+        annuncio = get_object_or_404(
+            Annuncio.objects.select_for_update(),
+            id=annuncio_id,
+            utente=request.user,
         )
-        return redirect('modifica_profilo')
 
-    # IMPORTANTE: Quando riattivi, devi contare come se l'annuncio fosse già attivo
-    # perché puo_creare_annuncio conta solo annunci attivi, ma questo è ancora inattivo
-    if not profilo.is_premium:
-        limite = profilo.get_limite_annunci(annuncio.tipo)
-        count_attivi = profilo.get_count_annunci(annuncio.tipo)
-
-        # Conta anche l'annuncio che stiamo per riattivare
-        if count_attivi >= limite:
-            tipo_display = "offro" if annuncio.tipo == "offro" else "cerco"
-            messages.error(
+        # Un account incompleto non deve generare automaticamente un profilo.
+        try:
+            profilo = request.user.userprofile
+        except UserProfile.DoesNotExist:
+            messages.warning(
                 request,
-                f'Non puoi riattivare questo annuncio: hai raggiunto il limite di {limite} annunci "{tipo_display}". '
-                'Disattiva un altro annuncio dello stesso tipo prima di riprovare.'
+                'Completa il profilo e seleziona la provincia prima di '
+                'riattivare un annuncio.',
             )
+            return redirect('modifica_profilo')
+
+        if annuncio.attivo:
+            messages.info(request, 'Questo annuncio è già attivo.')
             return redirect('profilo_utente', username=request.user.username)
 
-    annuncio.attivo = True
-    annuncio.save()
+        if not profilo.is_premium:
+            limite = profilo.get_limite_annunci(annuncio.tipo)
+            count_attivi = profilo.get_count_annunci(annuncio.tipo)
+            if count_attivi >= limite:
+                tipo_display = "offro" if annuncio.tipo == "offro" else "cerco"
+                messages.error(
+                    request,
+                    f'Non puoi riattivare questo annuncio: hai raggiunto il '
+                    f'limite di {limite} annunci "{tipo_display}". Disattiva '
+                    'un altro annuncio dello stesso tipo prima di riprovare.',
+                )
+                return redirect(
+                    'profilo_utente',
+                    username=request.user.username,
+                )
+
+        annuncio.attivo = True
+        annuncio.save()
     messages.success(request, f'Annuncio "{annuncio.titolo}" attivato con successo!')
     return redirect('profilo_utente', username=request.user.username)
 
@@ -1061,7 +1138,6 @@ from .forms import CustomUserCreationForm, UserProfileForm
 from .email_utils import send_verification_email
 from .models import UserProfile
 from django.shortcuts import get_object_or_404
-from django.contrib.auth.models import User
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 
