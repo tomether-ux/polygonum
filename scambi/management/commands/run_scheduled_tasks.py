@@ -6,7 +6,10 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
-from scambi.background_tasks import process_moderation_email_jobs
+from scambi.background_tasks import (
+    expire_announcements,
+    process_moderation_email_jobs,
+)
 from scambi.locks import cycle_calculation_lock
 from scambi.models import CalcoloMetadata
 
@@ -32,6 +35,11 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
+            '--expiration-limit',
+            type=int,
+            default=_environment_integer('BACKGROUND_EXPIRATION_LIMIT', 500),
+        )
+        parser.add_argument(
             '--email-limit',
             type=int,
             default=_environment_integer('BACKGROUND_EMAIL_LIMIT', 10),
@@ -52,6 +60,7 @@ class Command(BaseCommand):
             default=_environment_integer('BACKGROUND_TIME_BUDGET_SECONDS', 210),
         )
         parser.add_argument('--skip-email', action='store_true')
+        parser.add_argument('--skip-expiration', action='store_true')
         parser.add_argument('--skip-cycles', action='store_true')
         parser.add_argument('--force-cycles', action='store_true')
 
@@ -79,6 +88,12 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        expiration_limit = _bounded(
+            options['expiration_limit'],
+            name='expiration-limit',
+            minimum=1,
+            maximum=5000,
+        )
         email_limit = _bounded(
             options['email_limit'],
             name='email-limit',
@@ -105,6 +120,17 @@ class Command(BaseCommand):
         )
 
         started_at = time.monotonic()
+        if not options['skip_expiration']:
+            expiration_stats = expire_announcements(
+                max_announcements=expiration_limit,
+            )
+            self.stdout.write(
+                'Scadenza annunci: '
+                f"sospesi={expiration_stats['expired_active']} "
+                f"già_inattivi={expiration_stats['marked_inactive']} "
+                f"notifiche={expiration_stats['notified']}"
+            )
+
         email_stats = {'sent': 0, 'retried': 0, 'failed': 0, 'cancelled': 0}
 
         if not options['skip_email']:

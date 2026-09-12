@@ -93,11 +93,21 @@ def home(request):
     # crawler legittimi. Per gestire ufficialmente i bot, andrebbe verificato
     # via reverse-DNS, non via header client-controlled.
 
-    annunci_recenti = Annuncio.objects.filter(attivo=True).order_by('-data_creazione')[:6]
+    cutoff_scadenza = Annuncio.cutoff_scadenza()
+    annunci_recenti = Annuncio.objects.filter(
+        attivo=True,
+        pubblicato_at__gt=cutoff_scadenza,
+    ).order_by('-pubblicato_at')[:6]
 
     # Categorie ordinate per numero di annunci (più popolate e meno popolate)
     categorie_con_count = Categoria.objects.annotate(
-        num_annunci=Count('annuncio', filter=Q(annuncio__attivo=True))
+        num_annunci=Count(
+            'annuncio',
+            filter=Q(
+                annuncio__attivo=True,
+                annuncio__pubblicato_at__gt=cutoff_scadenza,
+            ),
+        )
     ).order_by('-num_annunci')
 
     # Top 4 categorie più popolate
@@ -121,8 +131,9 @@ def home(request):
             annunci_suggeriti = Annuncio.objects.filter(
                 categoria_id__in=mie_categorie,
                 tipo='offro',
-                attivo=True
-            ).exclude(utente=request.user).order_by('-data_creazione')[:6]
+                attivo=True,
+                pubblicato_at__gt=cutoff_scadenza,
+            ).exclude(utente=request.user).order_by('-pubblicato_at')[:6]
 
     return render(request, 'scambi/home.html', {
         'annunci_recenti': annunci_recenti,
@@ -142,7 +153,10 @@ def lista_annunci(request):
     tipo_filtro = request.GET.get('tipo')
     categoria_filtro = request.GET.get('categoria')
 
-    annunci = Annuncio.objects.filter(attivo=True)
+    annunci = Annuncio.objects.filter(
+        attivo=True,
+        pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+    )
 
     if tipo_filtro:
         annunci = annunci.filter(tipo=tipo_filtro)
@@ -180,7 +194,7 @@ def miei_annunci(request):
     if categoria_filtro:
         annunci = annunci.filter(categoria_id=categoria_filtro)
 
-    annunci = annunci.order_by('-data_creazione')
+    annunci = annunci.order_by('-pubblicato_at')
 
     categorie = Categoria.objects.all()
 
@@ -208,7 +222,7 @@ def dettaglio_annuncio(request, annuncio_id):
     # dalla moderazione): visibile SOLO al proprietario, con le relative etichette
     # di stato. Gli altri utenti vedono una pagina "non disponibile" pulita,
     # invece di un errore 404 grezzo.
-    if not annuncio.attivo and not is_owner:
+    if (not annuncio.attivo or annuncio.is_scaduto) and not is_owner:
         return render(request, 'scambi/annuncio_non_disponibile.html', status=404)
 
     return render(request, 'scambi/dettaglio_annuncio.html', {
@@ -413,6 +427,18 @@ def attiva_annuncio(request, annuncio_id):
             )
             return redirect('modifica_profilo')
 
+        if annuncio.moderation_status == 'rejected':
+            messages.error(request, 'Un annuncio bloccato non può essere riattivato.')
+            return redirect('profilo_utente', username=request.user.username)
+
+        if annuncio.is_scaduto:
+            messages.warning(
+                request,
+                'Questo annuncio è scaduto: usa “Ripubblica” per avviare '
+                'un nuovo periodo di 60 giorni.',
+            )
+            return redirect('profilo_utente', username=request.user.username)
+
         if annuncio.attivo:
             messages.info(request, 'Questo annuncio è già attivo.')
             return redirect('profilo_utente', username=request.user.username)
@@ -436,6 +462,69 @@ def attiva_annuncio(request, annuncio_id):
         annuncio.attivo = True
         annuncio.save()
     messages.success(request, f'Annuncio "{annuncio.titolo}" attivato con successo!')
+    return redirect('profilo_utente', username=request.user.username)
+
+
+@login_required
+@require_POST
+def ripubblica_annuncio(request, annuncio_id):
+    """Ripubblica per 60 giorni un annuncio scaduto senza duplicarlo."""
+    with transaction.atomic():
+        User.objects.select_for_update().only('pk').get(pk=request.user.pk)
+        annuncio = get_object_or_404(
+            Annuncio.objects.select_for_update(),
+            id=annuncio_id,
+            utente=request.user,
+        )
+
+        try:
+            profilo = request.user.userprofile
+        except UserProfile.DoesNotExist:
+            messages.warning(
+                request,
+                'Completa il profilo prima di ripubblicare un annuncio.',
+            )
+            return redirect('modifica_profilo')
+
+        if annuncio.moderation_status == 'rejected':
+            messages.error(request, 'Un annuncio bloccato non può essere ripubblicato.')
+            return redirect('profilo_utente', username=request.user.username)
+
+        if not annuncio.is_scaduto:
+            messages.info(
+                request,
+                'Questo annuncio non è scaduto. Puoi riattivarlo normalmente.',
+            )
+            return redirect('profilo_utente', username=request.user.username)
+
+        if not profilo.is_premium:
+            limite = profilo.get_limite_annunci(annuncio.tipo)
+            count_attivi = Annuncio.objects.filter(
+                utente=request.user,
+                tipo=annuncio.tipo,
+                attivo=True,
+                pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+            ).exclude(pk=annuncio.pk).count()
+            if count_attivi >= limite:
+                messages.error(
+                    request,
+                    f'Non puoi ripubblicare: hai già {limite} annunci '
+                    f'“{annuncio.get_tipo_display()}” attivi.',
+                )
+                return redirect(
+                    'profilo_utente',
+                    username=request.user.username,
+                )
+
+        annuncio.pubblicato_at = timezone.now()
+        annuncio.scaduto_at = None
+        annuncio.attivo = True
+        annuncio.save()
+
+    messages.success(
+        request,
+        f'Annuncio "{annuncio.titolo}" ripubblicato per altri 60 giorni!',
+    )
     return redirect('profilo_utente', username=request.user.username)
 
 @login_required
@@ -515,7 +604,12 @@ def catene_scambio(request):
     annuncio_selezionato = None
     if annuncio_id:
         try:
-            annuncio_selezionato = Annuncio.objects.get(id=annuncio_id, utente=request.user, attivo=True)
+            annuncio_selezionato = Annuncio.objects.get(
+                id=annuncio_id,
+                utente=request.user,
+                attivo=True,
+                pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+            )
         except (Annuncio.DoesNotExist, TypeError, ValueError):
             pass
 
@@ -536,7 +630,11 @@ def catene_scambio(request):
         # Passa annunci utente per il filtro JavaScript (anche se non ci sono catene)
         miei_annunci = []
         if request.user.is_authenticated:
-            miei_annunci = Annuncio.objects.filter(utente=request.user, attivo=True).order_by('-data_creazione')
+            miei_annunci = Annuncio.objects.filter(
+                utente=request.user,
+                attivo=True,
+                pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+            ).order_by('-pubblicato_at')
 
         return render(request, 'scambi/catene_scambio.html', {
             'catene_specifiche': [],
@@ -576,7 +674,11 @@ def catene_scambio(request):
             from .models import CicloScambio
 
             # Controlla se l'utente ha annunci attivi
-            annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
+            annunci_utente = Annuncio.objects.filter(
+                utente=request.user,
+                attivo=True,
+                pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+            )
             if not annunci_utente.exists():
                 tutte_catene = []
                 messages.warning(request, 'Non hai annunci attivi! Pubblica un annuncio per partecipare agli scambi.')
@@ -662,7 +764,11 @@ def catene_scambio(request):
             # Se l'utente è autenticato, mostra solo le catene che lo coinvolgono
             if request.user.is_authenticated:
                 # Controlla se l'utente ha annunci attivi
-                annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
+                annunci_utente = Annuncio.objects.filter(
+                    utente=request.user,
+                    attivo=True,
+                    pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+                )
                 if annunci_utente.exists():
                     logger.debug(f"🔍 Filtrando catene per user_id={request.user.id}")
 
@@ -795,7 +901,11 @@ def catene_scambio(request):
         # Carica soltanto le catene pre-calcolate dell'utente corrente.
         if request.user.is_authenticated:
             # Controlla se l'utente ha annunci attivi
-            annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
+            annunci_utente = Annuncio.objects.filter(
+                utente=request.user,
+                attivo=True,
+                pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+            )
             if annunci_utente.exists():
                 try:
                     # Filtra prima nel DB e converte soltanto la pagina richiesta.
@@ -920,7 +1030,11 @@ def catene_scambio(request):
     # Passa annunci utente per filtro JavaScript
     miei_annunci = []
     if request.user.is_authenticated:
-        miei_annunci = Annuncio.objects.filter(utente=request.user, attivo=True).order_by('-data_creazione')
+        miei_annunci = Annuncio.objects.filter(
+            utente=request.user,
+            attivo=True,
+            pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+        ).order_by('-pubblicato_at')
 
     # UNIFICATO: Raggruppa TUTTE le catene (2-6) per numero di partecipanti
     catene_2 = [c for c in catene_specifiche if len(c.get('utenti', [])) == 2]
@@ -1020,7 +1134,11 @@ def catene_community(request):
         })
 
     # ===== CALCOLO (primo caricamento o pulsante "Aggiorna") =====
-    annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
+    annunci_utente = Annuncio.objects.filter(
+        utente=request.user,
+        attivo=True,
+        pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+    )
     sezioni = []
     totale_catene = 0
 
@@ -1314,16 +1432,24 @@ def profilo_utente(request, username):
     # Se è il proprio profilo, mostra tutti gli annunci (anche disattivati)
     # Se è il profilo di un altro, mostra solo quelli attivi
     if request.user == utente:
-        annunci = Annuncio.objects.filter(utente=utente).order_by('-data_creazione')
+        annunci = Annuncio.objects.filter(utente=utente).order_by('-pubblicato_at')
     else:
-        annunci = Annuncio.objects.filter(utente=utente, attivo=True).order_by('-data_creazione')
+        annunci = Annuncio.objects.filter(
+            utente=utente,
+            attivo=True,
+            pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+        ).order_by('-pubblicato_at')
 
     # Dividi annunci per tipo
     annunci_offro = annunci.filter(tipo='offro')
     annunci_cerco = annunci.filter(tipo='cerco')
 
     # Conta solo gli annunci attivi per le statistiche pubbliche
-    annunci_attivi = Annuncio.objects.filter(utente=utente, attivo=True)
+    annunci_attivi = Annuncio.objects.filter(
+        utente=utente,
+        attivo=True,
+        pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+    )
 
     # Valutazioni ricevute (feedback post-scambio): medie per criterio + complessiva
     from django.db.models import Avg, Count
@@ -1608,7 +1734,11 @@ def mie_catene_scambio(request):
     """Vista personalizzata che mostra solo le catene di scambio rilevanti per l'utente loggato"""
 
     # Controlla se l'utente ha annunci attivi
-    annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
+    annunci_utente = Annuncio.objects.filter(
+        utente=request.user,
+        attivo=True,
+        pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+    )
     ha_annunci = annunci_utente.exists()
 
     ricerca_eseguita = request.GET.get('cerca', False)
@@ -1694,7 +1824,11 @@ def le_mie_catene(request):
     import time
 
     # Controlla se l'utente ha annunci attivi
-    annunci_utente = Annuncio.objects.filter(utente=request.user, attivo=True)
+    annunci_utente = Annuncio.objects.filter(
+        utente=request.user,
+        attivo=True,
+        pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+    )
     ha_annunci = annunci_utente.exists()
 
     # SECURITY/STABILITY: un parametro GET non deve avviare lavoro pesante.
@@ -1712,7 +1846,12 @@ def le_mie_catene(request):
     annuncio_selezionato = None
     if annuncio_id:
         try:
-            annuncio_selezionato = Annuncio.objects.get(id=annuncio_id, utente=request.user, attivo=True)
+            annuncio_selezionato = Annuncio.objects.get(
+                id=annuncio_id,
+                utente=request.user,
+                attivo=True,
+                pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+            )
         except Annuncio.DoesNotExist:
             messages.error(request, 'Annuncio non trovato o non accessibile.')
             annuncio_id = None
@@ -2285,7 +2424,12 @@ from .notifications import (
 @require_POST
 def aggiungi_preferito(request, annuncio_id):
     """Vista AJAX per aggiungere/rimuovere un annuncio dai preferiti"""
-    annuncio = get_object_or_404(Annuncio, id=annuncio_id, attivo=True)
+    annuncio = get_object_or_404(
+        Annuncio,
+        id=annuncio_id,
+        attivo=True,
+        pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+    )
 
     # Non può aggiungere i propri annunci ai preferiti
     if annuncio.utente == request.user:
@@ -2320,7 +2464,11 @@ def aggiungi_preferito(request, annuncio_id):
 @login_required
 def lista_preferiti(request):
     """Vista per mostrare gli annunci preferiti dell'utente"""
-    preferiti = Preferiti.objects.filter(utente=request.user).select_related('annuncio', 'annuncio__utente')
+    preferiti = Preferiti.objects.filter(
+        utente=request.user,
+        annuncio__attivo=True,
+        annuncio__pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+    ).select_related('annuncio', 'annuncio__utente')
 
     context = {
         'preferiti': preferiti,
@@ -2621,8 +2769,19 @@ from django.utils import timezone
 @login_required
 def crea_proposta_scambio(request, annuncio_offerto_id, annuncio_richiesto_id):
     """Vista per creare una proposta di scambio"""
-    annuncio_offerto = get_object_or_404(Annuncio, id=annuncio_offerto_id, attivo=True)
-    annuncio_richiesto = get_object_or_404(Annuncio, id=annuncio_richiesto_id, attivo=True)
+    cutoff_scadenza = Annuncio.cutoff_scadenza()
+    annuncio_offerto = get_object_or_404(
+        Annuncio,
+        id=annuncio_offerto_id,
+        attivo=True,
+        pubblicato_at__gt=cutoff_scadenza,
+    )
+    annuncio_richiesto = get_object_or_404(
+        Annuncio,
+        id=annuncio_richiesto_id,
+        attivo=True,
+        pubblicato_at__gt=cutoff_scadenza,
+    )
 
     # Verifica che l'utente sia proprietario dell'annuncio offerto
     if annuncio_offerto.utente != request.user:
@@ -2656,7 +2815,12 @@ def crea_proposta_scambio(request, annuncio_offerto_id, annuncio_richiesto_id):
             # annuncio potrebbe essere stato modificato tra GET e POST.
             if not annuncio_offerto or not annuncio_richiesto:
                 raise Http404
-            if not annuncio_offerto.attivo or not annuncio_richiesto.attivo:
+            if (
+                not annuncio_offerto.attivo
+                or not annuncio_richiesto.attivo
+                or annuncio_offerto.is_scaduto
+                or annuncio_richiesto.is_scaduto
+            ):
                 messages.error(request, "Uno degli annunci non è più attivo.")
                 return redirect(
                     'dettaglio_annuncio',
@@ -2823,7 +2987,10 @@ from .forms import RicercaAvanzataForm, RicercaVeloceForm
 def ricerca_annunci(request):
     """Vista per la ricerca avanzata degli annunci"""
     form = RicercaAvanzataForm(request.GET or None)
-    annunci = Annuncio.objects.filter(attivo=True).select_related('utente', 'categoria', 'utente__userprofile')
+    annunci = Annuncio.objects.filter(
+        attivo=True,
+        pubblicato_at__gt=Annuncio.cutoff_scadenza(),
+    ).select_related('utente', 'categoria', 'utente__userprofile')
 
     # Parametri di ricerca per il template
     ricerca_effettuata = False
@@ -2911,13 +3078,13 @@ def ricerca_annunci(request):
                 pass
 
         # Ordinamento
-        ordinamento = form.cleaned_data.get('ordinamento', '-data_creazione')
+        ordinamento = form.cleaned_data.get('ordinamento', '-pubblicato_at')
         if ordinamento:
             annunci = annunci.order_by(ordinamento)
 
     # Se non è stata effettuata nessuna ricerca, mostra gli annunci più recenti
     if not ricerca_effettuata:
-        annunci = annunci.order_by('-data_creazione')
+        annunci = annunci.order_by('-pubblicato_at')
 
     # Paginazione
     from django.core.paginator import Paginator

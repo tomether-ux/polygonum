@@ -351,8 +351,8 @@ class RicercaAvanzataForm(forms.Form):
 
     # Ordinamento
     ORDINAMENTO_CHOICES = [
-        ('-data_creazione', 'Più recenti'),
-        ('data_creazione', 'Meno recenti'),
+        ('-pubblicato_at', 'Più recenti'),
+        ('pubblicato_at', 'Meno recenti'),
         ('titolo', 'A-Z'),
         ('-titolo', 'Z-A'),
     ]
@@ -360,7 +360,7 @@ class RicercaAvanzataForm(forms.Form):
     ordinamento = forms.ChoiceField(
         choices=ORDINAMENTO_CHOICES,
         required=False,
-        initial='-data_creazione',
+        initial='-pubblicato_at',
         widget=forms.Select(attrs={'class': 'form-select'}),
         label='Ordina per'
     )

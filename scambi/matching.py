@@ -960,7 +960,26 @@ def classifica_distanza(distanza_km):
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
+
+from django.utils import timezone
+
+
+def _filtro_annunci_validi_matching(now=None):
+    """Annunci utilizzabili nel grafo, escludendo sempre quelli scaduti."""
+    current_time = now or timezone.now()
+    tre_minuti_fa = current_time - timedelta(minutes=3)
+    return (
+        Q(attivo=True)
+        | Q(
+            attivo=False,
+            disattivato_at__isnull=False,
+            disattivato_at__gte=tre_minuti_fa,
+        )
+    ) & Q(
+        scaduto_at__isnull=True,
+        pubblicato_at__gt=Annuncio.cutoff_scadenza(current_time),
+    )
 
 
 class CycleFinder:
@@ -987,14 +1006,7 @@ class CycleFinder:
             QuerySet di Annuncio modificati
         """
         from .models import Annuncio
-        from django.db.models import Q
-        from django.utils import timezone
-        from datetime import timedelta
-
-        tre_minuti_fa = timezone.now() - timedelta(minutes=3)
-
-        # Filtro per annunci validi
-        filtro_validi = Q(attivo=True) | Q(attivo=False, disattivato_at__isnull=False, disattivato_at__gte=tre_minuti_fa)
+        filtro_validi = _filtro_annunci_validi_matching()
 
         annunci_modificati = Annuncio.objects.filter(
             last_modified__gt=timestamp_ultimo_calcolo
@@ -1024,12 +1036,7 @@ class CycleFinder:
 
         # 2. Utenti che potrebbero scambiare con questi annunci
         # (annunci compatibili)
-        from django.db.models import Q
-        from django.utils import timezone
-        from datetime import timedelta
-
-        tre_minuti_fa = timezone.now() - timedelta(minutes=3)
-        filtro_validi = Q(attivo=True) | Q(attivo=False, disattivato_at__isnull=False, disattivato_at__gte=tre_minuti_fa)
+        filtro_validi = _filtro_annunci_validi_matching()
 
         for annuncio_mod in annunci_modificati:
             annunci_tutti_validi = Annuncio.objects.filter(filtro_validi)
@@ -1051,12 +1058,7 @@ class CycleFinder:
         Verifica se un utente ha annunci compatibili con l'annuncio dato
         Include annunci disattivati da meno di 3 minuti
         """
-        from django.db.models import Q
-        from django.utils import timezone
-        from datetime import timedelta
-
-        tre_minuti_fa = timezone.now() - timedelta(minutes=3)
-        filtro_validi = Q(attivo=True) | Q(attivo=False, disattivato_at__isnull=False, disattivato_at__gte=tre_minuti_fa)
+        filtro_validi = _filtro_annunci_validi_matching()
 
         if annuncio.tipo == 'offro':
             # L'annuncio offre qualcosa, cerchiamo chi lo cerca
@@ -1143,20 +1145,12 @@ class CycleFinder:
         Costruisce il grafo delle compatibilità dagli annunci attivi
         + annunci disattivati da meno di 3 minuti
         """
-        from django.db.models import Q
-        from django.utils import timezone
-        from datetime import timedelta
-
         logger.debug(f"[{datetime.now()}] 🔨 Costruzione grafo compatibilità (inclusi recenti disattivati)...")
 
         self.grafo.clear()
 
-        # Includi annunci attivi + disattivati da meno di 3 minuti
-        tre_minuti_fa = timezone.now() - timedelta(minutes=3)
-
         annunci_validi = Annuncio.objects.filter(
-            Q(attivo=True) |
-            Q(attivo=False, disattivato_at__isnull=False, disattivato_at__gte=tre_minuti_fa)
+            _filtro_annunci_validi_matching()
         )
 
         utenti = User.objects.filter(annuncio__in=annunci_validi).distinct()
@@ -1185,14 +1179,7 @@ class CycleFinder:
         Usa solo matching titoli (senza considerare prezzo/distanza) per costruire il grafo.
         Include annunci disattivati da meno di 3 minuti.
         """
-        from django.db.models import Q
-        from django.utils import timezone
-        from datetime import timedelta
-
-        tre_minuti_fa = timezone.now() - timedelta(minutes=3)
-
-        # Filtro per annunci validi (attivi + disattivati da <3 min)
-        filtro_validi = Q(attivo=True) | Q(attivo=False, disattivato_at__isnull=False, disattivato_at__gte=tre_minuti_fa)
+        filtro_validi = _filtro_annunci_validi_matching()
 
         offerte_a = Annuncio.objects.filter(utente=utente_a, tipo='offro').filter(filtro_validi)
         richieste_b = Annuncio.objects.filter(utente=utente_b, tipo='cerco').filter(filtro_validi)
@@ -1374,10 +1361,14 @@ class CycleFinder:
             utente_a = User.objects.get(id=user_id_a)
 
             offerte_da = Annuncio.objects.filter(
-                utente=utente_da, tipo='offro', attivo=True
+                utente=utente_da, tipo='offro'
+            ).filter(
+                _filtro_annunci_validi_matching()
             ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
             richieste_a = Annuncio.objects.filter(
-                utente=utente_a, tipo='cerco', attivo=True
+                utente=utente_a, tipo='cerco'
+            ).filter(
+                _filtro_annunci_validi_matching()
             ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
 
             # Calcola distanza per usare logica avanzata
@@ -1840,7 +1831,14 @@ def converti_ciclo_db_a_view_format(
                             offerta = Annuncio.objects.select_related('categoria').get(id=offerto_id)
                             richiesta = Annuncio.objects.select_related('categoria').get(id=richiesto_id)
 
-                        if not offerta or not richiesta or not offerta.attivo or not richiesta.attivo:
+                        if (
+                            not offerta
+                            or not richiesta
+                            or not offerta.attivo
+                            or not richiesta.attivo
+                            or offerta.is_scaduto
+                            or richiesta.is_scaduto
+                        ):
                             continue
 
                         coppie_valide.append((offerta, richiesta))

@@ -7,10 +7,75 @@ from django.db import connection, transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from .models import Annuncio, ModerationEmailJob
+from .models import Annuncio, CalcoloMetadata, ModerationEmailJob, Notifica
 
 
 logger = logging.getLogger(__name__)
+
+
+def expire_announcements(*, max_announcements=500, now=None):
+    """Sospende in modo idempotente un lotto di annunci vecchi di 60 giorni."""
+    now = now or timezone.now()
+    cutoff = Annuncio.cutoff_scadenza(now)
+    with transaction.atomic():
+        candidates = list(
+            Annuncio.objects.filter(
+                pubblicato_at__lte=cutoff,
+                scaduto_at__isnull=True,
+            )
+            .order_by('pubblicato_at', 'pk')
+            .values('pk', 'utente_id', 'titolo', 'attivo')[:max_announcements]
+        )
+        if not candidates:
+            return {'expired_active': 0, 'marked_inactive': 0, 'notified': 0}
+
+        candidate_ids = [candidate['pk'] for candidate in candidates]
+        still_expired = Annuncio.objects.filter(
+            pk__in=candidate_ids,
+            pubblicato_at__lte=cutoff,
+            scaduto_at__isnull=True,
+        )
+        expired_active = still_expired.filter(attivo=True).update(
+            attivo=False,
+            scaduto_at=now,
+            disattivato_at=now,
+        )
+        marked_inactive = still_expired.filter(attivo=False).update(
+            scaduto_at=now,
+        )
+
+        expired_ids = set(
+            Annuncio.objects.filter(
+                pk__in=candidate_ids,
+                scaduto_at=now,
+            ).values_list('pk', flat=True)
+        )
+        notifications = [
+            Notifica(
+                utente_id=candidate['utente_id'],
+                tipo='sistema',
+                titolo='Annuncio scaduto',
+                messaggio=(
+                    f'L\'annuncio "{candidate["titolo"]}" ha raggiunto i 60 '
+                    'giorni ed è stato sospeso. Puoi ripubblicarlo per altri '
+                    '60 giorni.'
+                ),
+                annuncio_collegato_id=candidate['pk'],
+                url_azione='/miei-annunci/?stato=disattivati',
+            )
+            for candidate in candidates
+            if candidate['pk'] in expired_ids
+        ]
+        Notifica.objects.bulk_create(notifications)
+
+        if expired_active:
+            CalcoloMetadata.richiedi_ricalcolo()
+
+    return {
+        'expired_active': expired_active,
+        'marked_inactive': marked_inactive,
+        'notified': len(notifications),
+    }
 
 
 def enqueue_moderation_email(annuncio_id, *, image_reference, image_url):

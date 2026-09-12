@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from .background_tasks import (
     enqueue_moderation_email,
+    expire_announcements,
     process_moderation_email_jobs,
 )
 from .management.commands.calcola_cicli import Command as CycleCommand
@@ -164,6 +165,87 @@ class ModerationQueueTests(TestCase):
         )
 
 
+class AnnouncementExpirationTaskTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='utente-scadenza')
+        self.category = Categoria.objects.create(nome='Scadenza annunci')
+
+    def create_announcement(self, title, *, active=True):
+        return Annuncio.objects.create(
+            utente=self.user,
+            titolo=title,
+            descrizione='Descrizione valida',
+            categoria=self.category,
+            tipo='offro',
+            attivo=active,
+        )
+
+    def test_task_expires_old_listing_notifies_once_and_requests_recalculation(self):
+        now = timezone.now()
+        expired = self.create_announcement('Annuncio oltre sessanta giorni')
+        recent = self.create_announcement('Annuncio recente')
+        Annuncio.objects.filter(pk=expired.pk).update(
+            pubblicato_at=now - timedelta(days=61),
+        )
+        metadata = CalcoloMetadata.objects.get(singleton_id=1)
+        metadata.ultimo_calcolo_completo = now
+        metadata.ricalcolo_richiesto_at = None
+        metadata.save()
+
+        first_stats = expire_announcements(now=now)
+        second_stats = expire_announcements(now=now + timedelta(seconds=1))
+
+        expired.refresh_from_db()
+        recent.refresh_from_db()
+        metadata.refresh_from_db()
+        self.assertFalse(expired.attivo)
+        self.assertEqual(expired.scaduto_at, now)
+        self.assertEqual(expired.disattivato_at, now)
+        self.assertTrue(recent.attivo)
+        self.assertEqual(first_stats['expired_active'], 1)
+        self.assertEqual(first_stats['notified'], 1)
+        self.assertEqual(second_stats['notified'], 0)
+        self.assertEqual(
+            expired.notifica_set.filter(titolo='Annuncio scaduto').count(),
+            1,
+        )
+        self.assertGreater(metadata.ricalcolo_richiesto_at, now)
+
+    def test_task_marks_old_inactive_listing_without_overwriting_manual_date(self):
+        now = timezone.now()
+        manual_date = now - timedelta(days=10)
+        inactive = self.create_announcement('Annuncio già inattivo', active=False)
+        Annuncio.objects.filter(pk=inactive.pk).update(
+            pubblicato_at=now - timedelta(days=61),
+            disattivato_at=manual_date,
+        )
+
+        stats = expire_announcements(now=now)
+
+        inactive.refresh_from_db()
+        self.assertEqual(stats['marked_inactive'], 1)
+        self.assertEqual(inactive.scaduto_at, now)
+        self.assertEqual(inactive.disattivato_at, manual_date)
+
+    def test_task_respects_batch_limit(self):
+        now = timezone.now()
+        announcements = [
+            self.create_announcement(f'Annuncio vecchio {index}')
+            for index in range(2)
+        ]
+        Annuncio.objects.filter(pk__in=[item.pk for item in announcements]).update(
+            pubblicato_at=now - timedelta(days=61),
+        )
+
+        stats = expire_announcements(max_announcements=1, now=now)
+
+        self.assertEqual(stats['expired_active'], 1)
+        self.assertEqual(
+            Annuncio.objects.filter(scaduto_at__isnull=False).count(),
+            1,
+        )
+
+
 class ScheduledCommandTests(TestCase):
     @staticmethod
     @contextmanager
@@ -172,11 +254,13 @@ class ScheduledCommandTests(TestCase):
 
     def command_options(self, **overrides):
         options = {
+            'expiration_limit': 500,
             'email_limit': 10,
             'email_max_attempts': 8,
             'cycle_interval_minutes': 30,
             'time_budget_seconds': 210,
             'skip_email': False,
+            'skip_expiration': False,
             'skip_cycles': False,
             'force_cycles': False,
         }

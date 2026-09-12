@@ -1,4 +1,6 @@
 import logging
+import math
+from datetime import timedelta
 
 from django.db import models
 from django.db.models import Q
@@ -23,6 +25,7 @@ class Categoria(models.Model):
         verbose_name_plural = "Categorie"
 
 class Annuncio(models.Model):
+    DURATA_PUBBLICAZIONE_GIORNI = 60
     MAX_MODIFICHE = 3
 
     TIPO_CHOICES = [
@@ -145,6 +148,17 @@ class Annuncio(models.Model):
     )
 
     data_creazione = models.DateTimeField(auto_now_add=True)
+    pubblicato_at = models.DateTimeField(
+        default=timezone.now,
+        db_index=True,
+        verbose_name="Data ultima pubblicazione",
+        help_text="Data da cui decorrono i 60 giorni di pubblicazione",
+    )
+    scaduto_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Data scadenza",
+    )
     last_modified = models.DateTimeField(auto_now=True, verbose_name="Ultima modifica")
     modifiche_effettuate = models.PositiveSmallIntegerField(
         default=0,
@@ -162,6 +176,30 @@ class Annuncio(models.Model):
     @property
     def modifiche_rimanenti(self):
         return max(0, self.MAX_MODIFICHE - self.modifiche_effettuate)
+
+    @classmethod
+    def cutoff_scadenza(cls, now=None):
+        return (now or timezone.now()) - timedelta(
+            days=cls.DURATA_PUBBLICAZIONE_GIORNI
+        )
+
+    @property
+    def scadenza_at(self):
+        return self.pubblicato_at + timedelta(
+            days=self.DURATA_PUBBLICAZIONE_GIORNI
+        )
+
+    @property
+    def is_scaduto(self):
+        return bool(
+            self.scaduto_at
+            or self.pubblicato_at <= self.cutoff_scadenza()
+        )
+
+    @property
+    def giorni_alla_scadenza(self):
+        secondi = (self.scadenza_at - timezone.now()).total_seconds()
+        return max(0, math.ceil(secondi / 86400))
 
     def get_condizione_icon(self):
         """Restituisce l'icona corrispondente alla condizione dell'oggetto"""
@@ -683,7 +721,7 @@ Per aprire la conferma di rifiuto: {reject_url}
 
     class Meta:
         verbose_name_plural = "Annunci"
-        ordering = ['-data_creazione']
+        ordering = ['-pubblicato_at']
 
 
 class ModerationEmailJob(models.Model):
@@ -872,7 +910,8 @@ class UserProfile(models.Model):
         return Annuncio.objects.filter(
             utente=self.user,
             tipo=tipo,
-            attivo=True
+            attivo=True,
+            pubblicato_at__gt=Annuncio.cutoff_scadenza(),
         ).count()
 
     def puo_creare_annuncio(self, tipo):

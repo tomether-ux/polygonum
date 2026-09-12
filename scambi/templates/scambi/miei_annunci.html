@@ -92,13 +92,17 @@
             <div class="row g-4">
                 {% for annuncio in annunci %}
                 <div class="col-12 col-md-6 col-lg-4">
-                    <div class="modern-card {% if not annuncio.attivo %}modern-card-disabled{% endif %}">
+                    <div class="modern-card {% if not annuncio.attivo or annuncio.is_scaduto %}modern-card-disabled{% endif %}">
                         <!-- Link al dettaglio annuncio -->
                         <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none">
                             <!-- Immagine annuncio con angoli arrotondati -->
                             <div class="modern-card-img">
                                 {% include 'scambi/partials/annuncio_thumbnail.html' with annuncio=annuncio css_class="" %}
-                                {% if not annuncio.attivo %}
+                                {% if annuncio.is_scaduto %}
+                                <div class="card-overlay">
+                                    <span class="badge bg-danger">Scaduto</span>
+                                </div>
+                                {% elif not annuncio.attivo %}
                                 <div class="card-overlay">
                                     <span class="badge bg-warning text-dark">Disattivato</span>
                                 </div>
@@ -118,7 +122,10 @@
                                     </span>
                                     {% endif %}
                                 </div>
-                                <div class="modern-card-user">Creato il {{ annuncio.data_creazione|date:"d/m/Y" }}</div>
+                                <div class="modern-card-user">
+                                    Pubblicato il {{ annuncio.pubblicato_at|date:"d/m/Y" }}
+                                    {% if not annuncio.is_scaduto %}· scade tra {{ annuncio.giorni_alla_scadenza }} giorni{% endif %}
+                                </div>
                             </div>
                         </a>
 
@@ -133,7 +140,18 @@
                                     <i class="fas fa-lock"></i>
                                 </button>
                             {% endif %}
-                            {% if annuncio.attivo %}
+                            {% if annuncio.moderation_status == 'rejected' %}
+                            <button type="button" class="btn btn-sm btn-outline-danger" disabled title="Annuncio bloccato">
+                                <i class="fas fa-ban"></i>
+                            </button>
+                            {% elif annuncio.is_scaduto %}
+                            <form method="post" action="{% url 'ripubblica_annuncio' annuncio.id %}" style="display:inline;" onsubmit="return confirm('Ripubblicare questo annuncio per altri 60 giorni?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-success" title="Ripubblica per 60 giorni">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                            </form>
+                            {% elif annuncio.attivo %}
                             <form method="post" action="{% url 'disattiva_annuncio' annuncio.id %}" style="display:inline;" onsubmit="return confirm('Sei sicuro di voler disattivare questo annuncio?')">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-sm btn-outline-warning" title="Disattiva">

@@ -1,6 +1,9 @@
+from datetime import timedelta
+
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from .forms import AnnuncioForm
 from .models import Annuncio, Categoria, Provincia, UserProfile
@@ -146,6 +149,19 @@ class AnnouncementLimitTests(TestCase):
         self.assertFalse(can_create)
         self.assertEqual(Annuncio.objects.filter(utente=self.user).count(), 4)
 
+    def test_expired_active_announcement_does_not_consume_active_limit(self):
+        expired = self.create_announcement(titolo='Annuncio scaduto non contato')
+        Annuncio.objects.filter(pk=expired.pk).update(
+            pubblicato_at=timezone.now() - timedelta(days=61),
+        )
+        for index in range(2):
+            self.create_announcement(titolo=f'Offerta recente {index}')
+
+        can_create, _ = self.profile.puo_creare_annuncio('offro')
+
+        self.assertTrue(can_create)
+        self.assertEqual(self.profile.get_count_annunci('offro'), 2)
+
     def test_changing_type_cannot_overflow_target_limit(self):
         for index in range(3):
             self.create_announcement(
@@ -184,3 +200,90 @@ class AnnouncementLimitTests(TestCase):
         )
         inactive.refresh_from_db()
         self.assertFalse(inactive.attivo)
+
+    def test_expired_announcement_can_be_republished_for_sixty_days(self):
+        old_publication = timezone.now() - timedelta(days=61)
+        announcement = self.create_announcement(
+            titolo='Annuncio da ripubblicare',
+            attivo=False,
+            modifiche_effettuate=3,
+        )
+        Annuncio.objects.filter(pk=announcement.pk).update(
+            pubblicato_at=old_publication,
+            scaduto_at=timezone.now() - timedelta(days=1),
+        )
+
+        response = self.client.post(
+            reverse('ripubblica_annuncio', args=[announcement.pk]),
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('profilo_utente', kwargs={'username': self.user.username}),
+            fetch_redirect_response=False,
+        )
+        announcement.refresh_from_db()
+        self.assertTrue(announcement.attivo)
+        self.assertIsNone(announcement.scaduto_at)
+        self.assertGreater(announcement.pubblicato_at, old_publication)
+        self.assertEqual(announcement.modifiche_effettuate, 3)
+        self.assertEqual(announcement.giorni_alla_scadenza, 60)
+
+    def test_republication_respects_three_active_listings_limit(self):
+        for index in range(3):
+            self.create_announcement(titolo=f'Offerta attiva {index}')
+        expired = self.create_announcement(
+            titolo='Offerta scaduta',
+            attivo=False,
+        )
+        Annuncio.objects.filter(pk=expired.pk).update(
+            pubblicato_at=timezone.now() - timedelta(days=61),
+            scaduto_at=timezone.now(),
+        )
+
+        response = self.client.post(
+            reverse('ripubblica_annuncio', args=[expired.pk]),
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('profilo_utente', kwargs={'username': self.user.username}),
+            fetch_redirect_response=False,
+        )
+        expired.refresh_from_db()
+        self.assertFalse(expired.attivo)
+        self.assertIsNotNone(expired.scaduto_at)
+
+    def test_expired_active_listing_is_hidden_from_public_pages(self):
+        expired = self.create_announcement(titolo='Offerta scaduta pubblica')
+        Annuncio.objects.filter(pk=expired.pk).update(
+            pubblicato_at=timezone.now() - timedelta(days=61),
+        )
+        self.client.logout()
+
+        list_response = self.client.get(reverse('lista_annunci'))
+        detail_response = self.client.get(
+            reverse('dettaglio_annuncio', args=[expired.pk]),
+        )
+
+        self.assertNotContains(list_response, expired.titolo)
+        self.assertEqual(detail_response.status_code, 404)
+
+    def test_rejected_listing_cannot_be_activated_or_republished(self):
+        rejected = self.create_announcement(
+            titolo='Annuncio bloccato',
+            attivo=False,
+        )
+        Annuncio.objects.filter(pk=rejected.pk).update(
+            pubblicato_at=timezone.now() - timedelta(days=61),
+            scaduto_at=timezone.now(),
+            moderation_status='rejected',
+            attivo=False,
+        )
+
+        self.client.post(reverse('attiva_annuncio', args=[rejected.pk]))
+        self.client.post(reverse('ripubblica_annuncio', args=[rejected.pk]))
+
+        rejected.refresh_from_db()
+        self.assertFalse(rejected.attivo)
+        self.assertEqual(rejected.moderation_status, 'rejected')

@@ -75,6 +75,9 @@ services:
         value: "10"
       - key: BACKGROUND_EMAIL_MAX_ATTEMPTS
         value: "8"
+      # Elabora al massimo 500 scadenze per esecuzione, senza picchi di lavoro.
+      - key: BACKGROUND_EXPIRATION_LIMIT
+        value: "500"
       - key: BACKGROUND_CYCLE_INTERVAL_MINUTES
         value: "30"
       # 210s cooperativi, seguiti dal limite assoluto del processo a 240s.

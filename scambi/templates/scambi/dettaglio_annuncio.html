@@ -114,7 +114,17 @@
 
                     <!-- Alert Moderazione (solo per proprietario) -->
                     {% if user.is_authenticated and user == annuncio.utente %}
-                        {% if not annuncio.attivo and annuncio.moderation_status != 'rejected' %}
+                        {% if annuncio.is_scaduto %}
+                        <div class="alert alert-danger border d-flex align-items-start" role="alert">
+                            <i class="fas fa-hourglass-end fa-lg me-3 mt-1"></i>
+                            <div>
+                                <strong>Annuncio scaduto</strong>
+                                <p class="mb-0">
+                                    Non è più visibile agli altri utenti. Puoi ripubblicarlo per altri 60 giorni.
+                                </p>
+                            </div>
+                        </div>
+                        {% elif not annuncio.attivo and annuncio.moderation_status != 'rejected' %}
                         <div class="alert alert-secondary border d-flex align-items-start" role="alert">
                             <i class="fas fa-pause-circle fa-lg me-3 mt-1"></i>
                             <div>
@@ -197,8 +207,11 @@
                             <div class="bg-light rounded-3 p-3">
                                 <small class="text-muted d-block mb-1">Pubblicato</small>
                                 <strong class="text-polygonum-primary">
-                                    <i class="fas fa-calendar me-1"></i>{{ annuncio.data_creazione|date:"d/m/Y" }}
+                                    <i class="fas fa-calendar me-1"></i>{{ annuncio.pubblicato_at|date:"d/m/Y" }}
                                 </strong>
+                                {% if not annuncio.is_scaduto %}
+                                    <small class="text-muted d-block">Scade tra {{ annuncio.giorni_alla_scadenza }} giorni</small>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -264,7 +277,18 @@
                                     <i class="fas fa-lock me-2"></i>Non più modificabile
                                 </button>
                             {% endif %}
-                            {% if annuncio.attivo %}
+                            {% if annuncio.moderation_status == 'rejected' %}
+                            <button type="button" class="btn btn-outline-danger btn-lg" disabled>
+                                <i class="fas fa-ban me-2"></i>Annuncio bloccato
+                            </button>
+                            {% elif annuncio.is_scaduto %}
+                            <form method="post" action="{% url 'ripubblica_annuncio' annuncio.id %}" onsubmit="return confirm('Ripubblicare questo annuncio per altri 60 giorni?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success btn-lg w-100">
+                                    <i class="fas fa-redo me-2"></i>Ripubblica per 60 giorni
+                                </button>
+                            </form>
+                            {% elif annuncio.attivo %}
                             <form method="post" action="{% url 'disattiva_annuncio' annuncio.id %}">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-outline-warning btn-lg w-100">

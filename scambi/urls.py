@@ -12,6 +12,7 @@ urlpatterns = [
     path('modifica-annuncio/<int:annuncio_id>/', views.modifica_annuncio, name='modifica_annuncio'),
     path('elimina-annuncio/<int:annuncio_id>/', views.elimina_annuncio, name='elimina_annuncio'),
     path('attiva-annuncio/<int:annuncio_id>/', views.attiva_annuncio, name='attiva_annuncio'),
+    path('ripubblica-annuncio/<int:annuncio_id>/', views.ripubblica_annuncio, name='ripubblica_annuncio'),
     path('disattiva-annuncio/<int:annuncio_id>/', views.disattiva_annuncio, name='disattiva_annuncio'),
     path('catene-scambio/', views.catene_scambio, name='catene_scambio'),
     path('catene-scambio/community/', views.catene_community, name='catene_community'),

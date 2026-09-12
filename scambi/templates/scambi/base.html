@@ -482,7 +482,7 @@
     <!-- Sotto-navbar categorie: presente in ogni pagina, sticky insieme alla navbar -->
     <nav class="secondary-navbar">
         <div class="secondary-navbar-scroll">
-            <a href="{% url 'lista_annunci' %}?ordinamento=-data_creazione" class="nav-item">
+            <a href="{% url 'lista_annunci' %}?ordinamento=-pubblicato_at" class="nav-item">
                 Novità
             </a>
             {% if user.is_authenticated %}
