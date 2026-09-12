@@ -294,32 +294,13 @@ class RicercaAvanzataForm(forms.Form):
         label='Regione'
     )
 
-    # Filtro per prezzo minimo
-    prezzo_min = forms.DecimalField(
-        max_digits=10,
-        decimal_places=2,
+    # La ricerca pubblica usa la fascia scelta dall'utente, non il valore
+    # numerico interno impiegato dal matching.
+    fascia_prezzo = forms.ChoiceField(
+        choices=[('', 'Tutte le fasce')] + Annuncio.FASCIA_PREZZO_CHOICES,
         required=False,
-        min_value=0,
-        widget=forms.NumberInput(attrs={
-            'class': 'form-control',
-            'placeholder': '0.00',
-            'step': '0.01'
-        }),
-        label='Prezzo min (€)'
-    )
-
-    # Filtro per prezzo massimo
-    prezzo_max = forms.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        required=False,
-        min_value=0,
-        widget=forms.NumberInput(attrs={
-            'class': 'form-control',
-            'placeholder': '999999.99',
-            'step': '0.01'
-        }),
-        label='Prezzo max (€)'
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Fascia di prezzo'
     )
 
     # Filtro per spedizione
@@ -351,8 +332,6 @@ class RicercaAvanzataForm(forms.Form):
     ORDINAMENTO_CHOICES = [
         ('-data_creazione', 'Più recenti'),
         ('data_creazione', 'Meno recenti'),
-        ('prezzo_stimato', 'Prezzo crescente'),
-        ('-prezzo_stimato', 'Prezzo decrescente'),
         ('titolo', 'A-Z'),
         ('-titolo', 'Z-A'),
     ]
@@ -364,21 +343,6 @@ class RicercaAvanzataForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select'}),
         label='Ordina per'
     )
-
-    def clean(self):
-        """Validazione del form"""
-        cleaned_data = super().clean()
-        prezzo_min = cleaned_data.get('prezzo_min')
-        prezzo_max = cleaned_data.get('prezzo_max')
-
-        # Verifica che il prezzo minimo non sia maggiore del massimo
-        if prezzo_min and prezzo_max and prezzo_min > prezzo_max:
-            raise forms.ValidationError(
-                "Il prezzo minimo non può essere maggiore del prezzo massimo."
-            )
-
-        return cleaned_data
-
 
 class RicercaVeloceForm(forms.Form):
     """Form semplificato per la ricerca veloce nella navbar"""

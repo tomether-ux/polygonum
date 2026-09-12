@@ -2792,19 +2792,11 @@ def ricerca_annunci(request):
             ricerca_effettuata = True
             annunci = annunci.filter(utente__userprofile__regione__icontains=regione)
 
-        # Filtro per prezzo minimo
-        prezzo_min = form.cleaned_data.get('prezzo_min')
-        if prezzo_min:
+        # Filtro per fascia di prezzo dichiarata nell'annuncio
+        fascia_prezzo = form.cleaned_data.get('fascia_prezzo')
+        if fascia_prezzo:
             ricerca_effettuata = True
-            # Include anche annunci senza prezzo (NULL)
-            annunci = annunci.filter(Q(prezzo_stimato__gte=prezzo_min) | Q(prezzo_stimato__isnull=True))
-
-        # Filtro per prezzo massimo
-        prezzo_max = form.cleaned_data.get('prezzo_max')
-        if prezzo_max:
-            ricerca_effettuata = True
-            # Include anche annunci senza prezzo (NULL)
-            annunci = annunci.filter(Q(prezzo_stimato__lte=prezzo_max) | Q(prezzo_stimato__isnull=True))
+            annunci = annunci.filter(fascia_prezzo=fascia_prezzo)
 
         # Filtro per spedizione
         spedizione = form.cleaned_data.get('spedizione')
@@ -2843,14 +2835,7 @@ def ricerca_annunci(request):
         # Ordinamento
         ordinamento = form.cleaned_data.get('ordinamento', '-data_creazione')
         if ordinamento:
-            # Gestisce l'ordinamento per prezzo con NULL values
-            if 'prezzo' in ordinamento:
-                if ordinamento.startswith('-'):
-                    annunci = annunci.order_by(ordinamento, '-data_creazione')
-                else:
-                    annunci = annunci.order_by(ordinamento, 'data_creazione')
-            else:
-                annunci = annunci.order_by(ordinamento)
+            annunci = annunci.order_by(ordinamento)
 
     # Se non è stata effettuata nessuna ricerca, mostra gli annunci più recenti
     if not ricerca_effettuata:

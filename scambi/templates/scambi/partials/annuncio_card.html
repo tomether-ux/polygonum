@@ -3,6 +3,13 @@
         <!-- Immagine annuncio con angoli arrotondati -->
         <div class="modern-card-img">
             {% include 'scambi/partials/annuncio_thumbnail.html' with annuncio=annuncio css_class="" %}
+            <span class="badge position-absolute top-0 start-0 m-2 px-3 py-2 shadow-sm {% if annuncio.tipo == 'offro' %}bg-success{% else %}bg-info text-dark{% endif %}">
+                {% if annuncio.tipo == 'offro' %}
+                    <i class="fas fa-gift me-1"></i>Offro
+                {% else %}
+                    <i class="fas fa-search me-1"></i>Cerco
+                {% endif %}
+            </span>
         </div>
         <!-- Info essenziali -->
         <div class="modern-card-info">

@@ -54,8 +54,8 @@
                 </g>
             </svg>
         </div>
-        <h4 class="pl-title">Costruzione catene in corso<span class="pl-dots"></span></h4>
-        <p class="pl-subtitle">Stiamo cercando le migliori catene per categoria. Attendi qualche istante…</p>
+        <h4 class="pl-title">Caricamento catene in corso<span class="pl-dots"></span></h4>
+        <p class="pl-subtitle">Stiamo preparando le catene disponibili. Attendi qualche istante…</p>
     </div>
 </div>
 
@@ -117,6 +117,36 @@ function showPolygonumLoading() {
     // Blocca lo scroll dello sfondo durante il caricamento
     document.body.style.overflow = 'hidden';
 }
+
+// Mostra subito un feedback quando si apre una pagina delle catene. L'overlay
+// parte dalla pagina corrente, prima che il server abbia completato la risposta.
+document.addEventListener('click', function(event) {
+    if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+    ) {
+        return;
+    }
+
+    const link = event.target.closest('a[href]');
+    if (!link || link.hasAttribute('download') || (link.target && link.target !== '_self')) {
+        return;
+    }
+
+    const destination = new URL(link.href, window.location.href);
+    const chainPaths = new Set([
+        "{% url 'catene_scambio' %}",
+        "{% url 'catene_community' %}"
+    ]);
+
+    if (destination.origin === window.location.origin && chainPaths.has(destination.pathname)) {
+        showPolygonumLoading();
+    }
+});
 
 // Se l'utente torna indietro (bfcache), nascondi l'overlay
 window.addEventListener('pageshow', function() {

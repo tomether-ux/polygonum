@@ -96,20 +96,14 @@
                                 {{ form.regione }}
                             </div>
 
-                            <!-- Filtri prezzo -->
+                            <!-- Filtro fascia di prezzo -->
                             <hr>
                             <h6 class="text-polygonum-primary">
-                                <i class="fas fa-euro-sign me-2"></i>Prezzo
+                                <i class="fas fa-coins me-2"></i>Fascia di prezzo
                             </h6>
-                            <div class="row">
-                                <div class="col-6">
-                                    <label for="{{ form.prezzo_min.id_for_label }}" class="form-label small">{{ form.prezzo_min.label }}</label>
-                                    {{ form.prezzo_min }}
-                                </div>
-                                <div class="col-6">
-                                    <label for="{{ form.prezzo_max.id_for_label }}" class="form-label small">{{ form.prezzo_max.label }}</label>
-                                    {{ form.prezzo_max }}
-                                </div>
+                            <div class="mb-3">
+                                <label for="{{ form.fascia_prezzo.id_for_label }}" class="form-label">{{ form.fascia_prezzo.label }}</label>
+                                {{ form.fascia_prezzo }}
                             </div>
 
                             <!-- Filtro spedizione -->
