@@ -371,6 +371,7 @@ def ottieni_preview_conversazioni(utente, limite=5):
     Returns:
         List di dict con informazioni conversazione
     """
+    from .conversation_services import decorate_conversations_for_user
     from .models import Conversazione, Messaggio
     from django.db.models import Prefetch, Exists, OuterRef
 
@@ -381,27 +382,30 @@ def ottieni_preview_conversazioni(utente, limite=5):
         to_attr='ultimo_messaggio_list'
     )
 
+    unread_messages = Messaggio.objects.filter(
+        conversazione=OuterRef('pk')
+    ).exclude(
+        letto_da=utente
+    ).exclude(
+        mittente=utente
+    )
+
     conversazioni = Conversazione.objects.filter(
         utenti=utente,
         attiva=True
+    ).annotate(
+        preview_ha_non_letti=Exists(unread_messages)
     ).prefetch_related(
         'utenti',
         ultimo_messaggio_prefetch
     ).order_by('-ultimo_messaggio')[:limite]
 
+    conversazioni = decorate_conversations_for_user(conversazioni, utente)
+
     preview_list = []
     for conv in conversazioni:
         # Ottieni ultimo messaggio
         ultimo_msg = conv.ultimo_messaggio_list[0] if conv.ultimo_messaggio_list else None
-
-        # Verifica se ci sono messaggi non letti
-        ha_non_letti = Messaggio.objects.filter(
-            conversazione=conv
-        ).exclude(
-            letto_da=utente
-        ).exclude(
-            mittente=utente
-        ).exists()
 
         # Prepara preview
         if ultimo_msg:
@@ -415,12 +419,13 @@ def ottieni_preview_conversazioni(utente, limite=5):
 
         preview_list.append({
             'id': conv.id,
-            'nome': conv.get_nome_display(utente),
+            'nome': conv.display_name,
+            'scambio': conv.display_exchange,
             'tipo': conv.tipo,
             'ultimo_messaggio': preview_testo,
             'mittente': mittente_nome,
             'data': conv.ultimo_messaggio,
-            'ha_non_letti': ha_non_letti,
+            'ha_non_letti': conv.preview_ha_non_letti,
             'is_gruppo': conv.tipo == 'gruppo'
         })
 

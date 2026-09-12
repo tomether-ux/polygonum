@@ -17,7 +17,9 @@ from django.conf import settings
 from django.db import transaction
 from .ratelimit_utils import get_real_ip_for_ratelimit
 from .conversation_services import (
+    decorate_conversations_for_user,
     find_private_conversation,
+    get_conversation_display,
     get_or_create_cycle_group_conversation,
     get_or_create_private_conversation,
 )
@@ -2529,7 +2531,7 @@ def context_processor_notifiche(request):
             'notifiche_non_lette': conta_notifiche_non_lette(request.user),
             'notifiche_recenti': ottieni_notifiche_recenti(request.user, 5),
             'conversazioni_non_lette': conta_conversazioni_non_lette(request.user),
-            'conversazioni_recenti': ottieni_preview_conversazioni(request.user, 5)
+            'conversazioni_recenti': ottieni_preview_conversazioni(request.user, 15)
         }
     return {}
 
@@ -2885,13 +2887,22 @@ from django.db.models import Q, Prefetch
 def lista_messaggi(request):
     """Vista per mostrare tutte le conversazioni dell'utente"""
     try:
+        ultimo_messaggio_prefetch = Prefetch(
+            'messaggi',
+            queryset=Messaggio.objects.select_related('mittente').order_by('-data_invio')[:1],
+            to_attr='ultimo_messaggio_list',
+        )
         conversazioni = Conversazione.objects.filter(
             utenti=request.user,
             attiva=True
         ).prefetch_related(
             'utenti',
-            Prefetch('messaggi', queryset=Messaggio.objects.order_by('-data_invio')[:1])
-        ).order_by('-data_creazione')  # Usa data_creazione invece di ultimo_messaggio
+            ultimo_messaggio_prefetch,
+        ).order_by('-ultimo_messaggio')
+        conversazioni = decorate_conversations_for_user(
+            conversazioni,
+            request.user,
+        )
 
         context = {
             'conversazioni': conversazioni,
@@ -2907,7 +2918,11 @@ def lista_messaggi(request):
         conversazioni = Conversazione.objects.filter(
             utenti=request.user,
             attiva=True
-        ).order_by('-data_creazione')
+        ).prefetch_related('utenti').order_by('-ultimo_messaggio')
+        conversazioni = decorate_conversations_for_user(
+            conversazioni,
+            request.user,
+        )
 
         context = {
             'conversazioni': conversazioni,
@@ -2948,6 +2963,10 @@ def chat_conversazione(request, conversazione_id):
         utenti=request.user,
         attiva=True
     )
+    conversation_display = get_conversation_display(
+        conversazione,
+        request.user,
+    )
 
     # Segna tutti i messaggi come letti
     messaggi_non_letti = conversazione.messaggi.exclude(letto_da=request.user)
@@ -2985,6 +3004,7 @@ def chat_conversazione(request, conversazione_id):
 
     context = {
         'conversazione': conversazione,
+        'conversation_display': conversation_display,
         'messaggi': messaggi,
         'altri_utenti': conversazione.get_altri_utenti(request.user),
     }
@@ -2993,10 +3013,7 @@ def chat_conversazione(request, conversazione_id):
     if conversazione.tipo == 'gruppo' and conversazione.catena_scambio_id:
         from .models import ValutazioneScambio
 
-        try:
-            ciclo = CicloScambio.objects.filter(id=int(conversazione.catena_scambio_id)).first()
-        except (TypeError, ValueError):
-            ciclo = None
+        ciclo = conversation_display['ciclo']
 
         proposta = None
         if ciclo:

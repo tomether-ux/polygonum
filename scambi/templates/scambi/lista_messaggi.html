@@ -29,7 +29,7 @@
                         <div class="col-12">
                             <div class="card border-0 shadow-sm card-hover">
                                 <div class="card-body">
-                                    <div class="d-flex align-items-center">
+                                    <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-3">
                                         <!-- Icona tipo conversazione -->
                                         <div class="me-3">
                                             {% if conversazione.tipo == 'gruppo' %}
@@ -44,15 +44,20 @@
                                         </div>
 
                                         <!-- Dettagli conversazione -->
-                                        <div class="flex-grow-1">
+                                        <div class="flex-grow-1 overflow-hidden">
                                             <h5 class="mb-1">
                                                 {% if conversazione.tipo == 'gruppo' %}
                                                     <span class="badge bg-info me-2">Gruppo</span>
                                                 {% endif %}
-                                                {{ conversazione.get_nome_display|title }}
+                                                {{ conversazione.display_name }}
                                             </h5>
-                                            {% if conversazione.messaggi.all %}
-                                                {% with ultimo_messaggio=conversazione.messaggi.all.0 %}
+                                            {% if conversazione.display_exchange %}
+                                                <p class="text-primary small mb-1">
+                                                    <i class="fas fa-exchange-alt me-1"></i>{{ conversazione.display_exchange }}
+                                                </p>
+                                            {% endif %}
+                                            {% if conversazione.ultimo_messaggio_list %}
+                                                {% with ultimo_messaggio=conversazione.ultimo_messaggio_list.0 %}
                                                     <p class="text-muted mb-1">
                                                         <strong>{{ ultimo_messaggio.mittente.username }}:</strong>
                                                         {{ ultimo_messaggio.contenuto|truncatechars:50 }}
@@ -67,7 +72,7 @@
                                         </div>
 
                                         <!-- Azioni -->
-                                        <div class="text-end">
+                                        <div class="text-sm-end flex-shrink-0">
                                             <a href="{% url 'chat_conversazione' conversazione.id %}" class="btn btn-primary">
                                                 <i class="fas fa-comments me-1"></i>Apri Chat
                                             </a>

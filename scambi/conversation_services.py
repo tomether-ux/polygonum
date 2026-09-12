@@ -7,6 +7,126 @@ from django.db.models import Exists, OuterRef
 from .models import CicloScambio, Conversazione, Messaggio
 
 
+_CYCLE_NOT_SUPPLIED = object()
+
+
+def _conversation_cycle_id(conversation):
+    """Restituisce l'ID numerico del ciclo associato, se valido."""
+    if conversation.tipo != 'gruppo' or not conversation.catena_scambio_id:
+        return None
+    try:
+        cycle_id = int(conversation.catena_scambio_id)
+    except (TypeError, ValueError):
+        return None
+    return cycle_id if cycle_id > 0 else None
+
+
+def _announcement_title(value):
+    """Estrae in modo tollerante il titolo da un annuncio serializzato."""
+    if not isinstance(value, dict):
+        return ''
+    return str(value.get('titolo') or '').strip()
+
+
+def get_conversation_display(conversation, user, cycle=_CYCLE_NOT_SUPPLIED):
+    """
+    Costruisce titolo e riepilogo della chat dal punto di vista dell'utente.
+
+    Il nome memorizzato nel database resta stabile per l'idempotenza; questa
+    rappresentazione è soltanto per l'interfaccia e funziona anche con le chat
+    già esistenti.
+    """
+    if conversation.tipo != 'gruppo':
+        other_users = [
+            participant
+            for participant in conversation.utenti.all()
+            if participant.pk != user.pk
+        ]
+        return {
+            'nome': other_users[0].username if other_users else 'Conversazione',
+            'scambio': '',
+            'ciclo': None,
+        }
+
+    cycle_id = _conversation_cycle_id(conversation)
+    if cycle is _CYCLE_NOT_SUPPLIED and cycle_id is not None:
+        cycle = CicloScambio.objects.filter(pk=cycle_id).first()
+    elif cycle is _CYCLE_NOT_SUPPLIED:
+        cycle = None
+
+    # ``catena_scambio_id`` era usato anche dal vecchio modello CatenaScambio:
+    # un ID uguale non basta per associare in sicurezza la conversazione al
+    # nuovo CicloScambio. Le chat create dal servizio hanno sempre questo nome.
+    expected_cycle_name = f'Catena di scambio #{cycle_id}'
+    if cycle is not None and conversation.nome != expected_cycle_name:
+        cycle = None
+
+    if cycle is None:
+        return {
+            'nome': conversation.nome or f'Catena di scambio #{cycle_id or conversation.pk}',
+            'scambio': '',
+            'ciclo': None,
+        }
+
+    if cycle.lunghezza == 2:
+        display_name = 'Scambio diretto'
+    else:
+        display_name = f'Catena a {cycle.lunghezza} partecipanti'
+
+    offer_title = ''
+    request_title = ''
+    details = cycle.dettagli if isinstance(cycle.dettagli, dict) else {}
+    for user_details in details.get('utenti', []):
+        if not isinstance(user_details, dict):
+            continue
+        serialized_user = user_details.get('user') or {}
+        serialized_user_id = (
+            serialized_user.get('id')
+            if isinstance(serialized_user, dict)
+            else serialized_user
+        )
+        if str(serialized_user_id) != str(user.pk):
+            continue
+        offer_title = _announcement_title(user_details.get('offerta'))
+        request_title = _announcement_title(user_details.get('richiede'))
+        break
+
+    exchange_parts = []
+    if offer_title:
+        exchange_parts.append(f'Offri: {offer_title}')
+    if request_title:
+        exchange_parts.append(f'Cerchi: {request_title}')
+
+    return {
+        'nome': display_name,
+        'scambio': ' · '.join(exchange_parts),
+        'ciclo': cycle,
+    }
+
+
+def decorate_conversations_for_user(conversations, user):
+    """Aggiunge le etichette UI a una lista di conversazioni con una query."""
+    conversation_list = list(conversations)
+    cycle_ids = {
+        cycle_id
+        for conversation in conversation_list
+        if (cycle_id := _conversation_cycle_id(conversation)) is not None
+    }
+    cycles = CicloScambio.objects.in_bulk(cycle_ids)
+
+    for conversation in conversation_list:
+        cycle_id = _conversation_cycle_id(conversation)
+        display = get_conversation_display(
+            conversation,
+            user,
+            cycle=cycles.get(cycle_id),
+        )
+        conversation.display_name = display['nome']
+        conversation.display_exchange = display['scambio']
+
+    return conversation_list
+
+
 def find_private_conversation(user_a, user_b):
     """Restituisce una chat privata composta esattamente dai due utenti."""
     if user_a.pk == user_b.pk:

@@ -1,0 +1,50 @@
+<div class="chat-dropdown-header">
+    <h6 class="mb-0">Conversazioni recenti</h6>
+</div>
+
+<div class="chat-dropdown-list">
+    {% if conversazioni_recenti %}
+        {% for conv in conversazioni_recenti %}
+            <a class="dropdown-item {% if conv.ha_non_letti %}fw-bold bg-light{% endif %}"
+               href="{% url 'chat_conversazione' conv.id %}">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div class="flex-grow-1 overflow-hidden">
+                        <div class="d-flex align-items-center mb-1">
+                            {% if conv.is_gruppo %}
+                                <i class="fas fa-users text-info me-2"></i>
+                            {% else %}
+                                <i class="fas fa-user text-primary me-2"></i>
+                            {% endif %}
+                            <strong class="text-truncate">{{ conv.nome }}</strong>
+                        </div>
+                        {% if conv.scambio %}
+                            <div class="chat-dropdown-exchange" title="{{ conv.scambio }}">
+                                {{ conv.scambio|truncatechars:72 }}
+                            </div>
+                        {% endif %}
+                        <div class="text-muted small text-truncate">
+                            {% if conv.mittente %}
+                                <span class="fw-semibold">{{ conv.mittente }}:</span>
+                            {% endif %}
+                            {{ conv.ultimo_messaggio }}
+                        </div>
+                        <div class="text-muted chat-dropdown-time">
+                            {{ conv.data|timesince }} fa
+                        </div>
+                    </div>
+                    {% if conv.ha_non_letti %}
+                        <span class="badge bg-primary rounded-circle flex-shrink-0 mt-1" aria-label="Messaggi non letti"></span>
+                    {% endif %}
+                </div>
+            </a>
+        {% endfor %}
+    {% else %}
+        <div class="px-3 py-4 text-center text-muted">Nessuna conversazione</div>
+    {% endif %}
+</div>
+
+<div class="chat-dropdown-footer">
+    <a class="dropdown-item text-center text-primary fw-semibold rounded" href="{% url 'lista_messaggi' %}">
+        Mostra tutte
+    </a>
+</div>
