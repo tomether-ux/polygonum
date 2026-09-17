@@ -378,6 +378,50 @@ class ScheduledCommandTests(TestCase):
 
         self.assertTrue(ScheduledCommand._cycles_are_due(30))
 
+    def test_description_change_does_not_request_recalculation(self):
+        user = User.objects.create_user(username='ricalcolo-descrizione')
+        category = Categoria.objects.create(nome='Descrizione irrilevante')
+        announcement = Annuncio.objects.create(
+            utente=user,
+            titolo='Oggetto invariato',
+            descrizione='Descrizione iniziale',
+            categoria=category,
+            tipo='offro',
+        )
+        metadata = CalcoloMetadata.objects.get(singleton_id=1)
+        metadata.ultimo_calcolo_completo = timezone.now()
+        metadata.ricalcolo_richiesto_at = None
+        metadata.save()
+
+        announcement.descrizione = 'Descrizione aggiornata'
+        announcement.save(update_fields=['descrizione'])
+
+        metadata.refresh_from_db()
+        self.assertIsNone(metadata.ricalcolo_richiesto_at)
+        self.assertFalse(ScheduledCommand._cycles_are_due(30))
+
+    def test_title_change_requests_recalculation(self):
+        user = User.objects.create_user(username='ricalcolo-titolo')
+        category = Categoria.objects.create(nome='Titolo rilevante')
+        announcement = Annuncio.objects.create(
+            utente=user,
+            titolo='Titolo iniziale',
+            descrizione='Descrizione valida',
+            categoria=category,
+            tipo='cerco',
+        )
+        metadata = CalcoloMetadata.objects.get(singleton_id=1)
+        metadata.ultimo_calcolo_completo = timezone.now()
+        metadata.ricalcolo_richiesto_at = None
+        metadata.save()
+
+        announcement.titolo = 'Titolo modificato'
+        announcement.save(update_fields=['titolo'])
+
+        metadata.refresh_from_db()
+        self.assertIsNotNone(metadata.ricalcolo_richiesto_at)
+        self.assertTrue(ScheduledCommand._cycles_are_due(30))
+
     def test_moderation_approval_requests_recalculation(self):
         user = User.objects.create_user(username='ricalcolo-approvazione')
         category = Categoria.objects.create(nome='Ricalcolo approvazione')

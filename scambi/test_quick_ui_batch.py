@@ -34,7 +34,7 @@ class QuickUiBatchTests(SimpleTestCase):
         )
 
         self.assertEqual(html.count('id="polygonumLoadingOverlay"'), 1)
-        self.assertIn('/static/img/favicon.svg', html)
+        self.assertIn('/static/img/favicon.png', html)
         self.assertIn('Caricamento catene in corso', html)
 
     def test_announcement_card_displays_offer_or_request_badge(self):

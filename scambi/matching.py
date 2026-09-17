@@ -2,6 +2,7 @@ from .models import Annuncio, UserProfile
 from django.contrib.auth.models import User
 from django.db.models import Q
 from collections import defaultdict
+from functools import lru_cache
 import logging
 import re
 import math
@@ -657,6 +658,7 @@ def normalizza_testo(testo):
     
     return testo
 
+@lru_cache(maxsize=20000)
 def estrai_parole_chiave(testo):
     """Estrae le parole chiave significative dal testo, preservando termini composti"""
     logger.debug(f"🔧 ESTRAZIONE PAROLE da: '{testo}'")
@@ -686,7 +688,10 @@ def estrai_parole_chiave(testo):
     parole_finali = parole_singole | termini_composti
     logger.debug(f"🔧 Parole finali (singole + composti): {parole_finali}")
 
-    return parole_finali
+    # Il risultato non deve essere modificato dai chiamanti: renderlo
+    # immutabile permette di riutilizzarlo in sicurezza per tutti i confronti
+    # che coinvolgono lo stesso titolo.
+    return frozenset(parole_finali)
 
 def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
     """Matching avanzato che restituisce anche il tipo di match"""
@@ -993,6 +998,12 @@ class CycleFinder:
         self.grafo = {}  # dict: user_id -> [list di user_id con cui può scambiare]
         self.cicli_trovati = []
         self.cicli_hash_set = set()  # Per evitare duplicati
+        self._annunci_precaricati = False
+        self._offerte_per_utente = {}
+        self._richieste_per_utente = {}
+        self._offerte_visibili_per_utente = {}
+        self._richieste_visibili_per_utente = {}
+        self._dettagli_scambio_cache = {}
 
     def get_annunci_modificati(self, timestamp_ultimo_calcolo):
         """
@@ -1149,23 +1160,63 @@ class CycleFinder:
 
         self.grafo.clear()
 
-        annunci_validi = Annuncio.objects.filter(
+        annunci_validi = list(Annuncio.objects.filter(
             _filtro_annunci_validi_matching()
+        ).select_related('categoria'))
+
+        offerte_per_utente = defaultdict(list)
+        richieste_per_utente = defaultdict(list)
+        offerte_visibili_per_utente = defaultdict(list)
+        richieste_visibili_per_utente = defaultdict(list)
+
+        for annuncio in annunci_validi:
+            if annuncio.tipo == 'offro':
+                offerte_per_utente[annuncio.utente_id].append(annuncio)
+                if self._annuncio_visibile_nei_dettagli(annuncio):
+                    offerte_visibili_per_utente[annuncio.utente_id].append(
+                        annuncio
+                    )
+            elif annuncio.tipo == 'cerco':
+                richieste_per_utente[annuncio.utente_id].append(annuncio)
+                if self._annuncio_visibile_nei_dettagli(annuncio):
+                    richieste_visibili_per_utente[annuncio.utente_id].append(
+                        annuncio
+                    )
+
+        self._offerte_per_utente = dict(offerte_per_utente)
+        self._richieste_per_utente = dict(richieste_per_utente)
+        self._offerte_visibili_per_utente = dict(
+            offerte_visibili_per_utente
+        )
+        self._richieste_visibili_per_utente = dict(
+            richieste_visibili_per_utente
+        )
+        self._annunci_precaricati = True
+        self._dettagli_scambio_cache.clear()
+
+        utenti_ids = sorted(
+            set(offerte_per_utente) | set(richieste_per_utente)
         )
 
-        utenti = User.objects.filter(annuncio__in=annunci_validi).distinct()
+        logger.debug(
+            f"[{datetime.now()}] 📊 Annunci validi: {len(annunci_validi)} "
+            "(inclusi disattivati <3 min)"
+        )
 
-        logger.debug(f"[{datetime.now()}] 📊 Annunci validi: {annunci_validi.count()} (inclusi disattivati <3 min)")
+        for utente_a_id in utenti_ids:
+            if not offerte_per_utente.get(utente_a_id):
+                continue
 
-        for utente_a in utenti:
-            if utente_a.id not in self.grafo:
-                self.grafo[utente_a.id] = []
+            self.grafo[utente_a_id] = []
 
-            for utente_b in utenti:
-                if utente_a.id != utente_b.id:
+            for utente_b_id in utenti_ids:
+                if utente_a_id != utente_b_id:
                     # Verifica se A può scambiare con B
-                    if self._c_e_match_tra_utenti(utente_a, utente_b):
-                        self.grafo[utente_a.id].append(utente_b.id)
+                    if self._c_e_match_tra_utenti(
+                        utente_a_id,
+                        utente_b_id,
+                    ):
+                        self.grafo[utente_a_id].append(utente_b_id)
 
         # Rimuovi nodi senza collegamenti
         self.grafo = {k: v for k, v in self.grafo.items() if v}
@@ -1179,10 +1230,22 @@ class CycleFinder:
         Usa solo matching titoli (senza considerare prezzo/distanza) per costruire il grafo.
         Include annunci disattivati da meno di 3 minuti.
         """
-        filtro_validi = _filtro_annunci_validi_matching()
+        utente_a_id = getattr(utente_a, 'id', utente_a)
+        utente_b_id = getattr(utente_b, 'id', utente_b)
 
-        offerte_a = Annuncio.objects.filter(utente=utente_a, tipo='offro').filter(filtro_validi)
-        richieste_b = Annuncio.objects.filter(utente=utente_b, tipo='cerco').filter(filtro_validi)
+        if self._annunci_precaricati:
+            offerte_a = self._offerte_per_utente.get(utente_a_id, ())
+            richieste_b = self._richieste_per_utente.get(utente_b_id, ())
+        else:
+            filtro_validi = _filtro_annunci_validi_matching()
+            offerte_a = Annuncio.objects.filter(
+                utente_id=utente_a_id,
+                tipo='offro',
+            ).filter(filtro_validi).select_related('categoria')
+            richieste_b = Annuncio.objects.filter(
+                utente_id=utente_b_id,
+                tipo='cerco',
+            ).filter(filtro_validi).select_related('categoria')
 
         for offerta in offerte_a:
             for richiesta in richieste_b:
@@ -1194,6 +1257,12 @@ class CycleFinder:
                     return True
 
         return False
+
+    @staticmethod
+    def _annuncio_visibile_nei_dettagli(annuncio):
+        """Replica il filtro DB usato per mostrare annunci moderati."""
+        immagine = str(annuncio.immagine) if annuncio.immagine else ''
+        return annuncio.moderation_status == 'approved' or not immagine
 
     def trova_tutti_cicli(self, max_length=6):
         """
@@ -1356,79 +1425,78 @@ class CycleFinder:
         Trova TUTTI gli oggetti che user_da può dare a user_a
         Include categoria solo se flag cerca_per_categoria è attivo
         """
-        try:
-            utente_da = User.objects.get(id=user_id_da)
-            utente_a = User.objects.get(id=user_id_a)
+        cache_key = (user_id_da, user_id_a)
+        if cache_key in self._dettagli_scambio_cache:
+            return self._dettagli_scambio_cache[cache_key]
 
+        if self._annunci_precaricati:
+            offerte_da = self._offerte_visibili_per_utente.get(
+                user_id_da,
+                (),
+            )
+            richieste_a = self._richieste_visibili_per_utente.get(
+                user_id_a,
+                (),
+            )
+        else:
+            filtro_validi = _filtro_annunci_validi_matching()
+            filtro_moderazione = (
+                Q(moderation_status='approved')
+                | Q(immagine='')
+                | Q(immagine__isnull=True)
+            )
             offerte_da = Annuncio.objects.filter(
-                utente=utente_da, tipo='offro'
-            ).filter(
-                _filtro_annunci_validi_matching()
-            ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
+                utente_id=user_id_da,
+                tipo='offro',
+            ).filter(filtro_validi).filter(
+                filtro_moderazione
+            ).select_related('categoria')
             richieste_a = Annuncio.objects.filter(
-                utente=utente_a, tipo='cerco'
-            ).filter(
-                _filtro_annunci_validi_matching()
-            ).filter(Q(moderation_status='approved') | Q(immagine='') | Q(immagine__isnull=True))
+                utente_id=user_id_a,
+                tipo='cerco',
+            ).filter(filtro_validi).filter(
+                filtro_moderazione
+            ).select_related('categoria')
 
-            # Calcola distanza per usare logica avanzata
-            try:
-                profile_da = utente_da.userprofile
-                profile_a = utente_a.userprofile
+        tutti_oggetti = []
 
-                if profile_da.latitudine and profile_da.longitudine and profile_a.latitudine and profile_a.longitudine:
-                    from math import radians, sin, cos, sqrt, atan2
+        for offerta in offerte_da:
+            for richiesta in richieste_a:
+                compatible, tipo_match = oggetti_compatibili_con_tipo(
+                    offerta,
+                    richiesta,
+                )
 
-                    lat1, lon1 = radians(profile_da.latitudine), radians(profile_da.longitudine)
-                    lat2, lon2 = radians(profile_a.latitudine), radians(profile_a.longitudine)
+                if compatible and tipo_match in [
+                    'specifico',
+                    'sinonimo',
+                    'parziale',
+                    'categoria',
+                ]:
+                    tutti_oggetti.append({
+                        'offerto': {
+                            'id': offerta.id,
+                            'titolo': offerta.titolo,
+                            'categoria': offerta.categoria.nome,
+                        },
+                        'richiesto': {
+                            'id': richiesta.id,
+                            'titolo': richiesta.titolo,
+                            'categoria': richiesta.categoria.nome,
+                        },
+                        'tipo_match': tipo_match,
+                    })
 
-                    dlat = lat2 - lat1
-                    dlon = lon2 - lon1
-                    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-                    c = 2 * atan2(sqrt(a), sqrt(1-a))
-                    distanza_km = 6371 * c
-                else:
-                    distanza_km = 50
-            except:
-                distanza_km = 50
+        risultato = None
+        if tutti_oggetti:
+            risultato = {
+                'da_user': user_id_da,
+                'a_user': user_id_a,
+                'oggetti': tutti_oggetti,
+            }
 
-            # Trova TUTTI i match validi
-            tutti_oggetti = []
-
-            for offerta in offerte_da:
-                for richiesta in richieste_a:
-                    # Controlla il tipo di match
-                    compatible, tipo_match = oggetti_compatibili_con_tipo(offerta, richiesta)
-
-                    # Accetta specifici/sinonimi/parziali + categoria (se flag attivo)
-                    if compatible and tipo_match in ['specifico', 'sinonimo', 'parziale', 'categoria']:
-                        tutti_oggetti.append({
-                            'offerto': {
-                                'id': offerta.id,
-                                'titolo': offerta.titolo,
-                                'categoria': offerta.categoria.nome
-                            },
-                            'richiesto': {
-                                'id': richiesta.id,
-                                'titolo': richiesta.titolo,
-                                'categoria': richiesta.categoria.nome
-                            },
-                            'tipo_match': tipo_match  # Per info aggiuntiva
-                        })
-
-            # Se ci sono match validi, ritorna tutti
-            if tutti_oggetti:
-                return {
-                    'da_user': user_id_da,
-                    'a_user': user_id_a,
-                    'oggetti': tutti_oggetti
-                }
-
-            return None
-        except User.DoesNotExist:
-            pass
-
-        return None
+        self._dettagli_scambio_cache[cache_key] = risultato
+        return risultato
 
 
 # === FUNZIONI HELPER PER IL CALCOLO CICLI ===
