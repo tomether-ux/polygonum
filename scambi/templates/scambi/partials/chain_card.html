@@ -12,6 +12,7 @@
                 <span class="chain-polygon-name d-inline d-md-none">
                     {% if catena.utenti|length == 2 %}LINE{% elif catena.utenti|length == 3 %}TRIANGLE{% elif catena.utenti|length == 4 %}SQUARE{% elif catena.utenti|length == 5 %}PENTAGON{% elif catena.utenti|length == 6 %}HEXAGON{% endif %} · {{ catena.utenti|length }} partecipanti
                 </span>
+                {% if catena.richiede_scelta_annunci %}<span class="chain-options-hint"><i class="fas fa-layer-group me-1"></i>Più oggetti disponibili</span>{% endif %}
             </div>
 
             <!-- Desktop: score + badges + bottone inline -->
@@ -55,11 +56,13 @@
                     {% if io.offerta %}
                     <a href="{% url 'dettaglio_annuncio' io.offerta.id %}" class="chain-mobile-item chain-mobile-offer" onclick="event.stopPropagation()">
                         <span>TU OFFRI</span><strong>{{ io.offerta.titolo|truncatechars:34 }}</strong><i class="fas fa-chevron-right"></i>
+                        {% if io.offerta_opzioni|length > 1 %}<small>+{{ io.offerta_opzioni|length|add:"-1" }} alternative</small>{% endif %}
                     </a>
                     {% endif %}
                     {% if mittente.offerta %}
                     <a href="{% url 'dettaglio_annuncio' mittente.offerta.id %}" class="chain-mobile-item chain-mobile-request" onclick="event.stopPropagation()">
                         <span>TU RICEVI</span><strong>{{ mittente.offerta.titolo|truncatechars:34 }}</strong><i class="fas fa-chevron-right"></i>
+                        {% if mittente.offerta_opzioni|length > 1 %}<small>+{{ mittente.offerta_opzioni|length|add:"-1" }} alternative</small>{% endif %}
                     </a>
                     {% endif %}
                 {% endwith %}

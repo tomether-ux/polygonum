@@ -1,55 +1,29 @@
-<a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none">
-    <div class="modern-card">
-        <!-- Immagine annuncio con angoli arrotondati -->
+<div class="modern-card {% if not annuncio.attivo or annuncio.is_scaduto %}modern-card-disabled{% endif %}">
+    <a href="{% url 'dettaglio_annuncio' annuncio.id %}" class="text-decoration-none modern-card-link">
         <div class="modern-card-img">
             {% include 'scambi/partials/annuncio_thumbnail.html' with annuncio=annuncio css_class="" %}
-            <span class="badge position-absolute top-0 start-0 m-2 px-3 py-2 shadow-sm {% if annuncio.tipo == 'offro' %}bg-success{% else %}bg-info text-dark{% endif %}">
-                {% if annuncio.tipo == 'offro' %}
-                    <i class="fas fa-gift me-1"></i>Offro
-                {% else %}
-                    <i class="fas fa-search me-1"></i>Cerco
-                {% endif %}
-            </span>
+            <span class="badge position-absolute top-0 start-0 m-2 px-3 py-2 {% if annuncio.tipo == 'offro' %}bg-success{% else %}bg-info text-dark{% endif %}">{% if annuncio.tipo == 'offro' %}Offro{% else %}Cerco{% endif %}</span>
         </div>
-        <!-- Info essenziali -->
         <div class="modern-card-info">
             <h6 class="modern-card-title">{{ annuncio.titolo|truncatechars:40 }}</h6>
             <div class="modern-card-details">
-                <!-- Categoria sempre visibile -->
+                <div class="detail-item mb-1"><i class="fas fa-tag me-1"></i>{{ annuncio.categoria.nome }}</div>
                 <div class="detail-item mb-1">
-                    <i class="fas fa-tag me-1" style="font-size: 0.7rem;"></i>{{ annuncio.categoria.nome }}
+                    {% if annuncio.utente.userprofile.provincia_obj %}<i class="fas fa-map-marker-alt me-1"></i>{% if annuncio.utente.userprofile.citta %}{{ annuncio.utente.userprofile.citta }} ({{ annuncio.utente.userprofile.provincia_obj.sigla }}){% else %}{{ annuncio.utente.userprofile.provincia_obj.nome }}{% endif %}{% else %}&nbsp;{% endif %}
                 </div>
-                <!-- Luogo (sempre disponibile se c'è provincia) -->
-                {% if annuncio.utente.userprofile.provincia_obj %}
-                <div class="detail-item mb-1">
-                    <i class="fas fa-map-marker-alt me-1" style="font-size: 0.7rem;"></i>
-                    {% if annuncio.utente.userprofile.citta %}
-                        {{ annuncio.utente.userprofile.citta }} ({{ annuncio.utente.userprofile.provincia_obj.sigla }})
-                    {% else %}
-                        {{ annuncio.utente.userprofile.provincia_obj.nome }}
-                    {% endif %}
-                </div>
-                {% endif %}
-                <!-- Fascia prezzo se disponibile -->
-                {% if annuncio.fascia_prezzo %}
-                <div class="detail-item">
-                    <span class="fascia-badge-small fascia-{{ annuncio.fascia_prezzo }}"
-                          title="{{ annuncio.get_fascia_prezzo_display }}"></span>
-                    <span class="ms-1 text-muted" style="font-size: 0.75rem;">{{ annuncio.get_fascia_prezzo_display }}</span>
-                </div>
-                {% endif %}
+                <div class="detail-item">{% if annuncio.fascia_prezzo %}<span class="fascia-badge-small fascia-{{ annuncio.fascia_prezzo }}"></span><span class="ms-1">{{ annuncio.get_fascia_prezzo_display }}</span>{% else %}&nbsp;{% endif %}</div>
             </div>
             <div class="modern-card-user">{{ annuncio.utente.username }}</div>
         </div>
+    </a>
+    {% if manage %}
+    <div class="card-actions" aria-label="Azioni annuncio">
+        {% if annuncio.puo_essere_modificato %}<a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-sm btn-outline-primary" title="Modifica"><i class="fas fa-edit"></i><span>Modifica</span></a>{% else %}<button class="btn btn-sm btn-outline-secondary" disabled><i class="fas fa-lock"></i><span>Modifica</span></button>{% endif %}
+        {% if annuncio.moderation_status == 'rejected' %}<button class="btn btn-sm btn-outline-danger" disabled><i class="fas fa-ban"></i><span>Bloccato</span></button>
+        {% elif annuncio.is_scaduto %}<form method="post" action="{% url 'ripubblica_annuncio' annuncio.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline-success"><i class="fas fa-redo"></i><span>Ripubblica</span></button></form>
+        {% elif annuncio.attivo %}<form method="post" action="{% url 'disattiva_annuncio' annuncio.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline-warning"><i class="fas fa-eye-slash"></i><span>Disattiva</span></button></form>
+        {% else %}<form method="post" action="{% url 'attiva_annuncio' annuncio.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline-success"><i class="fas fa-eye"></i><span>Attiva</span></button></form>{% endif %}
+        <a href="{% url 'elimina_annuncio' annuncio.id %}" class="btn btn-sm btn-outline-danger" title="Elimina"><i class="fas fa-trash"></i><span>Elimina</span></a>
     </div>
-</a>
-{% if manage %}
-<div class="card-actions">
-    {% if annuncio.puo_essere_modificato %}<a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-sm btn-outline-primary" title="Modifica"><i class="fas fa-edit"></i></a>{% else %}<button class="btn btn-sm btn-outline-secondary" disabled><i class="fas fa-lock"></i></button>{% endif %}
-    {% if annuncio.moderation_status == 'rejected' %}<button class="btn btn-sm btn-outline-danger" disabled title="Non approvato"><i class="fas fa-ban"></i></button>
-    {% elif annuncio.is_scaduto %}<form method="post" action="{% url 'ripubblica_annuncio' annuncio.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline-success" title="Ripubblica"><i class="fas fa-redo"></i></button></form>
-    {% elif annuncio.attivo %}<form method="post" action="{% url 'disattiva_annuncio' annuncio.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline-warning" title="Disattiva"><i class="fas fa-eye-slash"></i></button></form>
-    {% else %}<form method="post" action="{% url 'attiva_annuncio' annuncio.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline-success" title="Attiva"><i class="fas fa-eye"></i></button></form>{% endif %}
-    <a href="{% url 'elimina_annuncio' annuncio.id %}" class="btn btn-sm btn-outline-danger ms-auto" title="Elimina"><i class="fas fa-trash"></i></a>
+    {% endif %}
 </div>
-{% endif %}

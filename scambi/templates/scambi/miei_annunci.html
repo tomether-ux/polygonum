@@ -112,6 +112,7 @@
                             <!-- Info essenziali -->
                             <div class="modern-card-info">
                                 <h6 class="modern-card-title">{{ annuncio.titolo|truncatechars:40 }}</h6>
+                                <p class="my-ad-card-description" title="{{ annuncio.descrizione }}">{{ annuncio.descrizione }}</p>
                                 <div class="modern-card-details">
                                     <span class="detail-item">{{ annuncio.categoria.nome }}</span>
                                     {% if annuncio.fascia_prezzo %}
