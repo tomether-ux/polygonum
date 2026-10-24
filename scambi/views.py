@@ -157,7 +157,11 @@ def lista_annunci(request):
     # crawler legittimi. Per gestire ufficialmente i bot, andrebbe verificato
     # via reverse-DNS, non via header client-controlled.
 
-    tipo_filtro = request.GET.get('tipo')
+    # Il selettore Offro/Cerco supporta due scelte indipendenti. In assenza
+    # dei parametri (prima apertura o vecchi link) entrambi restano attivi.
+    has_type_params = 'offro' in request.GET or 'cerco' in request.GET
+    mostra_offro = request.GET.get('offro') == '1' if has_type_params else True
+    mostra_cerco = request.GET.get('cerco') == '1' if has_type_params else True
     categoria_filtro = request.GET.get('categoria')
 
     annunci = Annuncio.objects.filter(
@@ -165,8 +169,15 @@ def lista_annunci(request):
         pubblicato_at__gt=Annuncio.cutoff_scadenza(),
     )
 
-    if tipo_filtro:
-        annunci = annunci.filter(tipo=tipo_filtro)
+    tipi_attivi = []
+    if mostra_offro:
+        tipi_attivi.append('offro')
+    if mostra_cerco:
+        tipi_attivi.append('cerco')
+    if tipi_attivi:
+        annunci = annunci.filter(tipo__in=tipi_attivi)
+    else:
+        annunci = annunci.none()
     if categoria_filtro:
         annunci = annunci.filter(categoria_id=categoria_filtro)
 
@@ -175,7 +186,8 @@ def lista_annunci(request):
     return render(request, 'scambi/lista_annunci.html', {
         'annunci': annunci,
         'categorie': categorie,
-        'tipo_filtro': tipo_filtro,
+        'mostra_offro': mostra_offro,
+        'mostra_cerco': mostra_cerco,
         'categoria_filtro': categoria_filtro
     })
 

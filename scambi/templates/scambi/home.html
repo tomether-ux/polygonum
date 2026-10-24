@@ -1,506 +1,74 @@
 {% extends 'scambi/base.html' %}
-{% load static %}
 
-{% block title %}Home - Polygonum{% endblock %}
+{% block title %}Polygonum — Save money, Swap things.{% endblock %}
 
 {% block content %}
-<!-- Hero Section con Box a Sinistra -->
-<section class="hero-box-section">
-    <!-- Sfondo -->
-    <img src="{% static 'img/homepage-hero2.jpg' %}" alt="Polygonum - Community di Scambio" class="hero-image-bg">
-
-    <!-- Box contenuto a sinistra -->
-    <div class="hero-box-content">
-        <h1 class="hero-box-title">POLYGONUM</h1>
-        <p class="hero-box-slogan">Save money,<br>Swap things.</p>
-
-        <!-- Call to Action -->
-        <div class="hero-box-cta">
-            <a class="btn btn-primary btn-lg w-100" href="{% url 'crea_annuncio' %}">
-                + Pubblica un annuncio
-            </a>
-            <a class="btn btn-outline-primary btn-lg w-100" href="{% url 'lista_annunci' %}">
-                <i class="fas fa-search me-2"></i>Esplora gli annunci
-            </a>
-        </div>
-
-        <!-- Link Come Funziona -->
-        <div class="text-center">
-            <a href="{% url 'come_funziona' %}" class="hero-info-link">
-                Come funziona
-            </a>
-        </div>
+<section class="pg-home-hero">
+    <div class="pg-eyebrow mb-3">La community dello scambio</div>
+    <h1 class="pg-home-wordmark">POLYGONUM</h1>
+    <p class="pg-home-slogan">Save money,<br><span>Swap things.</span></p>
+    <p class="pg-home-lead">Dai nuova vita agli oggetti che non usi più e trova ciò che cerchi attraverso scambi diretti e catene.</p>
+    <div class="pg-home-actions">
+        <a class="btn btn-primary btn-lg" href="{% url 'crea_annuncio' %}">Pubblica un annuncio</a>
+        <a class="btn btn-outline-primary btn-lg" href="{% url 'lista_annunci' %}">Esplora gli annunci</a>
     </div>
 </section>
 
-<style>
-/* Riduce margin-top del main container in homepage */
-main.container {
-    margin-top: 0.1rem !important;
-}
-
-/* Hero Section con Box a Sinistra */
-.hero-box-section {
-    position: relative;
-    width: 100%;
-    min-height: 70vh;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-}
-
-.hero-image-bg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    z-index: 1;
-}
-
-.hero-box-content {
-    position: absolute;
-    left: 40px;
-    top: 60px;
-    bottom: 60px;
-    max-width: 380px;
-    width: auto;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    padding: 40px;
-    z-index: 2;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.hero-box-title {
-    font-size: 2.8rem;
-    font-weight: 700;
-    color: #4A5568;
-    margin-top: 30px;
-    margin-bottom: 10px;
-    line-height: 2;
-}
-
-.hero-box-slogan {
-    font-size: 3rem;
-    color: #6c757d;
-    margin-bottom: 40px;
-    line-height: 1.4;
-}
-
-.hero-box-cta {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.hero-box-cta .btn {
-    font-weight: 600;
-}
-
-.hero-box-cta + div {
-    margin-top: 60px;
-}
-
-.hero-info-link {
-    color: #4169E1;
-    text-decoration: underline;
-    font-size: 0.95rem;
-    transition: color 0.2s ease;
-}
-
-.hero-info-link:hover {
-    color: #2E4C9C;
-    text-decoration: underline;
-}
-
-@media (max-width: 768px) {
-    .hero-box-section {
-        min-height: 60vh;
-    }
-
-    .hero-box-content {
-        left: 35px;
-        right: 35px;
-        top: 40px;
-        bottom: 40px;
-        width: auto;
-        max-width: none;
-        padding: 30px 15px;
-    }
-
-    .hero-box-title {
-        font-size: 2.2rem;
-        margin-top: 22px;
-        margin-bottom: 8px;
-        line-height: 1.2;
-        padding-left: 15px;
-    }
-
-    .hero-box-slogan {
-        font-size: 1.8rem;
-        margin-bottom: 28px;
-        line-height: 1.3;
-        padding-left: 15px;
-    }
-
-    .hero-box-cta {
-        gap: 8px;
-        padding: 0 15px;
-    }
-
-    .hero-box-cta + div {
-        margin-top: 0;
-    }
-
-    /* Forza stessa dimensione per entrambi i bottoni - sovrascrivi Bootstrap */
-    .hero-box-cta .btn-lg {
-        font-size: 0.95rem !important;
-        padding: 10px 8px !important;
-        line-height: 1.5 !important;
-        width: 100% !important;
-        height: auto !important;
-        min-height: 44px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-
-    .hero-info-link {
-        font-size: 0.85rem;
-    }
-
-    .d-flex.gap-4 {
-        gap: 1rem !important;
-    }
-
-    /* Card più compatte su mobile quando affiancate */
-    .card-img-container {
-        height: 150px !important;
-    }
-
-    .card-body {
-        padding: 0.75rem !important;
-    }
-
-    .card-title {
-        font-size: 0.9rem !important;
-    }
-
-    .badge {
-        font-size: 0.7rem !important;
-        padding: 0.25rem 0.5rem !important;
-    }
-
-    small {
-        font-size: 0.7rem !important;
-    }
-
-    /* Modern card più compatta su mobile */
-    .modern-card-img {
-        height: 150px !important;
-    }
-
-    .modern-card-title {
-        font-size: 0.85rem !important;
-    }
-
-    .modern-card-details {
-        font-size: 0.7rem !important;
-    }
-
-    .modern-card-user {
-        font-size: 0.7rem !important;
-    }
-}
-
-/* Modern Card Design */
-.modern-card {
-    background: white;
-    border-radius: 16px;
-    overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    cursor: pointer;
-}
-
-.modern-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.modern-card-img {
-    width: 100%;
-    height: 220px;
-    overflow: hidden;
-    background: #f8f9fa;
-    position: relative;
-}
-
-.modern-card-img img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.modern-card-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: white;
-    color: #adb5bd;
-}
-
-.modern-card-placeholder i {
-    font-size: 3rem;
-}
-
-.modern-card-info {
-    padding: 12px 16px;
-}
-
-.modern-card-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #212529;
-    margin: 0 0 6px 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.modern-card-description {
-    font-size: 0.85rem;
-    color: #6c757d;
-    margin: 0 0 8px 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.4;
-}
-
-.modern-card-details {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    margin-bottom: 8px;
-}
-
-.detail-item {
-    font-size: 0.85rem;
-    color: #6c757d;
-    display: flex;
-    align-items: center;
-}
-
-.detail-item.price {
-    color: #28a745;
-    font-weight: 600;
-}
-
-.modern-card-user {
-    font-size: 0.8rem;
-    color: #adb5bd;
-}
-
-/* Badge prezzo sovrapposto sull'immagine */
-.fascia-badge-overlay {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 12px;
-    height: 12px;
-    border-radius: 3px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-    z-index: 10;
-}
-</style>
-
-<!-- Suggeriti per te -->
 {% if annunci_suggeriti %}
-<section class="pt-5 pb-3 bg-white">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 text-center mb-3">
-                <h2 class="display-6 fw-bold text-polygonum-primary text-uppercase">
-                    <i class="fas fa-sparkles me-2"></i>Suggeriti per te
-                </h2>
-            </div>
-        </div>
-        <div class="row g-4">
-            {% for annuncio in annunci_suggeriti %}
-            <div class="col-6 col-md-6 col-lg-4">
-                {% include 'scambi/partials/annuncio_card_home.html' with annuncio=annuncio %}
-            </div>
-            {% endfor %}
-        </div>
+<section class="pg-section">
+    <div class="pg-section-head">
+        <div><div class="pg-eyebrow">Scelti per te</div><h2>Suggeriti per te</h2></div>
+        <a href="{% url 'lista_annunci' %}" class="text-decoration-none fw-bold">Vedi tutti →</a>
+    </div>
+    <div class="row g-3">
+        {% for annuncio in annunci_suggeriti|slice:":4" %}
+        <div class="col-6 col-lg-3">{% include 'scambi/partials/annuncio_card_home.html' with annuncio=annuncio %}</div>
+        {% endfor %}
     </div>
 </section>
 {% endif %}
 
-<!-- Annunci Recenti -->
-<section class="py-3 bg-texture-light">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 text-center mb-3">
-                <h2 class="display-6 fw-bold text-polygonum-primary text-uppercase">Annunci Recenti</h2>
-            </div>
-        </div>
-        {% if annunci_recenti %}
-            <div class="row g-4">
-                {% for annuncio in annunci_recenti %}
-                <div class="col-6 col-md-6 col-lg-4">
-                    {% include 'scambi/partials/annuncio_card_home.html' with annuncio=annuncio %}
-                </div>
-                {% endfor %}
-            </div>
-            <div class="text-center mt-5">
-                <a href="{% url 'lista_annunci' %}" class="btn btn-primary btn-lg">
-                    Vedi tutti gli annunci
-                </a>
-            </div>
-        {% else %}
-            <div class="text-center">
-                <div class="bg-white rounded-3 p-5 shadow-sm">
-                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                    <h4 class="text-muted">Nessun annuncio disponibile</h4>
-                    <p class="text-muted">Sii il primo a pubblicare un annuncio!</p>
-                    <a href="{% url 'crea_annuncio' %}" class="btn btn-primary btn-lg mt-3">
-                        <i class="fas fa-plus me-2"></i>Crea il primo annuncio
-                    </a>
-                </div>
-            </div>
-        {% endif %}
+<section class="pg-section">
+    <div class="pg-section-head">
+        <div><div class="pg-eyebrow">Appena pubblicati</div><h2>Annunci recenti</h2></div>
+        <a href="{% url 'lista_annunci' %}" class="text-decoration-none fw-bold">Tutti gli annunci →</a>
     </div>
+    {% if annunci_recenti %}
+    <div class="row g-3">
+        {% for annuncio in annunci_recenti|slice:":4" %}
+        <div class="col-6 col-lg-3">{% include 'scambi/partials/annuncio_card_home.html' with annuncio=annuncio %}</div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="pg-panel p-5 text-center"><h3>Nessun annuncio disponibile</h3><p class="text-muted">Puoi essere il primo a pubblicarne uno.</p></div>
+    {% endif %}
 </section>
 
-<!-- Categorie Popolari -->
-<section class="py-3 bg-texture-geometric">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 text-center mb-3">
-                <h2 class="display-6 fw-bold text-polygonum-primary text-uppercase">Categorie Popolari</h2>
-            </div>
+<section class="pg-section">
+    <div class="pg-category-grid">
+        <div class="pg-panel pg-category-column">
+            <h3>Categorie popolari</h3>
+            {% for categoria in categorie_popolari %}
+            <a href="{% url 'lista_annunci' %}?categoria={{ categoria.id }}">{{ categoria.nome }} <span class="float-end text-muted">{{ categoria.num_annunci }}</span></a>
+            {% empty %}<p class="text-muted mb-0">Le categorie compariranno qui.</p>{% endfor %}
         </div>
-        <div class="row justify-content-center">
-            <div class="col-lg-10">
-                <div class="d-flex flex-wrap gap-2 justify-content-center">
-                    {% for categoria in categorie_popolari %}
-                        <a href="{% url 'lista_annunci' %}?categoria={{ categoria.id }}"
-                           class="btn btn-outline-primary px-3 py-2"
-                           style="min-width: 133px;">
-                            {{ categoria.nome }}
-                        </a>
-                    {% endfor %}
-                </div>
-            </div>
+        <div class="pg-panel pg-category-column">
+            <h3>Da scoprire</h3>
+            {% for categoria in categorie_da_scoprire %}
+            <a href="{% url 'lista_annunci' %}?categoria={{ categoria.id }}">{{ categoria.nome }} <span class="float-end text-muted">{{ categoria.num_annunci }}</span></a>
+            {% empty %}<p class="text-muted mb-0">Le categorie compariranno qui.</p>{% endfor %}
         </div>
-    </div>
-</section>
-
-<!-- Categorie Da Scoprire -->
-<section class="py-3 bg-white">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 text-center mb-3">
-                <h2 class="display-6 fw-bold text-polygonum-primary text-uppercase">
-                    Da Scoprire
-                </h2>
-            </div>
-        </div>
-        <div class="row justify-content-center">
-            <div class="col-lg-10">
-                <div class="d-flex flex-wrap gap-2 justify-content-center">
-                    {% for categoria in categorie_da_scoprire %}
-                        <a href="{% url 'lista_annunci' %}?categoria={{ categoria.id }}"
-                           class="btn btn-outline-primary px-3 py-2"
-                           style="min-width: 133px;">
-                            {{ categoria.nome }}
-                        </a>
-                    {% endfor %}
-                </div>
-            </div>
+        <div class="pg-panel pg-category-column">
+            <h3>Per iniziare</h3>
+            <a href="{% url 'come_funziona' %}">Come funziona Polygonum</a>
+            <a href="{% url 'guida_annunci' %}">Crea un buon annuncio</a>
+            <a href="{% url 'guida_catene_scambio' %}">Scopri le catene</a>
+            <a href="{% url 'consigli_scambi_sicuri' %}">Scambia in sicurezza</a>
         </div>
     </div>
-</section>
-
-<!-- Regole e Linee Guida (Sezione Espandibile) -->
-<section class="py-5 bg-light">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <div class="accordion" id="regolamentoAccordion">
-                    <div class="accordion-item border-0 shadow-sm">
-                        <h2 class="accordion-header" id="headingRegolamento">
-                            <button class="accordion-button collapsed text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRegolamento" aria-expanded="false" aria-controls="collapseRegolamento" style="background-color: #2c3e50; font-weight: 600; font-size: 1.1rem;">
-                                Regole e Linee Guida di Polygonum
-                            </button>
-                        </h2>
-                        <div id="collapseRegolamento" class="accordion-collapse collapse" aria-labelledby="headingRegolamento" data-bs-parent="#regolamentoAccordion">
-                            <div class="accordion-body" style="line-height: 1.8;">
-                                <p class="lead mb-4">Polygonum è una piattaforma di scambio basata sulla fiducia e sul rispetto reciproco tra gli utenti. Di seguito le regole fondamentali da rispettare:</p>
-
-                                <h6 class="text-dark fw-bold mt-4 mb-3">Creazione Annunci</h6>
-                                <ul class="mb-4">
-                                    <li>Descrivi accuratamente cosa offri o cerchi</li>
-                                    <li>Indica eventuali difetti o problemi dell'oggetto</li>
-                                    <li>Carica solo foto reali e rappresentative dell'oggetto</li>
-                                    <li>Seleziona la categoria appropriata per facilitare la ricerca</li>
-                                </ul>
-
-                                <h6 class="text-dark fw-bold mt-4 mb-3">Norme di Comportamento</h6>
-                                <ul class="mb-4">
-                                    <li>Tratta gli altri utenti con rispetto e cortesia</li>
-                                    <li>Porta a termine gli scambi concordati in modo affidabile</li>
-                                    <li>Le catene di scambio vengono calcolate periodicamente - attendi la prossima scansione se non vedi immediatamente i risultati</li>
-                                    <li>Rispondi ai messaggi in modo tempestivo</li>
-                                </ul>
-
-                                <h6 class="text-dark fw-bold mt-4 mb-3">Sistema di Moderazione</h6>
-                                <p class="mb-2">La piattaforma utilizza un sistema a 3 strike per garantire il rispetto delle regole:</p>
-                                <ul class="mb-4">
-                                    <li><strong>Primo Strike</strong>: Avviso formale e rimozione dell'annuncio</li>
-                                    <li><strong>Secondo Strike</strong>: Sospensione dell'account per 7 giorni</li>
-                                    <li><strong>Terzo Strike</strong>: Ban permanente dalla piattaforma</li>
-                                </ul>
-
-                                <h6 class="text-dark fw-bold mt-4 mb-3">Sicurezza e Privacy</h6>
-                                <ul class="mb-4">
-                                    <li>Polygonum facilita esclusivamente il contatto tra utenti; gli scambi avvengono tra privati</li>
-                                    <li>Si raccomanda di incontrare sempre in luoghi pubblici e sicuri</li>
-                                    <li>Non condividere dati personali sensibili (coordinate bancarie, documenti, ecc.)</li>
-                                    <li>In caso di dubbi o situazioni sospette, interrompi la trattativa</li>
-                                </ul>
-
-                                <h6 class="text-dark fw-bold mt-4 mb-3">Contenuti Vietati</h6>
-                                <p class="mb-2">È vietata la pubblicazione di:</p>
-                                <ul class="mb-4">
-                                    <li>Contenuti illegali, violenti, offensivi o inappropriati</li>
-                                    <li>Animali vivi, farmaci, armi e sostanze pericolose</li>
-                                    <li>Documenti personali, accessi ad account o credenziali</li>
-                                    <li>Prodotti contraffatti o di dubbia provenienza</li>
-                                </ul>
-
-                                <div class="border-top pt-4 mt-4">
-                                    <p class="mb-2"><strong>Per ulteriori informazioni</strong></p>
-                                    <p class="mb-2">Contatto: <a href="mailto:noreply@polygonum.io" class="text-decoration-none">noreply@polygonum.io</a></p>
-                                    <p class="mb-0">
-                                        <a href="{% url 'regolamento' %}" class="text-decoration-none fw-bold">Consulta il regolamento completo</a>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="pg-guidelines">
+        <div><h3 class="h5 mb-1">Regole e Linee Guida di Polygonum</h3><p class="text-muted mb-0">Poche regole chiare per una community affidabile e scambi sereni.</p></div>
+        <a href="{% url 'regolamento' %}" class="btn btn-outline-primary">Leggi le linee guida</a>
     </div>
 </section>
 {% endblock %}

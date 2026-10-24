@@ -10,7 +10,7 @@
 
                 <!-- Mobile: mostra nome poligono + numero -->
                 <span class="chain-polygon-name d-inline d-md-none">
-                    {% if catena.utenti|length == 2 %}Line{% elif catena.utenti|length == 3 %}Triangle{% elif catena.utenti|length == 4 %}Square{% elif catena.utenti|length == 5 %}Pentagon{% elif catena.utenti|length == 6 %}Hexagon{% endif %} {{ forloop.counter }}
+                    {% if catena.utenti|length == 2 %}LINE{% elif catena.utenti|length == 3 %}TRIANGLE{% elif catena.utenti|length == 4 %}SQUARE{% elif catena.utenti|length == 5 %}PENTAGON{% elif catena.utenti|length == 6 %}HEXAGON{% endif %} · {{ catena.utenti|length }} partecipanti
                 </span>
             </div>
 
@@ -50,6 +50,20 @@
 
             <!-- Mobile: badge + bottone sotto al titolo, sempre visibili -->
             {% if user.is_authenticated and catena.id_ciclo %}
+            <div class="chain-mobile-summary d-md-none w-100">
+                {% with io=catena.utenti|first mittente=catena.utenti|last %}
+                    {% if io.offerta %}
+                    <a href="{% url 'dettaglio_annuncio' io.offerta.id %}" class="chain-mobile-item chain-mobile-offer" onclick="event.stopPropagation()">
+                        <span>TU OFFRI</span><strong>{{ io.offerta.titolo|truncatechars:34 }}</strong><i class="fas fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                    {% if mittente.offerta %}
+                    <a href="{% url 'dettaglio_annuncio' mittente.offerta.id %}" class="chain-mobile-item chain-mobile-request" onclick="event.stopPropagation()">
+                        <span>TU RICEVI</span><strong>{{ mittente.offerta.titolo|truncatechars:34 }}</strong><i class="fas fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                {% endwith %}
+            </div>
             <div class="d-flex d-md-none align-items-center gap-2 mt-2 w-100 mobile-interest-section">
                 <span class="badge-interessati">
                     <i class="fas fa-users me-1"></i>
@@ -62,6 +76,17 @@
                 {% else %}
                 <button class="btn-mi-interessa" onclick="proponiCatena({{ catena.id_ciclo }}, event)">
                     <i class="fas fa-heart me-1"></i>Mi interessa
+                </button>
+                {% endif %}
+                {% if catena.json_data %}
+                <button type="button"
+                        class="btn btn-sm chain-save-button stella-preferiti"
+                        data-catena="{{ catena.json_data|escapejs }}"
+                        data-hash="{{ catena.hash_catena|default:'' }}"
+                        title="Salva catena"
+                        aria-label="Salva catena"
+                        onclick="event.stopPropagation()">
+                    <i class="{% if catena.is_favorita %}fas text-warning{% else %}far text-muted{% endif %} fa-bookmark"></i>
                 </button>
                 {% endif %}
                 <button type="button"

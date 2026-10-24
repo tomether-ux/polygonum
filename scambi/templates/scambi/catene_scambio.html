@@ -290,7 +290,11 @@
 
             <!-- Bottone di ricerca (solo utenti autenticati) -->
             {% if user.is_authenticated %}
-            <div class="mb-4">
+            <button class="btn btn-outline-primary w-100 d-md-none mb-3" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#chainFilters" aria-expanded="false">
+                Filtri
+            </button>
+            <div class="mb-4 chain-filter-panel collapse d-md-block" id="chainFilters">
                 {% if ricerca_eseguita %}
                     <div class="alert alert-success d-flex align-items-center py-2 px-3 mb-3" style="font-size: 0.9rem;">
                         <i class="fas fa-check-circle me-2"></i>
@@ -914,6 +918,14 @@ function filtraCatenePerAnnuncio() {
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
 
+    // Su mobile le catene partono compatte: l'utente vede subito soltanto
+    // ciò che offre, ciò che riceve e lo stato d'interesse.
+    if (window.matchMedia('(max-width: 767.98px)').matches) {
+        document.querySelectorAll('.modern-chain-card').forEach(function(card) {
+            card.classList.add('collapsed');
+        });
+    }
+
     // Inizializza i tooltip Bootstrap (icone info dei filtri)
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach(function (el) {
@@ -996,6 +1008,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Mostra feedback immediato
             stellaIcon.classList.toggle('text-warning');
             stellaIcon.classList.toggle('text-muted');
+            stellaIcon.classList.toggle('fas');
+            stellaIcon.classList.toggle('far');
 
             // Aggiorna il titolo
             this.title = isCurrentlyFavorite ? 'Aggiungi ai preferiti' : 'Rimuovi dai preferiti';
@@ -1022,6 +1036,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Se c'è un errore, ripristina lo stato precedente
                     stellaIcon.classList.toggle('text-warning');
                     stellaIcon.classList.toggle('text-muted');
+                    stellaIcon.classList.toggle('fas');
+                    stellaIcon.classList.toggle('far');
                     this.title = isCurrentlyFavorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti';
                     alert('Errore nel salvare la catena nei preferiti: ' + (data.error || 'Errore sconosciuto'));
                 }
@@ -1031,6 +1047,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Se c'è un errore, ripristina lo stato precedente
                 stellaIcon.classList.toggle('text-warning');
                 stellaIcon.classList.toggle('text-muted');
+                stellaIcon.classList.toggle('fas');
+                stellaIcon.classList.toggle('far');
                 this.title = isCurrentlyFavorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti';
                 alert('Errore nel salvare la catena nei preferiti: ' + error.message);
             });

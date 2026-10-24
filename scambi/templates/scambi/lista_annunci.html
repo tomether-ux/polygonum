@@ -1,282 +1,105 @@
 {% extends 'scambi/base.html' %}
 
-{% block title %}Annunci - Polygonum{% endblock %}
+{% block title %}Tutti gli annunci — Polygonum{% endblock %}
 
 {% block content %}
-<!-- Header Section -->
-<section class="bg-white py-4 shadow-sm">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6">
-                <h1 class="display-5 fw-bold text-polygonum-primary mb-2">
-                    Tutti gli Annunci
-                </h1>
-                <p class="lead text-muted mb-0">Scopri cosa offrono e cercano gli altri utenti</p>
-            </div>
-            <div class="col-lg-6 text-lg-end">
-                <div class="d-flex flex-wrap gap-2 justify-content-lg-end align-items-center">
-                    {% if user.is_authenticated %}
-                    <a href="{% url 'miei_annunci' %}" class="btn btn-outline-secondary" style="padding: 0.375rem 0.75rem;">
-                        I Miei Annunci
-                    </a>
-                    {% endif %}
-                    <a href="{% url 'ricerca_annunci' %}" class="btn btn-outline-primary" style="padding: 0.375rem 0.75rem;">
-                        Ricerca Avanzata
-                    </a>
-                    <a href="{% url 'crea_annuncio' %}" class="btn btn-primary" style="padding: 0.375rem 0.75rem;">
-                        Crea Annuncio
-                    </a>
-                </div>
+<form method="get" id="annunciFilters">
+<header class="pg-listing-header">
+    <div class="pg-title-row d-flex justify-content-between align-items-end gap-3">
+        <div>
+            <h1 class="page-title">Tutti gli Annunci</h1>
+            <p class="page-subtitle mb-0">{{ annunci|length }} annunci trovati</p>
+        </div>
+        <div>
+            <span class="small text-muted me-2 d-none d-md-inline">Mostra</span>
+            <div class="pg-type-toggle" aria-label="Tipo di annuncio">
+                <label>
+                    <input type="checkbox" name="offro" value="1" {% if mostra_offro %}checked{% endif %}>
+                    <span>✓&nbsp; Offro</span>
+                </label>
+                <label>
+                    <input type="checkbox" name="cerco" value="1" {% if mostra_cerco %}checked{% endif %}>
+                    <span>✓&nbsp; Cerco</span>
+                </label>
             </div>
         </div>
     </div>
-</section>
+</header>
 
-<!-- Filtri -->
-<section class="py-4 border-bottom">
-    <div class="container">
-        <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-4">
-                <label for="tipo" class="form-label">Tipo Annuncio</label>
-                <select name="tipo" id="tipo" class="form-select">
-                    <option value="">Tutti i tipi</option>
-                    <option value="offro" {% if tipo_filtro == 'offro' %}selected{% endif %}>Solo Offro</option>
-                    <option value="cerco" {% if tipo_filtro == 'cerco' %}selected{% endif %}>Solo Cerco</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label for="categoria" class="form-label">Categoria</label>
-                <select name="categoria" id="categoria" class="form-select">
-                    <option value="">Tutte le categorie</option>
-                    {% for categoria in categorie %}
-                        <option value="{{ categoria.id }}" {% if categoria_filtro == categoria.id|stringformat:"s" %}selected{% endif %}>
-                            {{ categoria.nome }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-4">
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-filter me-2"></i>Filtra
-                    </button>
-                    <a href="{% url 'lista_annunci' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-times me-2"></i>Reset
-                    </a>
-                </div>
-            </div>
-        </form>
+<div class="d-flex d-lg-none gap-2 mb-3">
+    <button class="btn btn-outline-primary flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#mobileFilters">
+        Filtri
+    </button>
+    <select class="form-select w-auto" name="ordinamento_mobile" aria-label="Ordina">
+        <option>Più recenti</option>
+    </select>
+</div>
+
+<div class="collapse d-lg-none mb-3" id="mobileFilters">
+    <div class="pg-panel pg-filters">
+        <label class="form-label" for="categoriaMobile">Categoria</label>
+        <select id="categoriaMobile" class="form-select mb-3">
+            <option value="">Tutte le categorie</option>
+            {% for categoria in categorie %}
+            <option value="{{ categoria.id }}" {% if categoria_filtro == categoria.id|stringformat:"s" %}selected{% endif %}>{{ categoria.nome }}</option>
+            {% endfor %}
+        </select>
+        <button class="btn btn-primary w-100" type="submit">Applica filtri</button>
     </div>
-</section>
+</div>
 
-<!-- Lista Annunci -->
-<section class="py-5">
-    <div class="container">
-        {% if annunci %}
-            <!-- Stats -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3 class="text-polygonum-primary mb-0">
-                    <span class="badge bg-polygonum-secondary text-polygonum-primary px-3 py-2">
-                        {{ annunci|length }} Annunc{{ annunci|length|pluralize:"io,i" }} trovati
-                    </span>
-                </h3>
-                <div class="text-muted">
-                    <small><i class="fas fa-info-circle me-1"></i>Clicca su una card per vedere i dettagli</small>
-                </div>
+<div class="pg-listings-layout pb-5">
+    <aside class="pg-filter-sidebar">
+        <div class="pg-panel pg-filters">
+            <label class="form-label" for="searchInListings">Cerca</label>
+            <div class="position-relative mb-4">
+                <input id="searchInListings" class="form-control" placeholder="Cerca negli annunci…" disabled>
             </div>
-
-            <!-- Grid Annunci -->
-            <div class="row g-4">
-                {% for annuncio in annunci %}
-                <div class="col-6 col-md-6 col-lg-4">
-                    {% include 'scambi/partials/annuncio_card.html' with annuncio=annuncio %}
-                </div>
+            <label class="form-label" for="categoria">Categoria</label>
+            <select name="categoria" id="categoria" class="form-select mb-4">
+                <option value="">Tutte le categorie</option>
+                {% for categoria in categorie %}
+                <option value="{{ categoria.id }}" {% if categoria_filtro == categoria.id|stringformat:"s" %}selected{% endif %}>{{ categoria.nome }}</option>
                 {% endfor %}
-            </div>
-
-        {% else %}
-            <!-- Empty State -->
-            <div class="text-center py-5">
-                <div class="bg-light rounded-3 p-5 mx-auto" style="max-width: 500px;">
-                    <i class="fas fa-search fa-3x text-muted mb-4"></i>
-                    <h4 class="text-muted mb-3">Nessun annuncio trovato</h4>
-                    <p class="text-muted mb-4">Non ci sono annunci che corrispondono ai tuoi filtri.</p>
-                    <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
-                        <a href="{% url 'lista_annunci' %}" class="btn btn-outline-secondary">
-                            <i class="fas fa-times me-2"></i>Rimuovi filtri
-                        </a>
-                        <a href="{% url 'crea_annuncio' %}" class="btn btn-primary">
-                            <i class="fas fa-plus me-2"></i>Crea il primo annuncio
-                        </a>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-    </div>
-</section>
-
-<!-- Stats Footer -->
-<section class="bg-light py-4">
-    <div class="container">
-        <div class="row text-center g-3">
-            <div class="col-md-3">
-                <div class="d-flex align-items-center justify-content-center">
-                    <div class="bg-polygonum-primary rounded-circle d-flex align-items-center justify-content-center me-3"
-                         style="width: 50px; height: 50px;">
-                        <i class="fas fa-list text-white"></i>
-                    </div>
-                    <div>
-                        <h4 class="text-polygonum-primary mb-0">{{ annunci|length }}</h4>
-                        <small class="text-muted">Annunci visualizzati</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="d-flex align-items-center justify-content-center">
-                    <div class="bg-polygonum-secondary rounded-circle d-flex align-items-center justify-content-center me-3"
-                         style="width: 50px; height: 50px;">
-                        <i class="fas fa-tags text-polygonum-primary"></i>
-                    </div>
-                    <div>
-                        <h4 class="text-polygonum-primary mb-0">{{ categorie|length }}</h4>
-                        <small class="text-muted">Categorie disponibili</small>
-                    </div>
-                </div>
-            </div>
-            {% if user.is_authenticated %}
-            <div class="col-md-3">
-                <div class="d-flex align-items-center justify-content-center">
-                    <a href="{% url 'miei_annunci' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-bullhorn me-2"></i>I Miei Annunci
-                        <div><small>Gestisci i tuoi annunci</small></div>
-                    </a>
-                </div>
-            </div>
-            {% endif %}
-            <div class="col-md-3">
-                <div class="d-flex align-items-center justify-content-center">
-                    <a href="{% url 'catene_scambio' %}" class="btn btn-outline-primary">
-                        <i class="fas fa-link me-2"></i>Trova Catene
-                        <div><small>Scambi possibili</small></div>
-                    </a>
-                </div>
-            </div>
+            </select>
+            <label class="form-label">Ordina per</label>
+            <select class="form-select mb-3" disabled><option>Più recenti</option></select>
+            <button class="btn btn-primary w-100 mb-2" type="submit">Filtra</button>
+            <a href="{% url 'lista_annunci' %}" class="btn btn-link w-100">Azzera filtri</a>
         </div>
-    </div>
-</section>
+    </aside>
 
-<style>
-/* Modern Card Design */
-.modern-card {
-    background: white;
-    border-radius: 16px;
-    overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    cursor: pointer;
+    <section>
+        {% if annunci %}
+        <div class="pg-listings-grid">
+            {% for annuncio in annunci %}
+            <div>{% include 'scambi/partials/annuncio_card.html' with annuncio=annuncio %}</div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="pg-panel text-center p-5">
+            <h2 class="h4">Nessun annuncio trovato</h2>
+            <p class="text-muted">Attiva almeno una tipologia oppure modifica i filtri.</p>
+            <a href="{% url 'lista_annunci' %}" class="btn btn-outline-primary">Ripristina i filtri</a>
+        </div>
+        {% endif %}
+    </section>
+</div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.pg-type-toggle input').forEach(function (input) {
+    input.addEventListener('change', function () {
+        document.getElementById('annunciFilters').submit();
+    });
+});
+const mobileCategory = document.getElementById('categoriaMobile');
+if (mobileCategory) {
+    mobileCategory.addEventListener('change', function () {
+        document.getElementById('categoria').value = this.value;
+    });
 }
-
-.modern-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.modern-card-img {
-    width: 100%;
-    height: 220px;
-    overflow: hidden;
-    background: #f8f9fa;
-    position: relative;
-}
-
-.modern-card-img img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.modern-card-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: white;
-    color: #adb5bd;
-}
-
-.modern-card-placeholder i {
-    font-size: 3rem;
-}
-
-.modern-card-info {
-    padding: 12px 16px;
-}
-
-.modern-card-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #212529;
-    margin: 0 0 6px 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.modern-card-description {
-    font-size: 0.85rem;
-    color: #6c757d;
-    margin: 0 0 8px 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.4;
-}
-
-.modern-card-details {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    margin-bottom: 8px;
-}
-
-.detail-item {
-    font-size: 0.85rem;
-    color: #6c757d;
-    display: flex;
-    align-items: center;
-}
-
-.detail-item.price {
-    color: #28a745;
-    font-weight: 600;
-}
-
-.modern-card-user {
-    font-size: 0.8rem;
-    color: #adb5bd;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .modern-card-img {
-        height: 150px !important;
-    }
-
-    .modern-card-title {
-        font-size: 0.85rem !important;
-    }
-
-    .modern-card-description {
-        font-size: 0.75rem !important;
-    }
-
-    .modern-card-details {
-        font-size: 0.7rem !important;
-    }
-
-    .modern-card-user {
-        font-size: 0.7rem !important;
-    }
-}
-</style>
+</script>
 {% endblock %}
