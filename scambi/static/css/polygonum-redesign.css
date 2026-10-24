@@ -250,6 +250,7 @@ footer a:hover { color: var(--pg-blue) !important; }
 .pg-chain-object strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pg-chain-receives { min-width: 0; }
 .pg-chain-receives .pg-chain-object span { color: var(--pg-blue); }
+.pg-chain-receives small { display: block; color: var(--pg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .badge.bg-success { background: var(--pg-green-soft) !important; color: var(--pg-green) !important; }
 .badge.bg-info { background: var(--pg-cyan-soft) !important; color: var(--pg-blue) !important; }
 .progress { background: #e8edf5; border-radius: 999px; }

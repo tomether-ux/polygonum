@@ -20,8 +20,8 @@
       <div class="pg-my-chain-body">
         {% if catena.giorni_scadenza is not None %}<div class="small text-muted mb-3"><i class="far fa-clock me-1"></i>{% if catena.giorni_scadenza == 0 %}Scade oggi{% elif catena.giorni_scadenza == 1 %}Scade domani{% else %}Scade tra {{ catena.giorni_scadenza }} giorni{% endif %}</div>{% endif %}
         <div class="pg-my-chain-exchanges">
-        {% for exchange in catena.exchanges %}
-          <div class="pg-my-chain-exchange"><a href="{% url 'profilo_utente' exchange.giver.username %}" class="pg-chain-user">{{ exchange.giver.username }}</a><a href="{% url 'dettaglio_annuncio' exchange.giving_ad.id %}" class="pg-chain-object"><span>OFFRE</span><strong>{{ exchange.giving_ad.titolo|truncatechars:32 }}</strong></a><i class="fas fa-arrow-right"></i><div class="pg-chain-receives"><a href="{% url 'profilo_utente' exchange.receiver.username %}" class="pg-chain-user">{{ exchange.receiver.username }}</a><a href="{% url 'dettaglio_annuncio' exchange.receiving_ad.id %}" class="pg-chain-object"><span>RICEVE</span><strong>{{ exchange.receiving_ad.titolo|truncatechars:32 }}</strong></a></div></div>
+        {% for row in catena.participant_rows %}
+          <div class="pg-my-chain-exchange"><a href="{% url 'profilo_utente' row.user.username %}" class="pg-chain-user">{{ row.user.username }}</a><a href="{% url 'dettaglio_annuncio' row.offered_ad.id %}" class="pg-chain-object"><span>OFFRE</span><strong>{{ row.offered_ad.titolo|truncatechars:32 }}</strong></a><i class="fas fa-arrow-right"></i><div class="pg-chain-receives"><a href="{% url 'dettaglio_annuncio' row.received_ad.id %}" class="pg-chain-object"><span>RICEVE</span><strong>{{ row.received_ad.titolo|truncatechars:32 }}</strong></a><small>Soddisfa: {{ row.requested_ad.titolo|truncatechars:32 }}</small></div></div>
         {% endfor %}
         </div>
         {% if catena.stato_class == 'success' and catena.percentuale == 100 %}<a href="{% url 'lista_messaggi' %}" class="btn btn-primary btn-sm mt-3">Apri chat di gruppo</a>{% endif %}

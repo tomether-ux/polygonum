@@ -4172,10 +4172,37 @@ def mie_proposte_catene(request):
                     except Annuncio.DoesNotExist:
                         continue
 
+        # La pagina "Le mie catene" è centrata sui partecipanti, non sulle
+        # singole frecce: per ogni utente mostra ciò che offre e ciò che riceve
+        # dallo scambio entrante precedente nel ciclo.
+        def exchange_value(exchange, key):
+            return exchange.get(key) if isinstance(exchange, dict) else getattr(exchange, key, None)
+
+        incoming_by_user = {
+            exchange_value(exchange, 'receiver').id: exchange
+            for exchange in exchanges
+            if exchange_value(exchange, 'receiver')
+        }
+        participant_rows = []
+        for exchange in exchanges:
+            participant = exchange_value(exchange, 'giver')
+            if not participant:
+                continue
+            incoming = incoming_by_user.get(participant.id)
+            if not incoming:
+                continue
+            participant_rows.append({
+                'user': participant,
+                'offered_ad': exchange_value(exchange, 'giving_ad'),
+                'received_ad': exchange_value(incoming, 'giving_ad'),
+                'requested_ad': exchange_value(incoming, 'receiving_ad'),
+            })
+
         catene_info.append({
             'proposta': proposta,
             'ciclo': ciclo,
             'exchanges': exchanges,
+            'participant_rows': participant_rows,
             'mia_risposta': risposta.risposta,
             'count_interessati': count_interessati,
             'count_totale': count_totale,
