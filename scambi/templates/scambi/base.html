@@ -15,7 +15,7 @@
     <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}?v=20260914">
     <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon.png' %}?v=20260914">
     <link href="{% static 'css/polygonum.css' %}" rel="stylesheet">
-    <link href="{% static 'css/polygonum-redesign.css' %}?v=20261023" rel="stylesheet">
+    <link href="{% static 'css/polygonum-redesign.css' %}?v=20261024" rel="stylesheet">
     {% block extra_css %}{% endblock %}
 
     <style>
@@ -337,8 +337,14 @@
 
                 <!-- Menu principale -->
                 <ul class="navbar-nav ms-auto">
-                    <!-- Mobile: Crea Annuncio nel menu a tendina -->
+                    <!-- Desktop: pulsante compatto, espandibile come nella navigazione originale -->
                     {% if user.is_authenticated %}
+                    <li class="nav-item d-none d-lg-block nav-publish-item">
+                        <a class="btn-create-ad-minimal nav-link" href="{% url 'crea_annuncio' %}">
+                            <span class="btn-text">Pubblica annuncio</span>
+                            <i class="fas fa-plus btn-icon"></i>
+                        </a>
+                    </li>
                     <li class="nav-item d-lg-none">
                         <a class="nav-link text-success fw-bold" href="{% url 'crea_annuncio' %}">
                             <i class="fas fa-plus me-2"></i>Crea Annuncio
@@ -355,17 +361,12 @@
                         <a class="nav-link" href="{% url 'lista_annunci' %}">Annunci</a>
                     </li>
                     {% if user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'catene_scambio' %}">Catene</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'catene_community' %}">Community</a>
-                    </li>
-                    <li class="nav-item d-none d-lg-block">
-                        <a class="btn-create-ad-minimal nav-link" href="{% url 'crea_annuncio' %}">
-                            <span class="btn-text">Pubblica un annuncio</span>
-                            <i class="fas fa-plus btn-icon"></i>
-                        </a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="chainsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Catene</a>
+                        <ul class="dropdown-menu" aria-labelledby="chainsDropdown">
+                            <li><a class="dropdown-item" href="{% url 'catene_scambio' %}">Catene di scambio</a></li>
+                            <li><a class="dropdown-item" href="{% url 'catene_community' %}">Community</a></li>
+                        </ul>
                     </li>
                     {% endif %}
                     {% if user.is_authenticated %}

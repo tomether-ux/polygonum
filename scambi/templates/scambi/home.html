@@ -1,16 +1,22 @@
 {% extends 'scambi/base.html' %}
+{% load static %}
 
 {% block title %}Polygonum — Save money, Swap things.{% endblock %}
 
 {% block content %}
 <section class="pg-home-hero">
-    <div class="pg-eyebrow mb-3">La community dello scambio</div>
-    <h1 class="pg-home-wordmark">POLYGONUM</h1>
-    <p class="pg-home-slogan">Save money,<br><span>Swap things.</span></p>
-    <p class="pg-home-lead">Dai nuova vita agli oggetti che non usi più e trova ciò che cerchi attraverso scambi diretti e catene.</p>
-    <div class="pg-home-actions">
-        <a class="btn btn-primary btn-lg" href="{% url 'crea_annuncio' %}">Pubblica un annuncio</a>
-        <a class="btn btn-outline-primary btn-lg" href="{% url 'lista_annunci' %}">Esplora gli annunci</a>
+    <img src="{% static 'img/homepage-hero2.jpg' %}" alt="Persone che collaborano nella community Polygonum" class="pg-home-hero-image">
+    <div class="pg-home-hero-card">
+        <div class="pg-home-brand">
+            <img src="{% static 'img/polygonum-logo.png' %}" alt="" aria-hidden="true">
+            <h1 class="pg-home-wordmark">POLYGONUM</h1>
+        </div>
+        <p class="pg-home-slogan">Save money,<br><span>Swap things.</span></p>
+        <p class="pg-home-lead">Dai nuova vita agli oggetti che non usi più e trova ciò che cerchi attraverso scambi diretti e catene.</p>
+        <div class="pg-home-actions">
+            <a class="btn btn-primary btn-lg" href="{% url 'crea_annuncio' %}">Pubblica un annuncio</a>
+            <a class="btn btn-outline-primary btn-lg" href="{% url 'lista_annunci' %}">Esplora gli annunci</a>
+        </div>
     </div>
 </section>
 
