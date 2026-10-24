@@ -426,11 +426,14 @@
 
     <!-- CATENE RAGGRUPPATE PER NUMERO DI PARTECIPANTI -->
     {% if catene_specifiche or catene_2 %}
-        <h2 id="catene-scambio" class="modern-section-title mb-4">
-            <span class="title-icon">🔗</span>
-            Catene di Scambio Disponibili
-            <span class="title-badge">{{ totale_catene }}</span>
-        </h2>
+        <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
+            <h2 id="catene-scambio" class="modern-section-title mb-0">
+                <span class="title-icon">🔗</span>
+                Catene di Scambio Disponibili
+                <span class="title-badge">{{ totale_catene }}</span>
+            </h2>
+            <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0" onclick="compactAllChains()"><i class="fas fa-compress-alt me-1"></i>Compatta tutto</button>
+        </div>
 
         <!-- Raggruppamento per numero di partecipanti -->
         <div class="chains-grouped-container">
@@ -719,6 +722,15 @@ function toggleCard(headerEl, evt) {
     if (groupContent && groupContent.style.maxHeight && groupContent.style.maxHeight !== '0px') {
         groupContent.style.maxHeight = groupContent.scrollHeight + 'px';
     }
+}
+
+function compactAllChains() {
+    document.querySelectorAll('.modern-chain-card').forEach(card => card.classList.add('collapsed'));
+    document.querySelectorAll('.chain-group-content').forEach(content => {
+        if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+            content.style.maxHeight = content.scrollHeight + 'px';
+        }
+    });
 }
 
 // NUOVA FUNZIONE: Carica catene dal DB per l'utente corrente

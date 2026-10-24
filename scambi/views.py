@@ -18,6 +18,7 @@ from django_ratelimit.decorators import ratelimit
 from django_ratelimit.exceptions import Ratelimited
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 from .ratelimit_utils import get_real_ip_for_ratelimit
 from .conversation_services import (
     decorate_conversations_for_user,
@@ -163,6 +164,8 @@ def lista_annunci(request):
     mostra_offro = request.GET.get('offro') == '1' if has_type_params else True
     mostra_cerco = request.GET.get('cerco') == '1' if has_type_params else True
     categoria_filtro = request.GET.get('categoria')
+    query = request.GET.get('q', '').strip()
+    ordinamento = request.GET.get('ordinamento', '-pubblicato_at')
 
     annunci = Annuncio.objects.filter(
         attivo=True,
@@ -180,6 +183,19 @@ def lista_annunci(request):
         annunci = annunci.none()
     if categoria_filtro:
         annunci = annunci.filter(categoria_id=categoria_filtro)
+    if query:
+        annunci = annunci.filter(
+            Q(titolo__icontains=query) |
+            Q(descrizione__icontains=query) |
+            Q(categoria__nome__icontains=query)
+        )
+
+    ordinamenti_validi = {
+        '-pubblicato_at': '-pubblicato_at',
+        'pubblicato_at': 'pubblicato_at',
+        'titolo': 'titolo',
+    }
+    annunci = annunci.order_by(ordinamenti_validi.get(ordinamento, '-pubblicato_at'))
 
     categorie = Categoria.objects.all()
 
@@ -188,7 +204,9 @@ def lista_annunci(request):
         'categorie': categorie,
         'mostra_offro': mostra_offro,
         'mostra_cerco': mostra_cerco,
-        'categoria_filtro': categoria_filtro
+        'categoria_filtro': categoria_filtro,
+        'query': query,
+        'ordinamento': ordinamento,
     })
 
 @login_required

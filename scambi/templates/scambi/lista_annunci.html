@@ -15,11 +15,11 @@
             <div class="pg-type-toggle" aria-label="Tipo di annuncio">
                 <label>
                     <input type="checkbox" name="offro" value="1" {% if mostra_offro %}checked{% endif %}>
-                    <span>✓&nbsp; Offro</span>
+                    <span>Offro</span>
                 </label>
                 <label>
                     <input type="checkbox" name="cerco" value="1" {% if mostra_cerco %}checked{% endif %}>
-                    <span>✓&nbsp; Cerco</span>
+                    <span>Cerco</span>
                 </label>
             </div>
         </div>
@@ -30,8 +30,10 @@
     <button class="btn btn-outline-primary flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#mobileFilters">
         Filtri
     </button>
-    <select class="form-select w-auto" name="ordinamento_mobile" aria-label="Ordina">
-        <option>Più recenti</option>
+    <select class="form-select w-auto" id="ordinamentoMobile" aria-label="Ordina">
+        <option value="-pubblicato_at" {% if ordinamento == '-pubblicato_at' %}selected{% endif %}>Più recenti</option>
+        <option value="pubblicato_at" {% if ordinamento == 'pubblicato_at' %}selected{% endif %}>Meno recenti</option>
+        <option value="titolo" {% if ordinamento == 'titolo' %}selected{% endif %}>Titolo</option>
     </select>
 </div>
 
@@ -53,7 +55,7 @@
         <div class="pg-panel pg-filters">
             <label class="form-label" for="searchInListings">Cerca</label>
             <div class="position-relative mb-4">
-                <input id="searchInListings" class="form-control" placeholder="Cerca negli annunci…" disabled>
+                <input id="searchInListings" name="q" value="{{ query }}" class="form-control" placeholder="Cerca negli annunci…">
             </div>
             <label class="form-label" for="categoria">Categoria</label>
             <select name="categoria" id="categoria" class="form-select mb-4">
@@ -63,7 +65,11 @@
                 {% endfor %}
             </select>
             <label class="form-label">Ordina per</label>
-            <select class="form-select mb-3" disabled><option>Più recenti</option></select>
+            <select class="form-select mb-3" name="ordinamento" id="ordinamento">
+                <option value="-pubblicato_at" {% if ordinamento == '-pubblicato_at' %}selected{% endif %}>Più recenti</option>
+                <option value="pubblicato_at" {% if ordinamento == 'pubblicato_at' %}selected{% endif %}>Meno recenti</option>
+                <option value="titolo" {% if ordinamento == 'titolo' %}selected{% endif %}>Titolo A–Z</option>
+            </select>
             <button class="btn btn-primary w-100 mb-2" type="submit">Filtra</button>
             <a href="{% url 'lista_annunci' %}" class="btn btn-link w-100">Azzera filtri</a>
         </div>
@@ -99,6 +105,13 @@ const mobileCategory = document.getElementById('categoriaMobile');
 if (mobileCategory) {
     mobileCategory.addEventListener('change', function () {
         document.getElementById('categoria').value = this.value;
+    });
+}
+const mobileOrdering = document.getElementById('ordinamentoMobile');
+if (mobileOrdering) {
+    mobileOrdering.addEventListener('change', function () {
+        document.getElementById('ordinamento').value = this.value;
+        document.getElementById('annunciFilters').submit();
     });
 }
 </script>
