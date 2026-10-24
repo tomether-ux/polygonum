@@ -192,15 +192,20 @@ footer a:hover { color: var(--pg-blue) !important; }
 
 .chain-mobile-toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
 .chain-filter-panel { padding: 1.1rem; background: #fff; border: 1px solid var(--pg-line); border-radius: var(--pg-radius); }
+.chain-filter-field, .chain-filter-selects, .chain-filter-toggle { min-width: 0; }
+.chain-filter-toggle { min-height: 44px; display: flex; align-items: center; padding: .55rem .75rem; border: 1px solid var(--pg-line); border-radius: 8px; }
+.chain-filter-toggle .form-check { width: 100%; margin: 0; }
+.chain-filter-actions { display: flex; justify-content: flex-end; gap: .65rem; }
 .chain-options-hint { display: inline-flex; align-items: center; color: var(--pg-blue); background: var(--pg-blue-soft); border-radius: 5px; padding: .25rem .45rem; font-size: .7rem; font-weight: 800; }
 
 @media (min-width: 768px) {
-  .chain-filter-panel { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem 1rem; align-items: end; padding: 1rem 1.1rem; }
+  .chain-filter-panel { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem 1rem; align-items: start; padding: 1rem 1.1rem; }
   .chain-filter-panel > .alert { grid-column: 1 / -1; margin-bottom: 0 !important; }
-  .chain-filter-panel > .mb-3 { margin-bottom: 0 !important; }
-  .chain-filter-panel > .row { grid-column: span 2; margin: 0; }
-  .chain-filter-panel > .row > div:first-child { padding-left: 0; }
-  .chain-filter-panel > .row > div:last-child { padding-right: 0; }
+  .chain-filter-announcement { grid-column: span 1; }
+  .chain-filter-selects { grid-column: span 2; margin: 0; }
+  .chain-filter-selects > div:first-child { padding-left: 0; }
+  .chain-filter-selects > div:last-child { padding-right: 0; }
+  .chain-filter-actions { grid-column: 1 / -1; border-top: 1px solid var(--pg-line); padding-top: .8rem; }
   .chain-filter-panel #searchButton { min-height: 44px; font-size: .9rem; padding: .55rem .85rem; }
 }
 
@@ -328,6 +333,10 @@ footer a:hover { color: var(--pg-blue) !important; }
   .pg-profile-stats > div { min-height: 88px; padding: .8rem .3rem; }
   .pg-profile-stats strong { font-size: 1.55rem; }
   .chain-filter-panel { margin-top: -.25rem; }
+  .chain-filter-panel > .chain-filter-field,
+  .chain-filter-panel > .chain-filter-selects,
+  .chain-filter-panel > .chain-filter-toggle { margin-bottom: .8rem; }
+  .chain-filter-actions { display: grid; grid-template-columns: 1fr auto; }
   .chain-group-content { padding: 0 .65rem !important; }
   .group-count-badge { padding: .35rem .5rem !important; font-size: .72rem !important; }
   .pg-my-chain-header { align-items: flex-start; padding: .85rem !important; }

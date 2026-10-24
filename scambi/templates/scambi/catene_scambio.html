@@ -307,7 +307,7 @@
 
                 <!-- Filtro per annuncio specifico -->
                 {% if miei_annunci %}
-                <div class="mb-3">
+                <div class="chain-filter-field chain-filter-announcement">
                     <label for="annuncioFiltro" class="form-label">
                         <i class="fas fa-filter me-1"></i>Cerca per annuncio
                     </label>
@@ -323,7 +323,7 @@
                 {% endif %}
 
                 {% if not personalizzato %}
-                <div class="row g-3 mb-3">
+                <div class="row g-3 chain-filter-selects">
                     <div class="col-md-6">
                         <label for="tipoCatenaFiltro" class="form-label">
                             <i class="fas fa-shapes me-1"></i>Tipo di catena
@@ -352,7 +352,7 @@
                 {% endif %}
 
                 <!-- Opzione sinonimi -->
-                <div class="mb-3">
+                <div class="chain-filter-toggle">
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="includiSinonimi">
                         <label class="form-check-label" for="includiSinonimi">
@@ -365,7 +365,7 @@
                 </div>
 
                 <!-- Opzione match esatti -->
-                <div class="mb-3">
+                <div class="chain-filter-toggle">
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="soloMatchEsatti">
                         <label class="form-check-label" for="soloMatchEsatti">
@@ -378,7 +378,7 @@
                 </div>
 
                 <!-- Opzione scambi alla pari -->
-                <div class="mb-3">
+                <div class="chain-filter-toggle">
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="scambiAllaPari">
                         <label class="form-check-label" for="scambiAllaPari">
@@ -390,19 +390,13 @@
                     </div>
                 </div>
 
-                <button id="searchButton" onclick="ricalcolaCatene()" class="btn btn-primary btn-lg">
-                    <i class="fas fa-rotate me-2"></i>
-                    <span id="buttonText">Aggiorna catene</span>
-                </button>
-                {% if personalizzato %}
-                <a href="{% url 'le_mie_catene' %}?clear_session=true" class="btn btn-outline-secondary ms-2">
-                    <i class="fas fa-refresh me-2"></i>Reset
-                </a>
-                {% else %}
-                <a href="{% url 'catene_scambio' %}?clear_session=true" class="btn btn-outline-secondary ms-2">
-                    <i class="fas fa-refresh me-2"></i>Reset
-                </a>
-                {% endif %}
+                <div class="chain-filter-actions">
+                    <button id="searchButton" onclick="ricalcolaCatene()" class="btn btn-primary">
+                        <i class="fas fa-rotate me-2"></i><span id="buttonText">Aggiorna catene</span>
+                    </button>
+                    {% if personalizzato %}<a href="{% url 'le_mie_catene' %}?clear_session=true" class="btn btn-outline-secondary">Reset</a>
+                    {% else %}<a href="{% url 'catene_scambio' %}?clear_session=true" class="btn btn-outline-secondary">Reset</a>{% endif %}
+                </div>
             </div>
             {% endif %}
         </div>
