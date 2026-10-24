@@ -34,12 +34,13 @@ Esempio uso:
     {% comment %}Immagine approvata: mostra thumbnail{% endcomment %}
     <img src="{{ annuncio.get_thumbnail_url }}"
          alt="{{ annuncio.titolo }}"
+         aria-label="Foto presente"
          class="{{ css_class|default:'card-img-top' }}"
          style="height: 200px; object-fit: cover;"
          loading="lazy">
 {% else %}
     {% comment %}Nessuna immagine{% endcomment %}
     <div class="bg-light border d-flex align-items-center justify-content-center {{ css_class|default:'card-img-top' }}" style="height: 200px;">
-        <i class="fas fa-image fa-2x text-muted"></i>
+        <i class="fas fa-image fa-2x text-muted" aria-label="Nessuna foto"></i>
     </div>
 {% endif %}

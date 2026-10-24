@@ -290,10 +290,13 @@
 
             <!-- Bottone di ricerca (solo utenti autenticati) -->
             {% if user.is_authenticated %}
-            <button class="btn btn-outline-primary w-100 d-md-none mb-3" type="button"
+            <div class="chain-mobile-toolbar d-md-none mb-3">
+            <button class="btn btn-outline-primary" type="button"
                     data-bs-toggle="collapse" data-bs-target="#chainFilters" aria-expanded="false">
                 Filtri
             </button>
+            <button type="button" class="btn btn-primary" onclick="ricalcolaCatene()"><i class="fas fa-rotate me-1"></i>Aggiorna</button>
+            </div>
             <div class="mb-4 chain-filter-panel collapse d-md-block" id="chainFilters">
                 {% if ricerca_eseguita %}
                     <div class="alert alert-success d-flex align-items-center py-2 px-3 mb-3" style="font-size: 0.9rem;">
@@ -388,8 +391,8 @@
                 </div>
 
                 <button id="searchButton" onclick="ricalcolaCatene()" class="btn btn-primary btn-lg">
-                    <i class="fas fa-search me-2"></i>
-                    <span id="buttonText">🔍 Cerca Catene</span>
+                    <i class="fas fa-rotate me-2"></i>
+                    <span id="buttonText">Aggiorna catene</span>
                 </button>
                 {% if personalizzato %}
                 <a href="{% url 'le_mie_catene' %}?clear_session=true" class="btn btn-outline-secondary ms-2">
@@ -434,7 +437,7 @@
             <!-- Gruppo 2 persone - Line -->
             {% if catene_2 %}
             <div class="chain-group mb-4">
-                <button class="chain-group-header" onclick="toggleGroup('group-2')">
+                <button class="chain-group-header" onclick="toggleGroup('group-2', this)">
                     <div class="group-title">
                         <span class="group-icon">➖</span>
                         <span class="group-name">Line</span>
@@ -463,7 +466,7 @@
             <!-- Gruppo 3 persone - Triangle -->
             {% if catene_3 %}
             <div class="chain-group mb-4">
-                <button class="chain-group-header" onclick="toggleGroup('group-3')">
+                <button class="chain-group-header" onclick="toggleGroup('group-3', this)">
                     <div class="group-title">
                         <span class="group-icon">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -496,7 +499,7 @@
             <!-- Gruppo 4 persone - Square -->
             {% if catene_4 %}
             <div class="chain-group mb-4">
-                <button class="chain-group-header" onclick="toggleGroup('group-4')">
+                <button class="chain-group-header" onclick="toggleGroup('group-4', this)">
                     <div class="group-title">
                         <span class="group-icon">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -529,7 +532,7 @@
             <!-- Gruppo 5 persone - Pentagon -->
             {% if catene_5 %}
             <div class="chain-group mb-4">
-                <button class="chain-group-header" onclick="toggleGroup('group-5')">
+                <button class="chain-group-header" onclick="toggleGroup('group-5', this)">
                     <div class="group-title">
                         <span class="group-icon">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -562,7 +565,7 @@
             <!-- Gruppo 6 persone - Hexagon -->
             {% if catene_6 %}
             <div class="chain-group mb-4">
-                <button class="chain-group-header" onclick="toggleGroup('group-6')">
+                <button class="chain-group-header" onclick="toggleGroup('group-6', this)">
                     <div class="group-title">
                         <span class="group-icon">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -680,9 +683,8 @@
 
 <script>
 // Toggle collapsible group
-function toggleGroup(groupId) {
+function toggleGroup(groupId, header) {
     const content = document.getElementById(groupId);
-    const header = event.target.closest('.chain-group-header');
     const chevron = header.querySelector('.chevron-icon');
     const group = header.closest('.chain-group');
 

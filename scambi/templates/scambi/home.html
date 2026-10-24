@@ -28,7 +28,7 @@
     </div>
     <div class="row g-3">
         {% for annuncio in annunci_suggeriti|slice:":4" %}
-        <div class="col-6 col-lg-3">{% include 'scambi/partials/annuncio_card_home.html' with annuncio=annuncio %}</div>
+        <div class="col-6 col-lg-3">{% include 'scambi/partials/annuncio_card.html' with annuncio=annuncio %}</div>
         {% endfor %}
     </div>
 </section>
@@ -42,7 +42,7 @@
     {% if annunci_recenti %}
     <div class="row g-3">
         {% for annuncio in annunci_recenti|slice:":4" %}
-        <div class="col-6 col-lg-3">{% include 'scambi/partials/annuncio_card_home.html' with annuncio=annuncio %}</div>
+        <div class="col-6 col-lg-3">{% include 'scambi/partials/annuncio_card.html' with annuncio=annuncio %}</div>
         {% endfor %}
     </div>
     {% else %}

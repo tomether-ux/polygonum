@@ -14,7 +14,6 @@
         <!-- Info essenziali -->
         <div class="modern-card-info">
             <h6 class="modern-card-title">{{ annuncio.titolo|truncatechars:40 }}</h6>
-            <p class="modern-card-description">{{ annuncio.descrizione|truncatechars:60 }}</p>
             <div class="modern-card-details">
                 <!-- Categoria sempre visibile -->
                 <div class="detail-item mb-1">
@@ -44,3 +43,13 @@
         </div>
     </div>
 </a>
+{% if manage %}
+<div class="card-actions">
+    {% if annuncio.puo_essere_modificato %}<a href="{% url 'modifica_annuncio' annuncio.id %}" class="btn btn-sm btn-outline-primary" title="Modifica"><i class="fas fa-edit"></i></a>{% else %}<button class="btn btn-sm btn-outline-secondary" disabled><i class="fas fa-lock"></i></button>{% endif %}
+    {% if annuncio.moderation_status == 'rejected' %}<button class="btn btn-sm btn-outline-danger" disabled title="Non approvato"><i class="fas fa-ban"></i></button>
+    {% elif annuncio.is_scaduto %}<form method="post" action="{% url 'ripubblica_annuncio' annuncio.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline-success" title="Ripubblica"><i class="fas fa-redo"></i></button></form>
+    {% elif annuncio.attivo %}<form method="post" action="{% url 'disattiva_annuncio' annuncio.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline-warning" title="Disattiva"><i class="fas fa-eye-slash"></i></button></form>
+    {% else %}<form method="post" action="{% url 'attiva_annuncio' annuncio.id %}">{% csrf_token %}<button class="btn btn-sm btn-outline-success" title="Attiva"><i class="fas fa-eye"></i></button></form>{% endif %}
+    <a href="{% url 'elimina_annuncio' annuncio.id %}" class="btn btn-sm btn-outline-danger ms-auto" title="Elimina"><i class="fas fa-trash"></i></a>
+</div>
+{% endif %}

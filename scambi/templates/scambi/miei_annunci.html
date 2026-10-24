@@ -98,6 +98,7 @@
                             <!-- Immagine annuncio con angoli arrotondati -->
                             <div class="modern-card-img">
                                 {% include 'scambi/partials/annuncio_thumbnail.html' with annuncio=annuncio css_class="" %}
+                                <span class="badge position-absolute top-0 start-0 m-2 px-3 py-2 {% if annuncio.tipo == 'offro' %}bg-success{% else %}bg-info text-dark{% endif %}">{% if annuncio.tipo == 'offro' %}Offro{% else %}Cerco{% endif %}</span>
                                 {% if annuncio.is_scaduto %}
                                 <div class="card-overlay">
                                     <span class="badge bg-danger">Scaduto</span>
@@ -111,7 +112,6 @@
                             <!-- Info essenziali -->
                             <div class="modern-card-info">
                                 <h6 class="modern-card-title">{{ annuncio.titolo|truncatechars:40 }}</h6>
-                                <p class="modern-card-description">{{ annuncio.descrizione|truncatechars:60 }}</p>
                                 <div class="modern-card-details">
                                     <span class="detail-item">{{ annuncio.categoria.nome }}</span>
                                     {% if annuncio.fascia_prezzo %}
