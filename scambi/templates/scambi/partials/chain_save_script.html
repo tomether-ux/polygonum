@@ -1,0 +1,39 @@
+<script>
+document.addEventListener('click', async function (event) {
+    const button = event.target.closest('.js-save-chain, .stella-preferiti');
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (button.disabled) return;
+    button.disabled = true;
+    const cycleId = button.dataset.cycleId || button.closest('[data-ciclo-id]')?.dataset.cicloId;
+    try {
+        const response = await fetch('{% url "aggiungi_catena_preferita" %}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: JSON.stringify({catena_hash: button.dataset.hash || undefined,
+                catena_data: {id_ciclo: Number(cycleId)}})
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error || 'Salvataggio non riuscito');
+        const saved = result.action !== 'removed';
+        document.querySelectorAll('.js-save-chain, .stella-preferiti').forEach(other => {
+            const otherCycleId = other.dataset.cycleId || other.closest('[data-ciclo-id]')?.dataset.cicloId;
+            if (other !== button && (!cycleId || otherCycleId !== cycleId)) return;
+            other.setAttribute('aria-pressed', String(saved));
+            other.title = saved ? 'Rimuovi dai salvati' : 'Salva per dopo';
+            other.setAttribute('aria-label', other.title);
+            const icon = other.querySelector('i');
+            if (icon) icon.className = saved ? 'fas fa-bookmark text-primary' : 'far fa-bookmark text-muted';
+        });
+        const savedRow = button.closest('[data-saved-chain]');
+        if (savedRow && !saved) savedRow.remove();
+        document.getElementById('chainSaveFeedback').textContent = saved ? 'Catena salvata nei Preferiti.' : 'Catena rimossa dai Preferiti.';
+    } catch (error) {
+        alert(error.message);
+    } finally {
+        button.disabled = false;
+    }
+}, true);
+</script>
+<div id="chainSaveFeedback" class="visually-hidden" role="status" aria-live="polite"></div>

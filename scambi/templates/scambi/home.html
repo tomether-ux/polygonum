@@ -22,7 +22,7 @@
 {% if annunci_suggeriti %}
 <section class="pg-section">
     <div class="pg-section-head">
-        <div><div class="pg-eyebrow">Scelti per te</div><h2>Suggeriti per te</h2></div>
+        <div><h2>Suggeriti per te</h2></div>
         <a href="{% url 'lista_annunci' %}" class="text-decoration-none fw-bold">Vedi tutti →</a>
     </div>
     <div class="row g-3">
@@ -35,7 +35,7 @@
 
 <section class="pg-section">
     <div class="pg-section-head">
-        <div><div class="pg-eyebrow">Appena pubblicati</div><h2>Annunci recenti</h2></div>
+        <div><h2>Annunci recenti</h2></div>
         <a href="{% url 'lista_annunci' %}" class="text-decoration-none fw-bold">Tutti gli annunci →</a>
     </div>
     {% if annunci_recenti %}

@@ -2505,7 +2505,10 @@ def lista_preferiti(request):
 
     context = {
         'preferiti': preferiti,
-        'total_preferiti': preferiti.count()
+        'total_preferiti': preferiti.count(),
+        'catene_salvate': processa_catene_preferite(
+            CatenaPreferita.objects.filter(utente=request.user).order_by('-data_aggiunta')
+        ),
     }
 
     return render(request, 'scambi/lista_preferiti.html', context)

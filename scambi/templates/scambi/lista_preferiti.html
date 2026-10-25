@@ -11,12 +11,22 @@
                 <h1 class="display-5 fw-bold text-polygonum-primary mb-2">
                     <i class="fas fa-heart me-3"></i>I Miei Preferiti
                 </h1>
-                <p class="lead text-muted">Gli annunci che hai salvato per riferimento futuro</p>
+                <p class="lead text-muted">Gli annunci e le catene che vuoi ritrovare più tardi</p>
             </div>
         </div>
     </div>
 </section>
 
+<section class="pg-panel p-4 mt-4" id="catene-salvate">
+    <h2 class="h4">Catene salvate per dopo</h2>
+    <p class="text-muted">Una raccolta privata: salvarle non comunica interesse agli altri partecipanti.</p>
+    {% for salvata in catene_salvate %}
+    <div class="d-flex justify-content-between align-items-center gap-3 border-top py-3" data-saved-chain>
+        <a href="{% url 'catene_scambio' %}?load=true&amp;ciclo_id={{ salvata.catena_data.id_ciclo }}#ciclo-{{ salvata.catena_data.id_ciclo }}">Catena con {{ salvata.catena_data.utenti|length }} partecipanti · salvata il {{ salvata.data_aggiunta|date:'d/m/Y' }}</a>
+        <button type="button" class="btn btn-outline-secondary js-save-chain" data-cycle-id="{{ salvata.catena_data.id_ciclo }}" data-hash="{{ salvata.catena_hash }}" aria-label="Rimuovi dai salvati" aria-pressed="true"><i class="fas fa-bookmark text-primary"></i></button>
+    </div>
+    {% empty %}<p class="mb-0">Nessuna catena salvata. Usa il segnalibro nella ricerca catene.</p>{% endfor %}
+</section>
 <!-- Content Section -->
 <section class="py-5">
     <div class="container">

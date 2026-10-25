@@ -22,6 +22,7 @@
                     <span>{{ catena.punteggio_qualita }}</span>
                 </div>
                 {% if user.is_authenticated and catena.id_ciclo %}
+                    <button type="button" class="btn btn-sm chain-save-button js-save-chain" data-cycle-id="{{ catena.id_ciclo }}" data-hash="{{ catena.hash_catena|default:'' }}" title="Salva per dopo" aria-label="Salva per dopo" aria-pressed="{{ catena.is_favorita|yesno:'true,false' }}"><i class="{% if catena.is_favorita %}fas text-primary{% else %}far text-muted{% endif %} fa-bookmark"></i></button>
                     <span class="badge-scadenza" style="display: none;">
                         <i class="fas fa-clock me-1"></i>
                         <span class="scadenza-text"></span>
@@ -83,8 +84,9 @@
                 {% endif %}
                 {% if catena.json_data %}
                 <button type="button"
-                        class="btn btn-sm chain-save-button stella-preferiti"
-                        data-catena="{{ catena.json_data|escapejs }}"
+                        class="btn btn-sm chain-save-button js-save-chain"
+                        data-cycle-id="{{ catena.id_ciclo }}"
+                        data-catena="{{ catena.json_data }}"
                         data-hash="{{ catena.hash_catena|default:'' }}"
                         title="Salva catena"
                         aria-label="Salva catena"

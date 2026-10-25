@@ -15,7 +15,7 @@
     <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}?v=20260914">
     <link rel="shortcut icon" type="image/png" href="{% static 'img/favicon.png' %}?v=20260914">
     <link href="{% static 'css/polygonum.css' %}" rel="stylesheet">
-    <link href="{% static 'css/polygonum-redesign.css' %}?v=20261024f" rel="stylesheet">
+    <link href="{% static 'css/polygonum-redesign.css' %}?v=20261025a" rel="stylesheet">
     {% block extra_css %}{% endblock %}
 
     <style>
@@ -653,6 +653,7 @@
         });
     </script>
 
+    {% if user.is_authenticated %}{% include 'scambi/partials/chain_save_script.html' %}{% endif %}
     {% block extra_js %}{% endblock %}
 </body>
 </html>

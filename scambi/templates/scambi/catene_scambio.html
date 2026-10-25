@@ -16,7 +16,7 @@
             {% endif %}
 
             {% if user.is_authenticated %}
-            <a href="{% url 'catene_community' %}" class="btn-community-cta" onclick="showPolygonumLoading()">Community</a>
+            <aside class="pg-community-invite"><div><strong>Scambia nella tua community</strong><p>Trova catene tra oggetti della stessa categoria.</p></div><a href="{% url 'catene_community' %}" class="btn-community-cta" onclick="showPolygonumLoading()">Community</a></aside>
             {% endif %}
         </div>
 
@@ -420,10 +420,10 @@
 
     <!-- CATENE RAGGRUPPATE PER NUMERO DI PARTECIPANTI -->
     {% if catene_specifiche or catene_2 %}
-        <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
+        <div class="pg-chain-results-heading d-flex justify-content-between align-items-center gap-3 mb-4">
             <h2 id="catene-scambio" class="modern-section-title mb-0">
                 <span class="title-icon">🔗</span>
-                Catene di Scambio Disponibili
+                Catene disponibili
                 <span class="title-badge">{{ totale_catene }}</span>
             </h2>
             <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0" onclick="compactAllChains()"><i class="fas fa-compress-alt me-1"></i>Compatta tutto</button>
@@ -721,9 +721,10 @@ function toggleCard(headerEl, evt) {
 function compactAllChains() {
     document.querySelectorAll('.modern-chain-card').forEach(card => card.classList.add('collapsed'));
     document.querySelectorAll('.chain-group-content').forEach(content => {
-        if (content.style.maxHeight && content.style.maxHeight !== '0px') {
-            content.style.maxHeight = content.scrollHeight + 'px';
-        }
+        content.style.maxHeight = '0px';
+        content.closest('.chain-group').classList.remove('expanded');
+        const chevron = content.closest('.chain-group').querySelector('.chevron-icon');
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
     });
 }
 
@@ -882,9 +883,9 @@ function aggiornaContatori() {
             let total = loadedCount;
             if (badge) {
                 total = Number.parseInt(badge.dataset.total || loadedCount, 10);
-                badge.textContent = total > count
-                    ? `${count} di ${total} catene`
-                    : `${count} catene`;
+                badge.textContent = count < loadedCount
+                    ? `${count} catene · filtri attivi`
+                    : (total > loadedCount ? `${count} di ${total} catene` : `${count} catene`);
             }
 
             // Se esistono altri risultati sul server, lascia visibile il
