@@ -67,6 +67,7 @@
             <h3>Per iniziare</h3>
             <a href="{% url 'come_funziona' %}">Come funziona Polygonum</a>
             <a href="{% url 'guida_annunci' %}">Crea un buon annuncio</a>
+            <a href="{% url 'guida_valore' %}">Scegli la fascia di valore</a>
             <a href="{% url 'guida_catene_scambio' %}">Scopri le catene</a>
             <a href="{% url 'consigli_scambi_sicuri' %}">Scambia in sicurezza</a>
         </div>
@@ -76,4 +77,14 @@
         <a href="{% url 'regolamento' %}" class="btn btn-outline-primary">Leggi le linee guida</a>
     </div>
 </section>
+{% if richieste_senza_foto %}
+<section class="pg-section">
+    <div class="pg-section-head"><h2>Altre richieste della community</h2></div>
+    <div class="row g-3">
+        {% for annuncio in richieste_senza_foto %}
+        <div class="col-6 col-lg-3">{% include 'scambi/partials/annuncio_card.html' with annuncio=annuncio %}</div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
 {% endblock %}

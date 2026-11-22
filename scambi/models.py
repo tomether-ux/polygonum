@@ -11,6 +11,7 @@ from django.conf import settings
 from django.core import validators as django_validators
 from django.core.exceptions import ValidationError
 from cloudinary.models import CloudinaryField
+from .value_bands import CHOICES, LEGACY_CHOICES
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,20 @@ class Categoria(models.Model):
     
     def __str__(self):
         return self.nome
+
+    @property
+    def placeholder_icon(self):
+        name = self.nome.casefold()
+        for words, icon in [
+            (('chitarr', 'bass'), 'guitar'), (('music', 'strument', 'vinil', 'disch', 'synth', 'tastier'), 'music'),
+            (('libr', 'lettur'), 'book'), (('vest', 'abbiglia', 'moda'), 'shirt'),
+            (('bambin', 'gioc'), 'puzzle-piece'), (('elettron', 'informat', 'computer'), 'laptop'),
+            (('sport',), 'futbol'), (('casa', 'arred'), 'couch'),
+            (('foto',), 'camera'), (('giardin', 'piant'), 'leaf'),
+        ]:
+            if any(word in name for word in words):
+                return icon
+        return 'box-open'
     
     class Meta:
         verbose_name_plural = "Categorie"
@@ -71,21 +86,23 @@ class Annuncio(models.Model):
     )
 
     # Fascia di prezzo per matching equo
-    FASCIA_PREZZO_CHOICES = [
-        ('economico', 'Economico (€0-20)'),
-        ('basso', 'Basso (€20-50)'),
-        ('medio', 'Medio (€50-150)'),
-        ('alto', 'Alto (€150-500)'),
-        ('premium', 'Premium (€500+)'),
-    ]
+    FASCIA_PREZZO_CHOICES = CHOICES + LEGACY_CHOICES
     fascia_prezzo = models.CharField(
         max_length=20,
         choices=FASCIA_PREZZO_CHOICES,
         blank=True,
         null=True,
         verbose_name="Fascia di prezzo",
-        help_text="Calcolata automaticamente dal prezzo stimato per facilitare match equi"
+        help_text="Fascia di valore scelta dall'utente"
     )
+    fascia_secondaria = models.CharField(max_length=20, choices=CHOICES, blank=True, default='')
+
+    @property
+    def fasce_display(self):
+        labels = [self.get_fascia_prezzo_display()] if self.fascia_prezzo else []
+        if self.fascia_secondaria:
+            labels.append(self.get_fascia_secondaria_display())
+        return ' / '.join(labels)
 
     metodo_scambio = models.CharField(
         max_length=15,
@@ -222,6 +239,12 @@ class Annuncio(models.Model):
             'danneggiato': 'Danneggiato',
         }
         return short_labels.get(self.condizione, 'Usato')
+
+    def clean(self):
+        super().clean()
+        from .value_bands import adjacent
+        if self.fascia_secondaria and not adjacent(self.fascia_prezzo, self.fascia_secondaria):
+            raise ValidationError({'fascia_secondaria': 'La seconda fascia deve essere immediatamente adiacente alla principale.'})
 
     def calcola_fascia_prezzo(self):
         """Calcola automaticamente la fascia di prezzo basata sul prezzo_stimato"""

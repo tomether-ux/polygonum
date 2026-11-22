@@ -35,7 +35,8 @@ class QuickUiBatchTests(SimpleTestCase):
 
         self.assertEqual(html.count('id="polygonumLoadingOverlay"'), 1)
         self.assertIn('/static/img/favicon.png', html)
-        self.assertIn('Caricamento catene in corso', html)
+        self.assertIn('Cerco catene', html)
+        self.assertNotIn('class="pl-dots"', html)
 
     def test_announcement_card_displays_offer_or_request_badge(self):
         profile = SimpleNamespace(provincia_obj=None, citta='')
@@ -125,7 +126,7 @@ class ProfileAndConversationUiTests(TestCase):
         self.assertContains(response, 'data-bs-target="#profileOffers"')
         self.assertContains(response, 'data-bs-target="#profileRequests"')
         self.assertContains(response, 'aria-label="Foto presente"')
-        self.assertContains(response, 'aria-label="Nessuna foto"')
+        self.assertContains(response, 'aria-label="Categoria: Strumenti musicali"')
 
     def test_group_chat_name_describes_chain_and_current_user_exchange(self):
         cycle = CicloScambio.objects.create(

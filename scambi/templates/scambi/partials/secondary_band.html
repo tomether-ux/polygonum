@@ -1,0 +1,22 @@
+<div class="mt-3">
+    <label class="form-label" for="{{ form.fascia_secondaria.id_for_label }}">{{ form.fascia_secondaria.label }}</label>
+    {{ form.fascia_secondaria }}
+    {{ form.fascia_secondaria.errors }}
+    <p class="form-text">Se il valore è vicino al confine puoi scegliere anche la fascia vicina.
+        <a href="{% url 'guida_valore' %}" target="_blank" rel="noopener">Come scegliere la fascia e cosa significa Alla pari</a>
+    </p>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const main = document.getElementById('id_fascia_prezzo');
+    const secondary = document.getElementById('id_fascia_secondaria');
+    function updateChoices() {
+        const number = /^v[1-7]$/.test(main.value) ? Number(main.value.slice(1)) : 0;
+        for (const option of secondary.options) {
+            option.disabled = Boolean(option.value) && (!number || Math.abs(Number(option.value.slice(1)) - number) !== 1);
+        }
+    }
+    main.addEventListener('change', function () { updateChoices(); if (secondary.selectedOptions[0]?.disabled) secondary.value = ''; });
+    updateChoices();
+});
+</script>

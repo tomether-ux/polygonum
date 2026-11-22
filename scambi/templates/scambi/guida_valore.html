@@ -1,0 +1,23 @@
+{% extends 'scambi/base.html' %}
+{% block title %}Come scegliere la fascia di valore - Polygonum{% endblock %}
+{% block content %}
+<section class="pg-panel p-4 p-md-5 mx-auto" style="max-width: 850px;">
+    <h1>Il valore giusto per uno scambio condiviso</h1>
+    <p class="lead">Non devi inserire un prezzo. Scegli la fascia che descrive il valore attuale del tuo oggetto.</p>
+    <h2 class="h4 mt-4">Come scegliere</h2>
+    <p>Confronta oggetti simili sul mercato dell'usato, considerando modello, condizioni, funzionamento e accessori inclusi. Il prezzo pagato da nuovo non è necessariamente il valore di oggi. I prezzi richiesti negli annunci sono indicativi, non vendite concluse.</p>
+    <div class="list-group my-4">
+        {% for code, label, interval in fasce %}
+        <div class="list-group-item d-flex justify-content-between flex-wrap gap-2"><strong>{{ label }}</strong><span>{{ interval }}</span></div>
+        {% endfor %}
+    </div>
+    <h2 class="h4">Vicino al confine?</h2>
+    <p>Puoi aggiungere una seconda fascia, solo immediatamente adiacente. Usala se il valore dell'oggetto è davvero vicino al confine, non per aumentare indiscriminatamente gli abbinamenti.</p>
+    <h2 class="h4 mt-4">Cosa significa “Alla pari”</h2>
+    <p>Una catena è alla pari quando tutti gli oggetti effettivamente scambiati condividono almeno una fascia di valore. Non basta che siano compatibili soltanto a coppie. Se ci sono oggetti alternativi, va verificata la combinazione scelta.</p>
+    <p>Una fascia comune aiuta a chiudere le catene senza grandi disparità, ma non garantisce valori identici. Per esempio, oggetti da circa 550 e 800 euro rientrano entrambi nella fascia Medio-alta. Condizioni, accessori ed eventuali conguagli vanno concordati tra i partecipanti prima di confermare lo scambio.</p>
+    <h2 class="h4 mt-4">Foto e annunci esistenti</h2>
+    <p>Gli annunci Offro richiedono una foto alla creazione e alla ripubblicazione. Nei Cerco la foto è facoltativa: quando manca mostriamo l'icona della categoria. Le vecchie fasce restano invariate finché non ne scegli una nuova.</p>
+    <a class="btn btn-primary mt-3" href="{% url 'crea_annuncio' %}">Pubblica un annuncio</a>
+</section>
+{% endblock %}

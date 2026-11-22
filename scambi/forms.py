@@ -102,10 +102,20 @@ class AnnuncioForm(forms.ModelForm):
     MAX_TITOLO_CARATTERI = 60
     MAX_TITOLO_PAROLE = 8
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .value_bands import INPUT_CHOICES, LEGACY_CHOICES
+        choices = [('', 'Scegli la fascia')] + INPUT_CHOICES
+        if self.instance.pk and self.instance.fascia_prezzo in dict(LEGACY_CHOICES):
+            choices.append((self.instance.fascia_prezzo,
+                            f'{self.instance.get_fascia_prezzo_display()} · fascia precedente'))
+        self.fields['fascia_prezzo'].choices = choices
+        self.fields['fascia_secondaria'].choices = [('', 'Nessuna seconda fascia')] + INPUT_CHOICES
+
     class Meta:
         model = Annuncio
         fields = ['titolo', 'descrizione', 'categoria', 'tipo', 'cerca_per_categoria', 'immagine',
-                 'fascia_prezzo', 'condizione', 'metodo_scambio', 'distanza_massima_km']
+                 'fascia_prezzo', 'fascia_secondaria', 'condizione', 'metodo_scambio', 'distanza_massima_km']
         widgets = {
             'titolo': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -122,6 +132,7 @@ class AnnuncioForm(forms.ModelForm):
                 'onchange': 'previewImage(this);'
             }),
             'fascia_prezzo': forms.Select(attrs={'class': 'form-control fascia-prezzo-select'}),
+            'fascia_secondaria': forms.Select(attrs={'class': 'form-select'}),
             'condizione': forms.Select(attrs={'class': 'form-control'}),
             'metodo_scambio': forms.Select(attrs={'class': 'form-control'}),
             'distanza_massima_km': forms.NumberInput(attrs={
@@ -137,7 +148,8 @@ class AnnuncioForm(forms.ModelForm):
             'categoria': 'Categoria',
             'tipo': 'Tipo annuncio',
             'cerca_per_categoria': 'Cerco qualsiasi cosa in questa categoria',
-            'immagine': 'Foto dell\'oggetto (opzionale)',
+            'immagine': 'Foto dell\'oggetto (obbligatoria per Offro)',
+            'fascia_secondaria': 'Seconda fascia adiacente (facoltativa)',
             'fascia_prezzo': 'Fascia di valore dell\'oggetto *',
             'condizione': 'Condizioni dell\'oggetto',
             'metodo_scambio': 'Come preferisci scambiare?',
@@ -191,6 +203,15 @@ class AnnuncioForm(forms.ModelForm):
         fascia_prezzo = cleaned_data.get('fascia_prezzo')
         if not fascia_prezzo:
             self.add_error('fascia_prezzo', 'Inserisci la fascia di valore dell\'oggetto.')
+        from .value_bands import adjacent
+        secondary = cleaned_data.get('fascia_secondaria')
+        if secondary and not adjacent(fascia_prezzo, secondary):
+            self.add_error('fascia_secondaria', 'Scegli una fascia immediatamente vicina alla principale.')
+        # Existing offers keep their placeholder until republication.
+        if tipo == 'offro' and not cleaned_data.get('immagine') and (
+            not self.instance.pk or self.instance.tipo != 'offro'
+        ):
+            self.add_error('immagine', 'Carica una foto dell’oggetto che offri.')
 
         # Validazione contenuto testuale (parole vietate e pattern inappropriati)
         if titolo or descrizione:
@@ -201,29 +222,29 @@ class AnnuncioForm(forms.ModelForm):
         return cleaned_data
 
     def save(self, commit=True):
-        """Calcola prezzo_stimato dalla fascia scelta"""
+        """Store the selected bands, never invent a monetary value."""
         instance = super().save(commit=False)
 
-        # Mappa fascia → prezzo medio della fascia
-        fascia_to_prezzo = {
-            'economico': 10,    # Centro di 0-20
-            'basso': 35,        # Centro di 20-50
-            'medio': 100,       # Centro di 50-150
-            'alto': 325,        # Centro di 150-500
-            'premium': 750,     # Valore rappresentativo per 500+
-        }
-
-        # Se è stata scelta una fascia, calcola il prezzo_stimato
-        if instance.fascia_prezzo:
-            instance.prezzo_stimato = fascia_to_prezzo.get(instance.fascia_prezzo)
-        else:
-            # Se non è stata scelta una fascia, imposta prezzo_stimato a None
+        if instance.fascia_prezzo.startswith('v'):
             instance.prezzo_stimato = None
 
         if commit:
             instance.save()
 
         return instance
+
+
+class FotoRipubblicazioneForm(forms.ModelForm):
+    class Meta:
+        model = Annuncio
+        fields = ['immagine']
+        widgets = {'immagine': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'})}
+
+    def clean_immagine(self):
+        image = self.cleaned_data.get('immagine')
+        if not image:
+            raise forms.ValidationError('Carica una foto per ripubblicare il tuo annuncio Offro.')
+        return image
 
 class UserProfileForm(forms.ModelForm):
     class Meta:

@@ -27,10 +27,10 @@ Esempio uso:
     {% else %}
         {% comment %}Altri utenti: placeholder generico{% endcomment %}
         <div class="bg-light border d-flex align-items-center justify-content-center {{ css_class|default:'card-img-top' }}" style="height: 200px;">
-            <i class="fas fa-image fa-2x text-muted"></i>
+            <i class="fas fa-{{ annuncio.categoria.placeholder_icon }} fa-2x text-muted" aria-label="{{ annuncio.categoria.nome }}"></i>
         </div>
     {% endif %}
-{% elif annuncio.immagine %}
+{% elif annuncio.immagine and annuncio.moderation_status == 'approved' %}
     {% comment %}Immagine approvata: mostra thumbnail{% endcomment %}
     <img src="{{ annuncio.get_thumbnail_url }}"
          alt="{{ annuncio.titolo }}"
@@ -41,6 +41,6 @@ Esempio uso:
 {% else %}
     {% comment %}Nessuna immagine{% endcomment %}
     <div class="bg-light border d-flex align-items-center justify-content-center {{ css_class|default:'card-img-top' }}" style="height: 200px;">
-        <i class="fas fa-image fa-2x text-muted" aria-label="Nessuna foto"></i>
+        <div class="text-center text-muted" role="img" aria-label="Categoria: {{ annuncio.categoria.nome }}"><i class="fas fa-{{ annuncio.categoria.placeholder_icon }} fa-2x mb-2" aria-hidden="true"></i><div class="small">{{ annuncio.categoria.nome }}</div></div>
     </div>
 {% endif %}

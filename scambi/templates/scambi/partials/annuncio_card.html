@@ -11,7 +11,7 @@
                 <div class="detail-item mb-1">
                     {% if annuncio.utente.userprofile.provincia_obj %}<i class="fas fa-map-marker-alt me-1"></i>{% if annuncio.utente.userprofile.citta %}{{ annuncio.utente.userprofile.citta }} ({{ annuncio.utente.userprofile.provincia_obj.sigla }}){% else %}{{ annuncio.utente.userprofile.provincia_obj.nome }}{% endif %}{% else %}&nbsp;{% endif %}
                 </div>
-                <div class="detail-item">{% if annuncio.fascia_prezzo %}<span class="fascia-badge-small fascia-{{ annuncio.fascia_prezzo }}"></span><span class="ms-1">{{ annuncio.get_fascia_prezzo_display }}</span>{% else %}&nbsp;{% endif %}</div>
+                <div class="detail-item">{% if annuncio.fascia_prezzo %}<span class="fascia-badge-small fascia-{{ annuncio.fascia_prezzo }}"></span><span class="ms-1">{{ annuncio.fasce_display }}</span>{% else %}&nbsp;{% endif %}</div>
             </div>
             <div class="modern-card-user">{{ annuncio.utente.username }}</div>
         </div>

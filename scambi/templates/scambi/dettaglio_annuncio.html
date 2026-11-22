@@ -33,7 +33,7 @@
                             </div>
                             <div class="d-flex align-items-center justify-content-center rounded-3" style="min-height: 500px;">
                                 <div class="text-muted text-center">
-                                    <i class="fas fa-image fa-4x mb-3 d-block"></i>
+                                    <i class="fas fa-{{ annuncio.categoria.placeholder_icon }} fa-4x mb-3 d-block"></i>
                                     <p class="fs-5">In attesa di approvazione</p>
                                 </div>
                             </div>
@@ -41,8 +41,8 @@
                             {% comment %}Altri utenti: placeholder generico{% endcomment %}
                             <div class="d-flex align-items-center justify-content-center rounded-3" style="min-height: 500px;">
                                 <div class="text-muted text-center">
-                                    <i class="fas fa-image fa-4x mb-3 d-block"></i>
-                                    <p class="fs-5">Nessuna immagine</p>
+                                    <i class="fas fa-{{ annuncio.categoria.placeholder_icon }} fa-4x mb-3 d-block"></i>
+                                    <p class="fs-5">{{ annuncio.categoria.nome }}</p>
                                 </div>
                             </div>
                             <!-- Badge tipo per altri utenti (quando pending) -->
@@ -76,8 +76,8 @@
                     {% else %}
                         <div class="d-flex align-items-center justify-content-center rounded-3" style="min-height: 500px;">
                             <div class="text-muted text-center">
-                                <i class="fas fa-image fa-4x mb-3 d-block"></i>
-                                <p class="fs-5">Nessuna immagine</p>
+                                <i class="fas fa-{{ annuncio.categoria.placeholder_icon }} fa-4x mb-3 d-block"></i>
+                                <p class="fs-5">{{ annuncio.categoria.nome }}</p>
                             </div>
                         </div>
                         <!-- Badge tipo (nessuna immagine) -->
@@ -98,7 +98,7 @@
                     {% if annuncio.fascia_prezzo %}
                     <div class="position-absolute top-0 end-0 m-3">
                         <span class="fascia-badge-full fascia-{{ annuncio.fascia_prezzo }} shadow">
-                            <i class="fas fa-coins me-2"></i>{{ annuncio.get_fascia_prezzo_display }}
+                            <i class="fas fa-layer-group me-2"></i>{{ annuncio.fasce_display }}
                         </span>
                     </div>
                     {% endif %}

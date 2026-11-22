@@ -18,7 +18,8 @@ from django_ratelimit.decorators import ratelimit
 from django_ratelimit.exceptions import Ratelimited
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Case, When, Value, IntegerField
+from .value_bands import BANDS, chain_is_equal
 from .ratelimit_utils import get_real_ip_for_ratelimit
 from .conversation_services import (
     decorate_conversations_for_user,
@@ -89,7 +90,18 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .matching import trova_catene_scambio
 from .models import Annuncio, Categoria
-from .forms import AnnuncioForm
+from .forms import AnnuncioForm, FotoRipubblicazioneForm
+
+
+def _photo_priority():
+    return Case(
+        When(Q(tipo='cerco') & (Q(immagine='') | Q(immagine__isnull=True) | ~Q(moderation_status='approved')), then=Value(1)),
+        default=Value(0), output_field=IntegerField(),
+    )
+
+
+def guida_valore(request):
+    return render(request, 'scambi/guida_valore.html', {'fasce': BANDS})
 
 @ratelimit(key=get_real_ip_for_ratelimit, rate='60/m', method='GET')
 def home(request):
@@ -105,7 +117,10 @@ def home(request):
     annunci_recenti = Annuncio.objects.filter(
         attivo=True,
         pubblicato_at__gt=cutoff_scadenza,
-    ).order_by('-pubblicato_at')[:6]
+    ).annotate(photo_priority=_photo_priority()).filter(photo_priority=0).order_by('-pubblicato_at')[:6]
+    richieste_senza_foto = Annuncio.objects.filter(
+        attivo=True, pubblicato_at__gt=cutoff_scadenza,
+    ).annotate(photo_priority=_photo_priority()).filter(photo_priority=1).order_by('-pubblicato_at')[:4]
 
     # Categorie ordinate per numero di annunci (più popolate e meno popolate)
     categorie_con_count = Categoria.objects.annotate(
@@ -145,6 +160,7 @@ def home(request):
 
     return render(request, 'scambi/home.html', {
         'annunci_recenti': annunci_recenti,
+        'richieste_senza_foto': richieste_senza_foto,
         'categorie_popolari': categorie_popolari,
         'categorie_da_scoprire': categorie_da_scoprire,
         'annunci_suggeriti': annunci_suggeriti,
@@ -195,7 +211,11 @@ def lista_annunci(request):
         'pubblicato_at': 'pubblicato_at',
         'titolo': 'titolo',
     }
-    annunci = annunci.order_by(ordinamenti_validi.get(ordinamento, '-pubblicato_at'))
+    order = ordinamenti_validi.get(ordinamento, '-pubblicato_at')
+    if not (has_type_params or categoria_filtro or query or 'ordinamento' in request.GET):
+        annunci = annunci.annotate(photo_priority=_photo_priority()).order_by('photo_priority', order)
+    else:
+        annunci = annunci.order_by(order)
 
     categorie = Categoria.objects.all()
 
@@ -557,14 +577,25 @@ def ripubblica_annuncio(request, annuncio_id):
                     username=request.user.username,
                 )
 
+        uploaded_photo = False
+        if annuncio.tipo == 'offro' and not annuncio.immagine:
+            photo_form = FotoRipubblicazioneForm(request.POST, request.FILES, instance=annuncio)
+            if not photo_form.is_valid():
+                return render(request, 'scambi/ripubblica_foto.html', {'form': photo_form, 'annuncio': annuncio})
+            annuncio = photo_form.save(commit=False)
+            uploaded_photo = True
+
         annuncio.pubblicato_at = timezone.now()
         annuncio.scaduto_at = None
         annuncio.disattivato_at = None
         annuncio.attivo = True
-        annuncio.save(update_fields=[
-            'pubblicato_at', 'scaduto_at', 'disattivato_at',
-            'attivo', 'moderation_status', 'last_modified',
-        ])
+        if uploaded_photo:
+            annuncio.save()  # A new image follows normal moderation.
+        else:
+            annuncio.save(update_fields=[
+                'pubblicato_at', 'scaduto_at', 'disattivato_at',
+                'attivo', 'moderation_status', 'last_modified',
+            ])
 
     messages.success(
         request,
@@ -1048,19 +1079,7 @@ def catene_scambio(request):
 
     # Aggiungi flag per i preferiti, hash e fasce pari
     for catena in catene_specifiche:
-        # Calcola se tutti gli annunci hanno la stessa fascia di prezzo
-        fasce = set()
-        for utente_info in catena.get('utenti', []):
-            # Raccogli le fasce da richiede e offerta
-            if utente_info.get('richiede') and hasattr(utente_info['richiede'], 'fascia_prezzo'):
-                if utente_info['richiede'].fascia_prezzo:
-                    fasce.add(utente_info['richiede'].fascia_prezzo)
-            if utente_info.get('offerta') and hasattr(utente_info['offerta'], 'fascia_prezzo'):
-                if utente_info['offerta'].fascia_prezzo:
-                    fasce.add(utente_info['offerta'].fascia_prezzo)
-
-        # Se c'è una sola fascia (o nessuna), gli scambi sono alla pari
-        catena['fasce_pari'] = len(fasce) <= 1
+        catena['fasce_pari'] = chain_is_equal(catena)
 
         if request.user.is_authenticated:
             # Riordina la catena in modo che l'utente loggato sia sempre il primo
@@ -1166,7 +1185,7 @@ def catene_community(request):
     )
     from .models import CalcoloMetadata, RispostaProposta
 
-    cache_key = f'community_sections_{request.user.id}'
+    cache_key = f'community_sections_bands_v2_{request.user.id}'
     ts_key = f'community_updated_{request.user.id}'
     version_key = f'community_cycle_version_{request.user.id}'
     aggiorna = request.GET.get('aggiorna') == 'true'
@@ -1235,13 +1254,7 @@ def catene_community(request):
                 continue
 
             # Arricchimento identico alla pagina tradizionale (per chain_card.html)
-            fasce = set()
-            for u in catena.get('utenti', []):
-                if u.get('richiede') and getattr(u['richiede'], 'fascia_prezzo', None):
-                    fasce.add(u['richiede'].fascia_prezzo)
-                if u.get('offerta') and getattr(u['offerta'], 'fascia_prezzo', None):
-                    fasce.add(u['offerta'].fascia_prezzo)
-            catena['fasce_pari'] = len(fasce) <= 1
+            catena['fasce_pari'] = chain_is_equal(catena)
 
             riordina_catena_per_utente(catena, request.user)
             catena_hash = genera_hash_catena(catena)
@@ -1964,19 +1977,7 @@ def le_mie_catene(request):
 
         # Aggiungi flag per preferiti e fasce pari
         for catena in catene_alta_qualita + catene_generiche:
-            # Calcola se tutti gli annunci hanno la stessa fascia di prezzo
-            fasce = set()
-            for utente_info in catena.get('utenti', []):
-                # Raccogli le fasce da richiede e offerta
-                if utente_info.get('richiede') and hasattr(utente_info['richiede'], 'fascia_prezzo'):
-                    if utente_info['richiede'].fascia_prezzo:
-                        fasce.add(utente_info['richiede'].fascia_prezzo)
-                if utente_info.get('offerta') and hasattr(utente_info['offerta'], 'fascia_prezzo'):
-                    if utente_info['offerta'].fascia_prezzo:
-                        fasce.add(utente_info['offerta'].fascia_prezzo)
-
-            # Se c'è una sola fascia (o nessuna), gli scambi sono alla pari
-            catena['fasce_pari'] = len(fasce) <= 1
+            catena['fasce_pari'] = chain_is_equal(catena)
 
             catena_hash = genera_hash_catena(catena)
             catena['is_favorita'] = catena_hash in hash_catene_preferite
@@ -2130,19 +2131,7 @@ def le_mie_catene(request):
 
         # Aggiungi flag per i preferiti, hash e fasce pari
         for catena in catene_alta_qualita + catene_generiche:
-            # Calcola se tutti gli annunci hanno la stessa fascia di prezzo
-            fasce = set()
-            for utente_info in catena.get('utenti', []):
-                # Raccogli le fasce da richiede e offerta
-                if utente_info.get('richiede') and hasattr(utente_info['richiede'], 'fascia_prezzo'):
-                    if utente_info['richiede'].fascia_prezzo:
-                        fasce.add(utente_info['richiede'].fascia_prezzo)
-                if utente_info.get('offerta') and hasattr(utente_info['offerta'], 'fascia_prezzo'):
-                    if utente_info['offerta'].fascia_prezzo:
-                        fasce.add(utente_info['offerta'].fascia_prezzo)
-
-            # Se c'è una sola fascia (o nessuna), gli scambi sono alla pari
-            catena['fasce_pari'] = len(fasce) <= 1
+            catena['fasce_pari'] = chain_is_equal(catena)
 
             if request.user.is_authenticated:
                 catena_hash = genera_hash_catena(catena)
@@ -3085,7 +3074,7 @@ def ricerca_annunci(request):
         fascia_prezzo = form.cleaned_data.get('fascia_prezzo')
         if fascia_prezzo:
             ricerca_effettuata = True
-            annunci = annunci.filter(fascia_prezzo=fascia_prezzo)
+            annunci = annunci.filter(Q(fascia_prezzo=fascia_prezzo) | Q(fascia_secondaria=fascia_prezzo))
 
         # Filtro per spedizione
         spedizione = form.cleaned_data.get('spedizione')
@@ -3575,6 +3564,7 @@ def invia_messaggio_da_annuncio(request):
 def proponi_catena(request, ciclo_id):
     """Vista AJAX per proporre/annullare interesse a una catena di scambio (toggle)"""
     raw_selection = None
+    payload = {}
     if request.content_type == 'application/json' and request.body:
         try:
             payload = json.loads(request.body)
@@ -3620,6 +3610,7 @@ def proponi_catena(request, ciclo_id):
                     selection = normalize_chain_selection(
                         ciclo,
                         raw_selection=raw_selection,
+                        require_equal=payload.get('alla_pari') is True,
                     )
                 except ChainSelectionError as exc:
                     return JsonResponse({
@@ -3693,6 +3684,12 @@ def proponi_catena(request, ciclo_id):
                     'selezione_annunci': proposta.selezione_annunci,
                     'proposal_active': proposta.stato in ACTIVE_CHAIN_PROPOSAL_STATES,
                 })
+
+            if payload.get('alla_pari') is True:
+                try:
+                    normalize_chain_selection(ciclo, proposta.selezione_annunci or None, require_equal=True)
+                except ChainSelectionError as exc:
+                    return JsonResponse({'success': False, 'error': str(exc)}, status=400)
 
             # Prima di accettare una proposta già esistente, ricontrolla che
             # la combinazione scelta sia ancora presente nel ciclo e che gli

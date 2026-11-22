@@ -147,6 +147,7 @@
                                     {{ form.fascia_prezzo }}
                                     <div id="fascia-preview" class="fascia-badge-preview"></div>
                                 </div>
+                                {% include 'scambi/partials/secondary_band.html' %}
                                 {% if form.fascia_prezzo.errors %}
                                     <div class="text-danger mt-1 small">
                                         {% for error in form.fascia_prezzo.errors %}{{ error }}{% endfor %}
@@ -184,10 +185,14 @@
                             </h5>
 
                             <!-- Input file nascosto (necessario per il form) -->
+                            <p class="form-text">Obbligatoria per gli annunci Offro. Per i Cerco è facoltativa: senza foto mostriamo l'icona della categoria.</p>
+                            {% if form.immagine.errors %}<div class="text-danger mb-2" role="alert">{{ form.immagine.errors }}</div>{% endif %}
                             <div style="display: none;">{{ form.immagine }}</div>
 
                             <!-- Zona drag & drop -->
                             <div id="drop-zone"
+                                 role="button" tabindex="0" aria-label="Scegli la foto dell'oggetto"
+                                 onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); document.getElementById('id_immagine').click(); }"
                                  onclick="document.getElementById('id_immagine').click()"
                                  ondragover="handleDragOver(event)"
                                  ondragleave="handleDragLeave(event)"
@@ -422,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateFasciaPreview() {
         const selectedValue = fasciaSelect.value;
-        const selectedText = fasciaSelect.options[fasciaSelect.selectedIndex].text;
+        const selectedText = fasciaSelect.options[fasciaSelect.selectedIndex].text.split(' · ')[0];
 
         if (!selectedValue) {
             fasciaPreview.innerHTML = '';
@@ -431,7 +436,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         fasciaPreview.innerHTML = `
             <span class="fascia-badge-full fascia-${selectedValue}">
-                <i class="fas fa-coins me-2"></i>${selectedText}
+                <i class="fas fa-layer-group me-2"></i>${selectedText}
             </span>
         `;
     }

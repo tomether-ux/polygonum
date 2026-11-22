@@ -758,6 +758,12 @@ def oggetti_compatibili_con_tipo(annuncio_offerto, annuncio_cercato):
 
 def verifica_compatibilita_prezzo(annuncio_offerto, annuncio_cercato, tolleranza_percentuale=30):
     """Verifica se i prezzi sono compatibili per uno scambio equo"""
+    from .value_bands import bands_for
+    offered_bands = bands_for(annuncio_offerto)
+    wanted_bands = bands_for(annuncio_cercato)
+    if offered_bands and wanted_bands:
+        overlap = bool(offered_bands & wanted_bands)
+        return overlap, 'fascia_comune' if overlap else 'fasce_diverse'
     prezzo_offerto = annuncio_offerto.prezzo_stimato
     prezzo_cercato = annuncio_cercato.prezzo_stimato
 
@@ -835,7 +841,9 @@ def calcola_punteggio_qualita_avanzato(annuncio_offerto, annuncio_cercato, dista
     # 2. Compatibilità prezzo (peso: 25%)
     prezzo_ok, prezzo_dettagli = verifica_compatibilita_prezzo(annuncio_offerto, annuncio_cercato)
     if prezzo_ok:
-        if "non_specificato" in prezzo_dettagli:
+        if prezzo_dettagli == 'fascia_comune':
+            punteggio += 25
+        elif "non_specificato" in prezzo_dettagli:
             punteggio += 15  # Bonus minore se prezzo non specificato
         else:
             # Più i prezzi sono simili, più punteggio

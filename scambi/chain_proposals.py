@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from django.contrib.auth.models import User
 
 from .models import Annuncio
+from .value_bands import common_bands
 
 
 @dataclass
@@ -128,7 +129,7 @@ def _load_valid_options(ciclo):
     return valid_exchanges
 
 
-def normalize_chain_selection(ciclo, raw_selection=None):
+def normalize_chain_selection(ciclo, raw_selection=None, require_equal=False):
     """
     Valida la scelta client contro le coppie precalcolate nel ciclo.
 
@@ -137,6 +138,8 @@ def normalize_chain_selection(ciclo, raw_selection=None):
     """
     valid_exchanges = _load_valid_options(ciclo)
     if not valid_exchanges:
+        if require_equal:
+            raise ChainSelectionError('Aggiorna la catena per verificare le fasce degli oggetti.')
         return {}
 
     if isinstance(raw_selection, dict):
@@ -169,6 +172,7 @@ def normalize_chain_selection(ciclo, raw_selection=None):
             selected_by_edge[edge] = pair
 
     normalized = []
+    offered_objects = []
     expected_edges = set()
     for exchange in valid_exchanges:
         edge = (exchange['da_user'], exchange['a_user'])
@@ -183,6 +187,7 @@ def normalize_chain_selection(ciclo, raw_selection=None):
             )
 
         offered = options[pair]['offerto']
+        offered_objects.append(offered)
         requested = options[pair]['richiesto']
         normalized.append({
             'da_user': exchange['da_user'],
@@ -198,6 +203,8 @@ def normalize_chain_selection(ciclo, raw_selection=None):
     if selected_by_edge and set(selected_by_edge) != expected_edges:
         raise ChainSelectionError('La combinazione selezionata è incompleta.')
 
+    if require_equal and not common_bands(offered_objects):
+        raise ChainSelectionError('Questa combinazione non è alla pari: scegli oggetti con almeno una fascia comune a tutta la catena.')
     return {'versione': 1, 'scambi': normalized}
 
 

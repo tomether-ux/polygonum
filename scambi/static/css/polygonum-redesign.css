@@ -16,6 +16,19 @@
   --pg-shadow: 0 8px 28px rgba(20, 42, 88, .07);
 }
 
+/* Value bands remain understated; amounts live in the guide and selector. */
+.fascia-v1, .fascia-v2, .fascia-v3, .fascia-v4, .fascia-v5, .fascia-v6, .fascia-v7 { background: #e8efff; color: #1749a3; }
+.fascia-v4, .fascia-v5 { background: #cbdcff; }
+.fascia-v6, .fascia-v7 { background: #a8c4ff; }
+.fascia-prezzo-select { min-width: 0; width: 100%; }
+#id_fascia_secondaria { max-width: 100%; }
+@media (max-width: 767px) {
+    #fascia-preview { display: none; }
+    .pl-loader svg { width: min(180px, 70vw); height: auto; }
+    .pl-title { font-size: 1.15rem; }
+    .card-actions { flex-wrap: wrap; }
+}
+
 html { scroll-behavior: smooth; }
 body {
   background: var(--pg-bg);

@@ -41,7 +41,7 @@ class AnnouncementLimitTests(TestCase):
             'descrizione': 'Descrizione completa dell’oggetto',
             'categoria': str(self.category.pk),
             'tipo': 'offro',
-            'fascia_prezzo': 'medio',
+            'fascia_prezzo': 'v3',
             'condizione': 'usato',
             'metodo_scambio': 'entrambi',
             'distanza_massima_km': '',
@@ -56,7 +56,7 @@ class AnnouncementLimitTests(TestCase):
             'descrizione': 'Descrizione completa dell’oggetto',
             'categoria': self.category,
             'tipo': 'offro',
-            'fascia_prezzo': 'medio',
+            'fascia_prezzo': 'v3',
             'condizione': 'usato',
             'metodo_scambio': 'entrambi',
             'attivo': True,
@@ -71,6 +71,7 @@ class AnnouncementLimitTests(TestCase):
         ))
         valid = AnnuncioForm(self.form_data(
             titolo='uno due tre quattro cinque sei sette otto',
+            tipo='cerco',
         ))
 
         self.assertFalse(too_long.is_valid())
@@ -215,6 +216,7 @@ class AnnouncementLimitTests(TestCase):
         Annuncio.objects.filter(pk=announcement.pk).update(
             pubblicato_at=old_publication,
             scaduto_at=timezone.now() - timedelta(days=1),
+            immagine='annunci/test-photo',
         )
 
         response = self.client.post(
@@ -347,7 +349,7 @@ class AnnouncementLimitTests(TestCase):
     def test_republication_preserves_pending_moderation(self):
         item = self.create_announcement(attivo=False,
             pubblicato_at=timezone.now() - timedelta(days=61))
-        Annuncio.objects.filter(pk=item.pk).update(moderation_status='pending')
+        Annuncio.objects.filter(pk=item.pk).update(moderation_status='pending', immagine='annunci/test-photo')
         self.client.post(reverse('ripubblica_annuncio', args=[item.pk]))
         item.refresh_from_db()
         self.assertEqual(item.moderation_status, 'pending')

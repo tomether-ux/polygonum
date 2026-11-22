@@ -104,6 +104,21 @@ class ChainProposalSelectionTests(TestCase):
             content_type='application/json',
         )
 
+    def test_equal_filter_validates_selected_objects_on_server(self):
+        Annuncio.objects.filter(pk=self.offer_a_1.pk).update(fascia_prezzo='v4', fascia_secondaria='v5')
+        Annuncio.objects.filter(pk=self.offer_a_2.pk).update(fascia_prezzo='v2')
+        Annuncio.objects.filter(pk=self.offer_b.pk).update(fascia_prezzo='v5')
+        invalid = self.client.post(self.url, data=json.dumps({
+            'selezione_annunci': self._selection(self.offer_a_2, self.request_b_2), 'alla_pari': True,
+        }), content_type='application/json')
+        self.assertEqual(invalid.status_code, 400)
+        self.assertFalse(PropostaCatena.objects.exists())
+        valid = self.client.post(self.url, data=json.dumps({
+            'selezione_annunci': self._selection(), 'alla_pari': True,
+        }), content_type='application/json')
+        self.assertEqual(valid.status_code, 200)
+        self.assertTrue(valid.json()['success'])
+
     def test_multiple_options_require_an_explicit_selection(self):
         response = self.client.post(
             self.url,

@@ -281,9 +281,10 @@
                         {% for opzione in scambio.opzioni %}
                         <option value="{{ opzione.offerta.id }}:{{ opzione.richiesta.id }}"
                                 data-offerto-id="{{ opzione.offerta.id }}"
+                                data-bands="{{ opzione.offerta.fascia_prezzo }},{{ opzione.offerta.fascia_secondaria }}"
                                 data-richiesto-id="{{ opzione.richiesta.id }}"
                                 {% if opzione.selezionata %}selected{% endif %}>
-                            {{ scambio.da_username }} offre “{{ opzione.offerta.titolo|truncatechars:48 }}” · {{ scambio.a_username }} cerca “{{ opzione.richiesta.titolo|truncatechars:48 }}”
+                            {{ scambio.da_username }} offre “{{ opzione.offerta.titolo|truncatechars:48 }}” ({{ opzione.offerta.fasce_display }}) · {{ scambio.a_username }} cerca “{{ opzione.richiesta.titolo|truncatechars:48 }}”
                         </option>
                         {% endfor %}
                     </select>

@@ -104,8 +104,11 @@
         if (!card) return;
         const modal = card.querySelector('.chain-selection-modal');
         const selections = [];
+        let sharedBands = null;
         modal.querySelectorAll('.exchange-option-select').forEach(function (select) {
             const option = select.options[select.selectedIndex];
+            const bands = (option.dataset.bands || '').split(',').filter(Boolean);
+            sharedBands = sharedBands === null ? bands : sharedBands.filter(band => bands.includes(band));
             selections.push({
                 da_user: Number(select.dataset.daUser),
                 a_user: Number(select.dataset.aUser),
@@ -114,6 +117,10 @@
             });
         });
         const button = card._pendingInterestButton || getButtons(card)[0];
+        if (document.getElementById('scambiAllaPari')?.checked && !sharedBands?.length) {
+            alert('Questa combinazione non è alla pari: tutti gli oggetti devono condividere almeno una fascia. Scegli altre alternative oppure disattiva il filtro Alla pari.');
+            return;
+        }
         window.chiudiSelezioneCatena(cycleId, null, false);
         submitInterest(card, button, selections);
     };
@@ -137,6 +144,7 @@
         const body = selection === null
             ? {}
             : {selezione_annunci: selection};
+        body.alla_pari = Boolean(document.getElementById('scambiAllaPari')?.checked);
 
         try {
             const response = await fetch(`/catene/proponi/${card.dataset.cicloId}/`, {

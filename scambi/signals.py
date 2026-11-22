@@ -24,6 +24,8 @@ MATCHING_RELEVANT_FIELDS = (
     'disattivato_at',
     'pubblicato_at',
     'scaduto_at',
+    'fascia_prezzo',
+    'fascia_secondaria',
     'moderation_status',
 )
 

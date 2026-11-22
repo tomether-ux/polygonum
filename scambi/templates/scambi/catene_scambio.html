@@ -20,167 +20,7 @@
             {% endif %}
         </div>
 
-        <!-- Loading Screen -->
-        <div id="loadingScreen" class="text-center py-5" style="display: none;">
-            <div class="loading-container mx-auto">
-                <!-- Custom Polygon Chain Loading Animation -->
-                <div class="chain-loader mb-4">
-                    <svg viewBox="0 0 220 220" width="220" height="220" style="margin: 0 auto; display: block;">
-                        <defs>
-                            <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-                                <stop offset="50%" style="stop-color:#4facfe;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1" />
-                            </linearGradient>
-                        </defs>
-
-                        <!-- Gruppo con trasformazione speculare rispetto all'asse Y -->
-                        <g transform="translate(220, 0) scale(-1, 1)">
-
-                        <!--
-                        POLIGONI REGOLARI CON BASE COMUNE (lato = 80px)
-                        Base condivisa: da (70, 170) a (150, 170)
-                        Centro base: x=110, y=170
-
-                        Per poligoni regolari con n lati e lato L:
-                        - Raggio del cerchio circoscritto: R = L / (2 * sin(180°/n))
-                        - I vertici sono su un cerchio di raggio R
-                        - Angolo tra vertici consecutivi: 360°/n
-
-                        TRIANGOLO (n=3, L=80):
-                        R = 80 / (2 * sin(60°)) = 80 / 1.732 = 46.19
-                        Base: y=170, Vertici base a ±40 dal centro x=110
-                        Centro: (110, 170 - 46.19*cos(30°)) = (110, 130)
-                        V1: (70, 170)
-                        V2: (150, 170)
-                        V3: (110, 130 - 46.19) = (110, 100.72)
-
-                        QUADRATO (n=4, L=80):
-                        R = 80 / (2 * sin(45°)) = 56.57
-                        V1: (70, 170)
-                        V2: (150, 170)
-                        V3: (150, 90)
-                        V4: (70, 90)
-
-                        PENTAGONO (n=5, L=80):
-                        R = 80 / (2 * sin(36°)) = 68.02
-                        Angolo base dal centro: 54° sotto orizzontale
-                        Centro: (110, 170 - 68.02*cos(54°)) = (110, 130)
-                        Angolo step: 72°
-                        V1: (70, 170) = centro + R*(sin(-54°), cos(-54°))
-                        V2: (150, 170) = centro + R*(sin(54°), cos(54°))
-                        V3: (110 + 68.02*sin(126°), 130 - 68.02*cos(126°)) = (165.02, 90)
-                        V4: (110, 130 - 68.02) = (110, 62)
-                        V5: (110 - 68.02*sin(126°), 130 - 68.02*cos(126°)) = (54.98, 90)
-
-                        ESAGONO (n=6, L=80):
-                        R = 80 / (2 * sin(30°)) = 80
-                        Centro: (110, 170 - 80*cos(60°)) = (110, 130)
-                        V1: (70, 170)
-                        V2: (150, 170)
-                        V3: (110 + 80*sin(60°), 130 - 80*0.5) = (179.28, 90)
-                        V4: (110 + 80*sin(60°), 130 - 80*1.5) = (179.28, 10)
-                        NO - RICALCOLO:
-                        Centro sul bordo inferiore del lato base
-                        V1: (70, 170)
-                        V2: (150, 170)
-                        V3: (150 + 40, 170 - 69.28) = (190, 100.72)
-                        V4: (150, 170 - 2*69.28) = (150, 31.44)
-                        V5: (70, 31.44)
-                        V6: (30, 100.72)
-                        -->
-
-                        <!-- TRIANGOLO EQUILATERO (0-0.5s) -->
-                        <path d="M 70 170 L 150 170 L 110 100.72 L 70 170"
-                              stroke="url(#lineGradient)"
-                              stroke-width="4"
-                              fill="none"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-dasharray="250"
-                              stroke-dashoffset="0">
-                            <animate attributeName="stroke-dashoffset"
-                                     values="250; 0; 0; 0; 0; 250"
-                                     keyTimes="0; 0.25; 0.5; 0.75; 0.99; 1"
-                                     dur="2s"
-                                     repeatCount="indefinite"/>
-                        </path>
-
-                        <!-- QUADRATO (0.5-1s) -->
-                        <path d="M 70 170 L 150 170 L 150 90 L 70 90 L 70 170"
-                              stroke="url(#lineGradient)"
-                              stroke-width="4"
-                              fill="none"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-dasharray="320"
-                              stroke-dashoffset="320">
-                            <animate attributeName="stroke-dashoffset"
-                                     values="320; 320; 0; 0; 0; 320"
-                                     keyTimes="0; 0.25; 0.5; 0.75; 0.99; 1"
-                                     dur="2s"
-                                     repeatCount="indefinite"/>
-                        </path>
-
-                        <!-- PENTAGONO REGOLARE (1-1.5s) -->
-                        <path d="M 70 170 L 150 170 L 174.72 93.92 L 110 46.88 L 45.28 93.92 L 70 170"
-                              stroke="url(#lineGradient)"
-                              stroke-width="4"
-                              fill="none"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-dasharray="400"
-                              stroke-dashoffset="400">
-                            <animate attributeName="stroke-dashoffset"
-                                     values="400; 400; 400; 0; 0; 400"
-                                     keyTimes="0; 0.25; 0.5; 0.75; 0.99; 1"
-                                     dur="2s"
-                                     repeatCount="indefinite"/>
-                        </path>
-
-                        <!-- ESAGONO REGOLARE (1.5-2s) -->
-                        <path d="M 70 170 L 150 170 L 190 100.72 L 150 31.44 L 70 31.44 L 30 100.72 L 70 170"
-                              stroke="url(#lineGradient)"
-                              stroke-width="4"
-                              fill="none"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-dasharray="480"
-                              stroke-dashoffset="480">
-                            <animate attributeName="stroke-dashoffset"
-                                     values="480; 480; 480; 480; 0; 480"
-                                     keyTimes="0; 0.25; 0.5; 0.75; 0.99; 1"
-                                     dur="2s"
-                                     repeatCount="indefinite"/>
-                        </path>
-
-                        </g><!-- Chiusura gruppo speculare -->
-                    </svg>
-                </div>
-
-                <h4 class="loading-title mb-3">
-                    Ricerca catene in corso...
-                </h4>
-                <p class="loading-subtitle mb-4">Analizziamo tutti gli annunci per trovare i migliori scambi</p>
-
-                <!-- Progress Bar -->
-                <div class="progress mb-3" style="height: 10px; border-radius: 10px; background: rgba(102, 126, 234, 0.1);">
-                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
-                         style="width: 0%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); border-radius: 10px;"
-                         role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                    </div>
-                </div>
-
-                <!-- Loading Steps -->
-                <div class="loading-steps">
-                    <div id="step1" class="loading-step active">⏳ Caricamento annunci...</div>
-                    <div id="step2" class="loading-step" style="display: none;">✅ Annunci caricati • ⏳ Analisi compatibilità...</div>
-                    <div id="step3" class="loading-step" style="display: none;">✅ Compatibilità verificata • ⏳ Calcolo distanze...</div>
-                    <div id="step4" class="loading-step" style="display: none;">✅ Distanze calcolate • ⏳ Generazione catene...</div>
-                    <div id="step5" class="loading-step" style="display: none;">✅ Catene generate • ⏳ Finalizzazione...</div>
-                </div>
-            </div>
-        </div>
+        <div id="loadingScreen" hidden></div>
 
         <!-- Main Content -->
         <div id="mainContent">
@@ -385,7 +225,7 @@
                             <strong>Scambi alla pari</strong>
                             <i class="fas fa-info-circle filter-info-icon"
                                data-bs-toggle="tooltip" data-bs-placement="top"
-                               title="Mostra solo le catene con oggetti della stessa fascia di prezzo, per scambi di valore equivalente."></i>
+                               title="Tutti gli oggetti scambiati devono condividere almeno una fascia di valore. Con alternative, verifica la combinazione scelta; eventuali conguagli si concordano tra partecipanti."></i>
                         </label>
                     </div>
                 </div>
@@ -730,12 +570,7 @@ function compactAllChains() {
 
 // NUOVA FUNZIONE: Carica catene dal DB per l'utente corrente
 function ricalcolaCatene() {
-    // Nascondi il contenuto principale e mostra la schermata di loading
-    document.getElementById('mainContent').style.display = 'none';
-    document.getElementById('loadingScreen').style.display = 'block';
-
-    // Simula il progresso dell'elaborazione (animazione poligoni)
-    animateProgress();
+    showPolygonumLoading();
 
     // Carica la pagina con le catene dal DB
     const currentUrl = new URL(window.location);
@@ -766,10 +601,7 @@ function ricalcolaCatene() {
         }
     }
 
-    // Delay minimo per mostrare l'animazione (1s per caricamento veloce dal DB)
-    setTimeout(() => {
-        window.location.href = currentUrl.toString();
-    }, 1000);
+    window.location.href = currentUrl.toString();
 }
 
 // Funzione legacy mantenuta per compatibilità (non più usata)
@@ -778,59 +610,6 @@ function startSearch() {
     ricalcolaCatene();
 }
 
-function animateProgress() {
-    const progressBar = document.getElementById('progressBar');
-    let progress = 0;
-
-    // Step 1: Caricamento annunci (0-20%)
-    setTimeout(() => {
-        updateProgress(20);
-        showStep(2);
-    }, 500);
-
-    // Step 2: Analisi compatibilità (20-45%)
-    setTimeout(() => {
-        updateProgress(45);
-        showStep(3);
-    }, 1000);
-
-    // Step 3: Calcolo distanze (45-70%)
-    setTimeout(() => {
-        updateProgress(70);
-        showStep(4);
-    }, 1500);
-
-    // Step 4: Generazione catene (70-90%)
-    setTimeout(() => {
-        updateProgress(90);
-        showStep(5);
-    }, 2000);
-
-    // Step 5: Finalizzazione (90-100%)
-    setTimeout(() => {
-        updateProgress(100);
-    }, 2500);
-}
-
-function updateProgress(percentage) {
-    const progressBar = document.getElementById('progressBar');
-    progressBar.style.width = percentage + '%';
-    progressBar.setAttribute('aria-valuenow', percentage);
-}
-
-function showStep(stepNumber) {
-    // Nascondi il passo precedente e mostra quello attuale
-    for (let i = 1; i <= 5; i++) {
-        const step = document.getElementById('step' + i);
-        if (i <= stepNumber) {
-            step.style.display = 'block';
-        }
-        if (i < stepNumber) {
-            // Cambia l'icona in checkmark per i passi completati
-            step.innerHTML = step.innerHTML.replace('⏳', '✅');
-        }
-    }
-}
 
 // Filtra le catene in base ai toggle di sinonimi, match esatti e scambi alla pari
 function filtraCateneSinonimi() {
@@ -2526,5 +2305,5 @@ document.addEventListener('DOMContentLoaded', function() {
     {% endif %}
 });
 </script>
-<script src="{% static 'js/chain-proposals.js' %}"></script>
+<script src="{% static 'js/chain-proposals.js' %}?v=20261122b"></script>
 {% endblock %}
