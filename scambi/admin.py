@@ -1,6 +1,8 @@
 import logging
 
 from django.contrib import admin
+from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.html import escape
 from .models import (
@@ -69,12 +71,57 @@ class ProvinciaAdmin(admin.ModelAdmin):
 class CategoriaAdmin(admin.ModelAdmin):
     list_display = ['nome', 'descrizione']
 
+class ScadenzaAnnuncioFilter(admin.SimpleListFilter):
+    title = 'scadenza'
+    parameter_name = 'scadenza'
+
+    def lookups(self, request, model_admin):
+        return [('scaduti', 'Scaduti'), ('validi', 'Non scaduti')]
+
+    def queryset(self, request, queryset):
+        expired = Q(scaduto_at__isnull=False) | Q(pubblicato_at__lte=Annuncio.cutoff_scadenza())
+        if self.value() == 'scaduti':
+            return queryset.filter(expired)
+        if self.value() == 'validi':
+            return queryset.exclude(expired)
+        return queryset
+
+
 @admin.register(Annuncio)
 class AnnuncioAdmin(admin.ModelAdmin):
-    list_display = ['titolo', 'utente', 'tipo', 'categoria', 'moderation_status', 'attivo', 'data_creazione']
-    list_filter = ['tipo', 'categoria', 'attivo', 'moderation_status']
+    list_display = ['titolo', 'utente', 'tipo', 'categoria', 'moderation_status', 'attivo', 'is_scaduto', 'pubblicato_at']
+    list_filter = [ScadenzaAnnuncioFilter, 'tipo', 'categoria', 'attivo', 'moderation_status']
     search_fields = ['titolo', 'descrizione']
-    actions = ['approve_annunci', 'reject_annunci', 'force_pending', 'resend_moderation_email']
+    actions = ['ripubblica_scaduti', 'approve_annunci', 'reject_annunci', 'force_pending', 'resend_moderation_email']
+
+    @admin.action(description='Ripubblica gli annunci scaduti approvati per 60 giorni', permissions=['change'])
+    def ripubblica_scaduti(self, request, queryset):
+        selected = queryset.count()
+        updated = 0
+        with transaction.atomic():
+            for annuncio in queryset.select_for_update().filter(
+                Q(scaduto_at__isnull=False) | Q(pubblicato_at__lte=Annuncio.cutoff_scadenza()),
+                moderation_status='approved',
+            ):
+                annuncio.pubblicato_at = timezone.now()
+                annuncio.scaduto_at = None
+                annuncio.disattivato_at = None
+                annuncio.attivo = True
+                annuncio.save(update_fields=[
+                    'pubblicato_at', 'scaduto_at', 'disattivato_at',
+                    'attivo', 'moderation_status', 'last_modified',
+                ])
+                updated += 1
+        self.message_user(request, f'{updated} annunci ripubblicati per 60 giorni. '
+                          f'{selected - updated} non modificati (non scaduti o non approvati).')
+
+    def save_model(self, request, obj, form, change):
+        if (change and 'attivo' in form.changed_data and obj.attivo
+                and obj.is_scaduto and obj.moderation_status == 'approved'):
+            obj.pubblicato_at = timezone.now()
+            obj.scaduto_at = None
+            obj.disattivato_at = None
+        super().save_model(request, obj, form, change)
 
     @admin.action(description='⏳ Forza stato "In moderazione"')
     def force_pending(self, request, queryset):

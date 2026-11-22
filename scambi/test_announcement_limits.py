@@ -1,11 +1,15 @@
 from datetime import timedelta
+from types import SimpleNamespace
+from unittest.mock import patch
 
+from django.contrib import admin
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from .forms import AnnuncioForm
+from .admin import AnnuncioAdmin
 from .models import Annuncio, Categoria, Provincia, UserProfile
 
 
@@ -219,7 +223,7 @@ class AnnouncementLimitTests(TestCase):
 
         self.assertRedirects(
             response,
-            reverse('profilo_utente', kwargs={'username': self.user.username}),
+            reverse('miei_annunci'),
             fetch_redirect_response=False,
         )
         announcement.refresh_from_db()
@@ -287,3 +291,73 @@ class AnnouncementLimitTests(TestCase):
         rejected.refresh_from_db()
         self.assertFalse(rejected.attivo)
         self.assertEqual(rejected.moderation_status, 'rejected')
+
+    def test_my_listings_show_expired_by_default_and_filter_states(self):
+        expired = self.create_announcement(titolo='Libro scaduto', attivo=True,
+            pubblicato_at=timezone.now() - timedelta(days=61))
+        paused = self.create_announcement(titolo='Libro in pausa', attivo=False)
+        active = self.create_announcement(titolo='Libro attuale')
+        response = self.client.get(reverse('miei_annunci'))
+        self.assertContains(response, 'Libro scaduto')
+        self.assertContains(response, reverse('ripubblica_annuncio', args=[expired.pk]))
+        self.assertEqual(response.context['numero_scaduti'], 1)
+        for state, expected in [('scaduti', expired), ('disattivati', paused), ('attivi', active)]:
+            response = self.client.get(reverse('miei_annunci'), {'stato': state})
+            self.assertEqual(list(response.context['annunci']), [expected])
+
+    def test_admin_batch_renews_only_expired_approved_listings(self):
+        old = timezone.now() - timedelta(days=61)
+        expired = self.create_announcement(titolo='Libro scaduto approvato', attivo=False,
+            pubblicato_at=old, scaduto_at=timezone.now(), modifiche_effettuate=3)
+        clock_expired = self.create_announcement(titolo='Libro ancora attivo scaduto', pubblicato_at=old)
+        paused = self.create_announcement(titolo='Libro disattivato manualmente', attivo=False)
+        pending = self.create_announcement(titolo='Libro da moderare', pubblicato_at=old, attivo=False)
+        rejected = self.create_announcement(titolo='Libro rifiutato', pubblicato_at=old, attivo=False)
+        Annuncio.objects.filter(pk=pending.pk).update(moderation_status='pending')
+        Annuncio.objects.filter(pk=rejected.pk).update(moderation_status='rejected')
+        model_admin = AnnuncioAdmin(Annuncio, admin.site)
+        with patch.object(model_admin, 'message_user'):
+            model_admin.ripubblica_scaduti(None, Annuncio.objects.all())
+        for item in [expired, clock_expired]:
+            item.refresh_from_db()
+            self.assertTrue(item.attivo)
+            self.assertFalse(item.is_scaduto)
+            self.assertIsNone(item.disattivato_at)
+            self.assertEqual(item.giorni_alla_scadenza, 60)
+        expired.refresh_from_db()
+        self.assertEqual(expired.modifiche_effettuate, 3)
+        for item in [paused, pending, rejected]:
+            item.refresh_from_db()
+            self.assertFalse(item.attivo)
+        self.assertEqual(pending.moderation_status, 'pending')
+        self.assertEqual(rejected.moderation_status, 'rejected')
+        self.client.logout()
+        self.assertContains(self.client.get(reverse('lista_annunci')), expired.titolo)
+
+    def test_admin_checkbox_reactivation_renews_expired_listing(self):
+        item = self.create_announcement(attivo=False,
+            pubblicato_at=timezone.now() - timedelta(days=61), scaduto_at=timezone.now())
+        item.attivo = True
+        AnnuncioAdmin(Annuncio, admin.site).save_model(
+            None, item, SimpleNamespace(changed_data=['attivo']), True)
+        item.refresh_from_db()
+        self.assertTrue(item.attivo)
+        self.assertFalse(item.is_scaduto)
+
+    def test_republication_preserves_pending_moderation(self):
+        item = self.create_announcement(attivo=False,
+            pubblicato_at=timezone.now() - timedelta(days=61))
+        Annuncio.objects.filter(pk=item.pk).update(moderation_status='pending')
+        self.client.post(reverse('ripubblica_annuncio', args=[item.pk]))
+        item.refresh_from_db()
+        self.assertEqual(item.moderation_status, 'pending')
+
+    def test_republication_requires_post_and_ownership(self):
+        other = User.objects.create_user(username='altro_utente')
+        item = self.create_announcement(utente=other, attivo=False,
+            pubblicato_at=timezone.now() - timedelta(days=61))
+        url = reverse('ripubblica_annuncio', args=[item.pk])
+        self.assertEqual(self.client.get(url).status_code, 405)
+        self.assertEqual(self.client.post(url).status_code, 404)
+        item.refresh_from_db()
+        self.assertFalse(item.attivo)

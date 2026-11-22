@@ -214,16 +214,19 @@ def miei_annunci(request):
     """Mostra tutti gli annunci dell'utente corrente"""
     tipo_filtro = request.GET.get('tipo')
     categoria_filtro = request.GET.get('categoria')
-    stato_filtro = request.GET.get('stato', 'attivi')  # Default: mostra solo annunci attivi
+    stato_filtro = request.GET.get('stato', 'tutti')
 
     # Filtra per utente corrente
     annunci = Annuncio.objects.filter(utente=request.user)
 
-    # Filtro per stato (attivi/disattivati/tutti)
+    scaduti = Q(scaduto_at__isnull=False) | Q(pubblicato_at__lte=Annuncio.cutoff_scadenza())
+    numero_scaduti = annunci.filter(scaduti).count()
     if stato_filtro == 'attivi':
-        annunci = annunci.filter(attivo=True)
+        annunci = annunci.filter(attivo=True).exclude(scaduti)
     elif stato_filtro == 'disattivati':
-        annunci = annunci.filter(attivo=False)
+        annunci = annunci.filter(attivo=False).exclude(scaduti)
+    elif stato_filtro == 'scaduti':
+        annunci = annunci.filter(scaduti)
     # Se stato_filtro == 'tutti', non filtra per attivo
 
     if tipo_filtro:
@@ -240,7 +243,8 @@ def miei_annunci(request):
         'categorie': categorie,
         'tipo_filtro': tipo_filtro,
         'categoria_filtro': categoria_filtro,
-        'stato_filtro': stato_filtro
+        'stato_filtro': stato_filtro,
+        'numero_scaduti': numero_scaduti,
     })
 
 @ratelimit(key=get_real_ip_for_ratelimit, rate='60/m', method='GET')
@@ -555,14 +559,18 @@ def ripubblica_annuncio(request, annuncio_id):
 
         annuncio.pubblicato_at = timezone.now()
         annuncio.scaduto_at = None
+        annuncio.disattivato_at = None
         annuncio.attivo = True
-        annuncio.save()
+        annuncio.save(update_fields=[
+            'pubblicato_at', 'scaduto_at', 'disattivato_at',
+            'attivo', 'moderation_status', 'last_modified',
+        ])
 
     messages.success(
         request,
         f'Annuncio "{annuncio.titolo}" ripubblicato per altri 60 giorni!',
     )
-    return redirect('profilo_utente', username=request.user.username)
+    return redirect('miei_annunci')
 
 @login_required
 @require_POST

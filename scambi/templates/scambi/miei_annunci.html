@@ -30,12 +30,19 @@
 <!-- Filtri -->
 <section class="py-4 border-bottom">
     <div class="container">
+        {% if numero_scaduti %}
+        <div class="alert alert-info">
+            Hai {{ numero_scaduti }} annunci scaduti. Puoi ripubblicarli per altri 60 giorni senza ricrearli.
+            <a class="alert-link" href="{% url 'miei_annunci' %}?stato=scaduti">Mostra gli annunci scaduti</a>
+        </div>
+        {% endif %}
         <form method="get" class="row g-3 align-items-end">
             <div class="col-md-3">
                 <label for="stato" class="form-label">Stato Annuncio</label>
                 <select name="stato" id="stato" class="form-select">
                     <option value="attivi" {% if stato_filtro == 'attivi' %}selected{% endif %}>Solo Attivi</option>
                     <option value="disattivati" {% if stato_filtro == 'disattivati' %}selected{% endif %}>Solo Disattivati</option>
+                    <option value="scaduti" {% if stato_filtro == 'scaduti' %}selected{% endif %}>Scaduti · da ripubblicare</option>
                     <option value="tutti" {% if stato_filtro == 'tutti' %}selected{% endif %}>Tutti</option>
                 </select>
             </div>
@@ -149,7 +156,7 @@
                             <form method="post" action="{% url 'ripubblica_annuncio' annuncio.id %}" style="display:inline;" onsubmit="return confirm('Ripubblicare questo annuncio per altri 60 giorni?')">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-sm btn-success" title="Ripubblica per 60 giorni">
-                                    <i class="fas fa-redo"></i>
+                                    <i class="fas fa-redo"></i> Ripubblica
                                 </button>
                             </form>
                             {% elif annuncio.attivo %}
